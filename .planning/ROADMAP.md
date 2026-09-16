@@ -1,6 +1,6 @@
 # Roadmap: gsd-dsx
 
-**Active:** none — v2.7 has not been opened (candidate scope listed under the Next section at the end of this file)
+**Active:** v2.7 Figure Pipeline — Phases 31–34 (opened 2026-09-16)
 **Shipped:** v2.6 Exploration Depth and Backlog Evidence — Phases 25–30 (2026-09-10); v2.4 Visual Excellence — Phases 21–24 (2026-09-03); v2.3 Test Catalog — Phases 17–20 (2026-09-02); v2.2 Analytic Surface — Phases 13–16 (2026-08-29); v2.0.0 DSX Validity Frame — Phases 6–12 (2026-08-28); v1.1.0–v1.5.0 — Phases 1–5
 
 > **Milestone name vs. release tag.** The DSX Validity Frame is named **v2.0.0**
@@ -21,6 +21,7 @@
 - ✅ **v2.3 Test Catalog** — Phases 17–20 (shipped 2026-09-02, tag `v2.3.0`)
 - ✅ **v2.4 Visual Excellence** — Phases 21–24 (shipped 2026-09-03, tag `v2.4.0`)
 - ✅ **v2.6 Exploration Depth and Backlog Evidence** — Phases 25–30 (shipped 2026-09-10, tag `v2.6.0`)
+- 🔄 **v2.7 Figure Pipeline** — Phases 31–34 (opened 2026-09-16; ships as tag `v2.7.0`)
 
 ## Phases
 
@@ -186,24 +187,160 @@ ledger and queue at `.planning/milestones/v2.6-LOOP-LEDGER*.md` /
 
 **v2.6 totals:** 6 phases, 16 plans. Milestone audit `passed` (`.planning/milestones/v2.6-MILESTONE-AUDIT.md`); all 6 phases verified and Nyquist-validated; cross-phase integration WIRED (4/4 seams). Catalogue 276 → 279 (three D-13 evidence mints, each under a human-read D-05 citation); known-bad corpus 39 → 42 with 15 good-control specs; full suite 1629 OK on the real interpreter.
 
+## Active milestone — v2.7 Figure Pipeline (Phases 31–34) — ACTIVE since 2026-09-16
+
+**Status:** Active — opened 2026-09-16 by operator direction after the rendered
+nine-chart smoke test of 2026-09-11 (decisions **v2.7-01** / **v2.7-02** in
+PROJECT.md). Branch `gsd/v2.7.0-figure-pipeline`, cut from `main` at `e04966e`.
+Ships as tag `v2.7.0`. Requirements REQ-P31-01 … REQ-P34-03 (22) in
+`.planning/REQUIREMENTS.md`. Full scope in `.planning/research/V2.7-SCOPE.md`
+(2026-09-16), written against the live tree at `e04966e` — the loop re-verifies
+that scope before any planning.
+
+**The measured miss this milestone answers:** nine charts, one per relationship
+family except geographic, rendered through the shipped v2.4 stack exactly as the
+cookbook models it, then opened and read. Five of nine titles clipped. Zero of
+nine carried units. Zero carried an annotation. Zero used emphasis. Two plotted
+categorical quantities on continuous axes (rank ticks at 1.5/2.5/3.5; five
+categories at 0.0–4.0 in 0.5 steps). One bar chart came out unsorted and vertical
+against this project's own documented default. **All nine passed every
+spec-level gate**, because the gate reads `ANALYSIS-SPEC.yaml`, not the picture.
+Four verified causes at file:line are in scope §1.2.
+
+**Scope boundary (do not re-litigate):** the renderer is analyst-side and
+matplotlib stays FORBIDDEN on the gate path (D-01,
+`tests/test_gate_path_hermetic.py`); the pixel check parses the sealed SVG as XML
+with the standard library and never renders or reads live data (D-02).
+Phases 31, 32 and 34 mint zero codes. Phase 33 measures every candidate against
+the corpus at all four gate points **before** the check is designed, and zero
+mints is a valid outcome that must not be talked into a mint (D-13). Catalogue
+arithmetic is additive from **279** (D-06). No vendor identity is imitated; no
+unread source is cited — the Tableau 538 piece and van Schaick's Economist
+article both returned HTTP 403 with no local copy and are therefore uncitable.
+
+**Ordering — a hard chain, no cross-phase wave parallelism:** 31 → 32 → 33 → 34.
+The renderer consumes the resolver's defaults; the pixel check needs rendered
+artifacts to check; the rewiring needs all three. Within **Phase 32** the layout
+engine and the mark-specific builders may split into parallel plans — that is the
+only parallelism this milestone allows.
+
+**Contingency (pre-agreed, scope §4):** if the BBC `bbplot` licence cannot be read
+first-hand, Phase 32 derives its band layout from the Economist/538 descriptions
+plus our own measurement and the record says so — slower, not blocked. If Phase
+33's candidates all measure as already-caught, the phase closes with zero mints
+and its golden fixtures. If the resolver needs a judgement the table cannot make,
+the table's domain narrows and the record names which cases stay agent-judged —
+never an invented rule with no source.
+
+**Coverage:** 22 of 22 v2.7 requirements mapped, exactly one phase each; 0
+unmapped, 0 orphaned.
+
+- [ ] **Phase 31: Deterministic mark resolver** - a declared data signature resolves to one mark plus its render defaults, inspectably and from a sourced table
+- [ ] **Phase 32: The renderer** - `render(spec, data)` builds the figure from its declaration; the smoke test's layout defects become unreachable, not discouraged
+- [ ] **Phase 33: The pixel check** - stdlib predicates read the sealed SVG; the nine-chart miss becomes evidence fixtures and goldens
+- [ ] **Phase 34: Rewiring and calibration** - snippets, skill and critic call the pipeline; calibration re-baselined (terminal, zero mints)
+
+### Phase 31: Deterministic mark resolver
+
+**Goal**: `dsx charts` answers "which one" as well as "which are admissible" — a
+declared data signature (input type or coarse family, relationship, category
+count, longest category label length, series count, has-time, has-interval)
+resolves through a stdlib table to exactly one mark plus its render defaults,
+with the rule row that produced it printable, and the existing alphabetical
+admissible set left untouched.
+**Depends on**: Nothing (first phase of v2.7; builds on the shipped v2.4 vocabulary)
+**Requirements**: REQ-P31-01, REQ-P31-02, REQ-P31-03, REQ-P31-04, REQ-P31-05, REQ-P31-06
+**Success Criteria** (what must be TRUE):
+
+  1. `dsx charts IT005 --relationship comparison --resolve` prints **one** mark with its render defaults (orientation, sort order, baseline rule, label mode, emphasis mode, and the uncertainty mark where the relationship is `uncertainty`) and the rule row that chose it — where today `permitted()` returns the four-member alphabetical set `bar, bullet, dot_plot, horizontal_bar` and an unattended agent takes `bar` (REQ-P31-01, REQ-P31-02, REQ-P31-05).
+  2. `permitted()` returns a byte-identical sorted set to today for every (input type × relationship) pair — the resolver is additive, proven by a golden test over all 40 input types × 11 relationships, and exit codes keep their existing contract (REQ-P31-01, REQ-P31-05).
+  3. The resolver is total and deterministic over the declared vocabulary: every pair for which `permitted()` is non-empty resolves to a mark **inside that set**, and identical inputs give identical output across runs — one test per table row plus the totality and determinism property tests (REQ-P31-04).
+  4. Every resolver row names its source in the table itself and no row states a rule no source supports; the Chart_Audit_Framework rows cite commit `c69dbf3`, never `main`; Cleveland & McGill appears as six tied ranks, never a strict seven (REQ-P31-03).
+  5. The resolver imports no matplotlib and no third-party package, and `tests/test_gate_path_hermetic.py` passes unchanged (REQ-P31-06).
+
+**Plans**: TBD
+
+### Phase 32: The renderer
+
+**Goal**: A figure is built from its declaration by code the analyst *calls* —
+`render(spec, data, *, style=…) -> Figure` in `templates/`, off the gate path,
+with a layout engine that owns the canvas and its reserved bands — so the nine
+smoke-test defects become unreachable rather than discouraged, and determinism
+(GA-2/GA-3) is preserved end to end.
+**Depends on**: Phase 31 (consumes the resolver's render defaults)
+**Requirements**: REQ-P32-01, REQ-P32-02, REQ-P32-03, REQ-P32-04, REQ-P32-05, REQ-P32-06, REQ-P32-07, REQ-P32-08
+**Success Criteria** (what must be TRUE):
+
+  1. Zero of the nine re-rendered smoke-test charts clips its title: a title longer than the canvas wraps by **measured** width into a reserved title band, proven on the smoke test's own five clipping titles, with title / subtitle / plot / footer bands reserved on every named canvas size (REQ-P32-02).
+  2. Omitting `units=` or `subtitle=` is a `TypeError` at call binding, not a silently unitless chart — the keyword-only, no-default pattern `source=` already uses for `DSX-VIZ-062`, extended to the two things zero of nine charts carried; a test asserts the `TypeError` for each (REQ-P32-03).
+  3. Each smoke-test defect is unreachable by construction and proven on the chart that exposed it: chart 05's ranks and chart 09's five categories land on categorical ticks (no 0.5-step axis), charts 02 and 07 come out sorted and oriented as the resolver directs, bar and area baselines are zero, numbers carry thousands/percent/currency formatting — and direct labels with collision avoidance, hero emphasis with the remainder greyed, declared annotations on named points and labelled reference lines exist as callable, tested functions rather than prose (REQ-P32-04, REQ-P32-05).
+  4. `render()` lives beside `templates/dsx_plotstyle.py` and is imported by **no** `GATE_PROFILES` module (a test asserts it); `save_deterministic` remains the only writer, `dsx seal` the only hashing authority, the GA-3 recipe is unchanged, and a double-render hash-equality test covers every rendered reference figure (REQ-P32-01, REQ-P32-06).
+  5. Every layout constant either names a licence read first-hand or the record states it was derived from the Economist/538 descriptions plus our own measurement — the HQ-27/HQ-33 standard applied to layout; and `sankey` is out of the representative flow set, marked reference-only in `references/chart-catalog.md` with the reason recorded, with the catalogue row-count invariant test updated to the new count (REQ-P32-07, REQ-P32-08).
+
+**Plans**: TBD
+
+### Phase 33: The pixel check
+
+**Goal**: The rendered artifact is checked, so "the gate passed" and "the chart is
+good" stop being independent — stdlib predicates over the sealed SVG parsed as
+XML, thresholds traceable to named sources, the nine-chart miss committed as
+evidence, and every candidate code measured before it is designed.
+**Depends on**: Phase 32 (needs rendered artifacts to check)
+**Requirements**: REQ-P33-01, REQ-P33-02, REQ-P33-03, REQ-P33-04, REQ-P33-05
+**Success Criteria** (what must be TRUE):
+
+  1. The predicates read a sealed SVG as XML with the standard library — no matplotlib, no third-party dependency, no live data — and decide: nothing clipped beyond the canvas box, no two text elements overlapping, a subtitle element present, a unit token present in the subtitle or an axis label. They fire on the 2026-09-11 SVGs and are silent on the Phase-32 re-renders of the same nine charts (REQ-P33-01).
+  2. Every predicate's threshold is an observable condition naming its source, with the Chart_Audit_Framework `rules/scoring-anchors.md` cited **by commit `c69dbf3`** and never as `main` — clipped-or-colliding and legend-sole-decoder-above-six as its stated caps, the ranking as its stated floor (REQ-P33-02).
+  3. The nine 2026-09-11 SVG/PNG pairs ship as committed fixtures with their per-chart defect list, and the same nine relationships have golden SVGs that a test diffs on change (REQ-P33-03).
+  4. `33-MEASUREMENT.md` carries a `VERDICT:` line per candidate, measured against the corpus at all four gate points from a fresh temp directory **before** the check was designed, and the orchestrator re-runs it rather than trusting it; a candidate the gate already catches closes with no mint (REQ-P33-04).
+  5. Any code that does mint is additive from 279, carries a D-05 citation and a structural criterion in its docstring, and names a known-bad fixture as its declared target in the same commit (the v2.5-01 family rule); zero mints is recorded as a valid outcome if that is what the measurement says (REQ-P33-05).
+
+**Plans**: TBD
+
+### Phase 34: Rewiring and calibration (terminal)
+
+**Goal**: Every caller uses the pipeline — snippets, the visualize skill and the
+critic — and the calibration numbers are re-baselined against the changed
+surface, with zero codes minted, as at Phases 12 / 20 / 30.
+**Depends on**: Phase 33 (needs the resolver, the renderer and the pixel check to wire together)
+**Requirements**: REQ-P34-01, REQ-P34-02, REQ-P34-03
+**Success Criteria** (what must be TRUE):
+
+  1. Every snippet in `references/chart-snippets.md` calls the renderer, passes units and subtitle and shows one annotation, and the extended `tests/test_snippet_catalog_routing.py` fails when a snippet hand-rolls what the renderer owns — against today's baseline of zero `set_ylabel`, zero `subtitle=`, zero `figsize`, zero `note=` and zero `annotate` across its eleven sections (REQ-P34-01).
+  2. `skills/dsx-visualize/SKILL.md` states resolve → render → seal → check and names `dsx charts --resolve` explicitly, and `agents/dsx-viz-critic.md` gains a step that **opens the rendered PNG** after the pixel check is clean — a grep of that file for `png|svg|render|image`, which matches nothing today, now matches (REQ-P34-02).
+  3. Catch rate over the known-bad corpus and false-positive rate over the good-control corpus are re-measured with the new figure cases classified, the one-sided bound stated rather than implied, and the docs re-pinned to the live corpus by the existing agreement test (REQ-P34-03).
+  4. Zero codes minted in this phase; the finding catalogue is current (`--check` exit 0), every frozen snapshot unmutated, `scripts/check.sh` green, `node install.mjs --check` green, and the full suite green on the real interpreter (REQ-P34-03).
+
+**Plans**: TBD
+
 ## Next
 
-v2.0.0, v2.2, v2.3, v2.4 and v2.6 are shipped and archived (`.planning/milestones/`);
-v2.4.1 and v2.5.0 shipped interactively on 2026-09-06 (`.planning/MILESTONES.md`).
-**No milestone is open.** Candidate scope for v2.7 — every item entry-conditioned
-under D-13, none promoted on estimate:
+v2.0.0, v2.2, v2.3, v2.4 and v2.6 are shipped and archived
+(`.planning/milestones/`); v2.4.1, v2.5.0 and v2.6.1 shipped interactively
+(`.planning/MILESTONES.md`). **v2.7 Figure Pipeline is the open milestone.**
 
-- `SEED-003` (analyst conduct, notebook execution integrity, share-vs-risk quantity
-  kinds; medium question settled 2026-09-10 — two media with an explicit boundary).
-- `SEED-001` E-27 … E-31 (entry conditions unchanged).
-- `SEED-002`'s residue — a producer-side `parse_health` block (a gate reading it is
-  a separate D-02/D-06 decision).
-- The good-control corpus: 15 specs is a thin false-positive-rate denominator
-  (one-sided 95% bound ≈0.181 on 0/15); growing it is the real fix.
-- brief §6.5 items 1–6, entry conditions unchanged (paradigm-paired items wait for
-  their mirrors, D-12a).
+Deferred to **v2.8**, every entry condition unchanged and nothing promoted on an
+estimate (D-13):
 
-Opening v2.7 is interactive: `/gsd-new-milestone`, a fresh `LOOP-BRIEF.md` /
-`LOOP-LEDGER.md` / `HUMAN-QUEUE.md`, a new `gsd/v2.7.0-*` branch cut from `main`,
-`$Branch` repointed in `scripts/run-ceremony-firing.ps1`, then removing
-`.planning/loop-logs/.paused`.
+- `SEED-001` E-27 … E-31 — deeper exploration-protocol items (E-26 shipped in v2.6
+  Phase 26).
+- `SEED-002`'s residue — a producer-side `parse_health` block; a gate reading it
+  stays a separate D-02/D-06 decision.
+- `SEED-003` — analyst conduct, notebook execution integrity, share-vs-risk
+  quantity kinds (six gate candidates, all D-13 entry-conditioned; the medium
+  question was settled 2026-09-10 — two media with an explicit boundary).
+- `SEED-004` — concurrent `DECISIONS.jsonl` writers; dormant until a scope
+  actually races two gates against one root.
+- Good-control corpus growth past 15 specs — the false-positive denominator is
+  thin (one-sided 95% bound ≈0.181 on 0/15). It lost to v2.7 on precedence, not
+  on merit; the figure miss is measured and visible to a portfolio reader.
+- EDA brief §6.5 items 1–6 — paradigm-paired items wait for their mirrors (D-12a).
+- A real Sankey ribbon implementation — if a consumer ever needs one; Phase 32
+  drops `sankey` to reference-only rather than shipping matplotlib's arrow diagram.
+
+Running v2.7 under the autonomous ceremony still needs the operator steps recorded
+in `STATE.md`: a fresh `LOOP-BRIEF.md` / `LOOP-LEDGER.md` / `HUMAN-QUEUE.md`, and
+`$Branch` in `scripts/run-ceremony-firing.ps1` repointed from the deleted
+`gsd/v2.6.0-exploration-depth` to `gsd/v2.7.0-figure-pipeline` **before**
+`.planning/loop-logs/.paused` is removed. Next planning action:
+`/gsd-plan-phase 31`.

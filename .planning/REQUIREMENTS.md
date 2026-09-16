@@ -66,17 +66,24 @@ on a rendered, viewed miss), v2.7-02 (quality is a property of code the agent ca
 
 - [ ] **REQ-P32-01** `render(spec, data, *, style=…) -> Figure` builds a figure from
   its declaration, lives in `templates/` beside `dsx_plotstyle.py` (outside the
-  hermetic `dsx/` closure), and is imported by no `GATE_PROFILES` module.
+  hermetic `dsx/` closure), and is imported by no `GATE_PROFILES` module. It is a
+  **new function alongside** `finalise_figure`, never a replacement for it:
+  `finalise_figure`'s current signature is shipped and called by the v2.4 portfolio
+  exemplar and every existing snippet, and it keeps working unchanged through this
+  milestone. Whether it is later deprecated is a Phase 34 decision, taken only once
+  every caller has been rewired.
 
 - [ ] **REQ-P32-02** A layout engine owns the canvas: named canvas sizes, reserved
   bands for title / subtitle / plot / footer, and titles wrapped by **measured**
   width so a long takeaway sentence cannot be clipped. Proven against the smoke
   test's own five clipping titles.
 
-- [ ] **REQ-P32-03** `units` and `subtitle` are keyword-only parameters with no
-  default, so omitting either is a `TypeError` at call binding — the same
-  signature-property pattern `source=` already uses for `DSX-VIZ-062`. Zero of the
-  nine smoke-test charts carried units; this makes that state unreachable.
+- [ ] **REQ-P32-03** On `render()`, `units` and `subtitle` are keyword-only
+  parameters with no default, so omitting either is a `TypeError` at call binding —
+  the same signature-property pattern `source=` already uses for `DSX-VIZ-062`.
+  Zero of the nine smoke-test charts carried units; on the new path that state is
+  unreachable. `finalise_figure`'s signature is **not** changed (REQ-P32-01), so no
+  existing caller breaks and the tree stays green between phases.
 
 - [ ] **REQ-P32-04** The renderer is correct by construction on the defects the smoke
   test exposed: categorical axes get categorical ticks (no 0.5-step rank or category
@@ -99,6 +106,8 @@ on a rendered, viewed miss), v2.7-02 (quality is a property of code the agent ca
   carries no licence file; if the upstream licence cannot be read, the band layout is
   derived from the Economist and FiveThirtyEight descriptions plus our own
   measurement, and the record says so — the HQ-27 / HQ-33 standard applied to layout.
+  **This read is the first plan of Phase 32**, before any band constant is written,
+  so the contingency fires before the work rather than after it.
 
 - [ ] **REQ-P32-08** `sankey` is removed from the representative flow set and marked
   reference-only in `references/chart-catalog.md` with the reason recorded
@@ -121,10 +130,20 @@ on a rendered, viewed miss), v2.7-02 (quality is a property of code the agent ca
   fixtures with their per-chart defect list, and the same nine relationships render
   through the new pipeline as golden SVGs that are diffed on change.
 
-- [ ] **REQ-P33-04** Every candidate check is measured against the corpus at all four
-  gate points **before** it is designed (D-13). A case the gate already catches closes
-  with no mint, and the measurement is recorded as a `VERDICT:` line in a
-  `33-MEASUREMENT.md` the orchestrator re-runs rather than trusts.
+- [ ] **REQ-P33-04** Every candidate check is measured **before** it is designed
+  (D-13), against an instrument defined for artifacts rather than specs. The v2.6
+  protocol — run a corpus *spec* at all four gate points — does not transfer, because
+  the known-bad corpus specs have no sealed SVGs and a pixel predicate reads a
+  rendered artifact. The measurement set is therefore the **twelve artifacts that
+  exist**: the nine smoke-test renders of 2026-09-11 and the three sealed exemplar
+  figures in `examples/figures/` (`activation_uplift.svg`,
+  `activation_uplift_ci.svg`, `daily_activation_trend.svg`), plus their
+  post-pipeline re-renders. For each candidate: how many of the twelve exhibit the
+  defect, and whether any existing check already fires on the owning spec. A defect
+  no artifact exhibits, or one an existing code already catches, closes with no mint.
+  Recorded as a `VERDICT:` line in `33-MEASUREMENT.md` that the orchestrator re-runs
+  rather than trusts; the four-gate-point run is recorded as not-applicable, with
+  this reason, rather than silently skipped.
 
 - [ ] **REQ-P33-05** Any minted code is additive from 279, carries a D-05 citation
   and a structural criterion in its docstring, and names a known-bad fixture as its
@@ -178,13 +197,34 @@ on a rendered, viewed miss), v2.7-02 (quality is a property of code the agent ca
 
 | Requirement | Phase | Status |
 |---|---|---|
-| REQ-P31-01 … REQ-P31-06 | Phase 31 | Pending |
-| REQ-P32-01 … REQ-P32-08 | Phase 32 | Pending |
-| REQ-P33-01 … REQ-P33-05 | Phase 33 | Pending |
-| REQ-P34-01 … REQ-P34-03 | Phase 34 | Pending |
+| REQ-P31-01 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P31-02 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P31-03 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P31-04 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P31-05 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P31-06 | Phase 31 — Deterministic mark resolver | Pending |
+| REQ-P32-01 | Phase 32 — The renderer | Pending |
+| REQ-P32-02 | Phase 32 — The renderer | Pending |
+| REQ-P32-03 | Phase 32 — The renderer | Pending |
+| REQ-P32-04 | Phase 32 — The renderer | Pending |
+| REQ-P32-05 | Phase 32 — The renderer | Pending |
+| REQ-P32-06 | Phase 32 — The renderer | Pending |
+| REQ-P32-07 | Phase 32 — The renderer | Pending |
+| REQ-P32-08 | Phase 32 — The renderer | Pending |
+| REQ-P33-01 | Phase 33 — The pixel check | Pending |
+| REQ-P33-02 | Phase 33 — The pixel check | Pending |
+| REQ-P33-03 | Phase 33 — The pixel check | Pending |
+| REQ-P33-04 | Phase 33 — The pixel check | Pending |
+| REQ-P33-05 | Phase 33 — The pixel check | Pending |
+| REQ-P34-01 | Phase 34 — Rewiring and calibration (terminal) | Pending |
+| REQ-P34-02 | Phase 34 — Rewiring and calibration (terminal) | Pending |
+| REQ-P34-03 | Phase 34 — Rewiring and calibration (terminal) | Pending |
 
-**Coverage:** 22 requirements total; mapped to phases at roadmap creation; 0 unmapped.
+**Coverage:** 22 requirements total; **22 mapped** to Phases 31–34 at roadmap
+creation (2026-09-16), exactly one phase each — 6 / 8 / 5 / 3. 0 unmapped, 0
+orphaned, 0 duplicated. Phase order is a hard chain (31 → 32 → 33 → 34); see
+`.planning/ROADMAP.md`.
 
 ---
 *Requirements defined: 2026-09-16*
-*Last updated: 2026-09-16 at milestone open*
+*Last updated: 2026-09-16 at roadmap creation (Phases 31–34 mapped)*

@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v2.7
 milestone_name: Figure Pipeline
 status: planning
-last_updated: "2026-09-16T12:05:18.398Z"
+last_updated: "2026-09-16T12:10:30.000Z"
 last_activity: 2026-09-16
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -18,7 +18,9 @@ progress:
 **Status:** **v2.7 Figure Pipeline — OPEN since 2026-09-16** (Phases 31–34, branch
 `gsd/v2.7.0-figure-pipeline` cut from `main` at `e04966e`). Opened on the measured
 nine-chart miss of 2026-09-11 (scope: `.planning/research/V2.7-SCOPE.md`; decision
-record: PROJECT.md v2.7-01/-02). Defining requirements; roadmap not yet written.
+record: PROJECT.md v2.7-01/-02). Requirements defined (22, REQ-P31-01 … REQ-P34-03);
+roadmap written 2026-09-16 — Phases 31–34, all 22 requirements mapped, 0 unmapped.
+No phase planned yet.
 **Progress:** [░░░░░░░░░░░░░░░░░░░░] v2.7 — 0/4 phases; catalogue 279 at open; corpus
 42 known-bad + 15 good-control; full suite 1633 OK at the v2.6.1 tag.
 **Predecessors:** v2.6 SHIPPED 2026-09-10 (`v2.6.0`) with the v2.6.1 liabilities
@@ -47,18 +49,20 @@ See: .planning/PROJECT.md (updated 2026-09-16; the Key Decisions table there is 
 decision log, v2.7-01 … v2.7-02 added at this open)
 
 **Core value:** Gate analytical work on validity before the data is touched.
-**Current focus:** none open. Candidate scope for v2.7 — every item entry-conditioned
-under D-13 (`.planning/ROADMAP.md` `## Next`): `SEED-003` (analyst conduct, notebook
-execution integrity, share-vs-risk quantity kinds; medium question settled 2026-09-10),
-`SEED-001` E-27 … E-31, `SEED-002`'s producer-side residue, growing the good-control
-corpus past 15, brief §6.5 items 1–6.
+**Current focus:** v2.7 Figure Pipeline — Phases 31 (deterministic mark resolver) → 32
+(the renderer) → 33 (the pixel check) → 34 (rewiring and calibration, terminal), a hard
+chain with no cross-phase parallelism (`.planning/ROADMAP.md`). Next action:
+`/gsd-plan-phase 31`. The v2.8 candidates — `SEED-001` E-27 … E-31, `SEED-002`'s
+producer-side residue, `SEED-003`, `SEED-004`, growing the good-control corpus past 15,
+brief §6.5 items 1–6 — stay deferred with every entry condition unchanged (D-13);
+they are listed in `.planning/ROADMAP.md` `## Next`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-16 — Milestone v2.7 started
+Phase: 31 — Deterministic mark resolver (first of four; not started)
+Plan: — (no plans authored; `**Plans**: TBD` for all four phases)
+Status: Roadmap written — awaiting `/gsd-plan-phase 31`
+Last activity: 2026-09-16 — v2.7 roadmap written (Phases 31–34; 22/22 requirements mapped)
 
 ## Performance Metrics
 
