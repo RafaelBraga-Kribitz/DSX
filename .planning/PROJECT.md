@@ -121,6 +121,16 @@ written profile.
   (arXiv:2508.18113) in `docs/literature/`. Catalogue unchanged at **276**. Full
   suite 1528 OK. **Development is paused** after v2.5.0 while the project is used for
   the operator's portfolio work; no milestone is open.
+- **v2.6 Exploration Depth and Backlog Evidence — SHIPPED 2026-09-10** (tag `v2.6.0`;
+  `v2.6.1` liabilities patch 2026-09-11). Catalogue **279**. Full suite 1633 OK.
+- **v2.7 Figure Pipeline — OPENED 2026-09-16** (Phases 31–34, branch
+  `gsd/v2.7.0-figure-pipeline`). Opened on a *measured* miss, not an estimate: a
+  nine-chart smoke test through the v2.4 style layer (one chart per relationship
+  family, house style, cookbook call) rendered at average quality — five of nine
+  titles clipped, no units on any chart, nothing annotated, no emphasis, an unsorted
+  vertical bar despite the project's own "horizontal, sorted" default, label
+  collisions, categorical data on numeric axes — while passing every spec-level
+  gate. Scope: `.planning/research/V2.7-SCOPE.md`.
 
 ## Shipped Milestone: v2.0.0 DSX Validity Frame (shipped 2026-08-28)
 
@@ -344,6 +354,51 @@ evidence candidates and the settled two-media conduct decision.
 
 **v3.0 (models) remains future scope** — nothing here touches it.
 
+## Current Milestone: v2.7 Figure Pipeline
+
+**Goal:** An unattended agent produces the correct chart at publication quality by
+*calling* code, not by writing it — one mark resolved from the data and the question,
+the figure built from its declaration by a layout engine, and the rendered picture
+checked before the gate reads the spec.
+
+**Why now:** v2.4 built the vocabulary, the gate and the style, and kept matplotlib
+off the gate path (correctly, D-01/D-02) — but nobody built the off-path half that
+produces the figure. `permitted()` returns an alphabetical admissible set with no
+default; `finalise_figure` stamps text without reserving space; `_check_ordering`
+passes when `category_order` is omitted; `DSX-VIZ-061` checks that units are
+declared, not shown; `dsx-viz-critic` never opens the picture. The smoke test of
+2026-09-11 is the measured miss (D-13); its nine SVG/PNG pairs are committed as
+evidence in Phase 33.
+
+**Target features:**
+- Phase 31 — Resolver: `dsx charts` gains a deterministic default (data shape,
+  relationship, category count, longest label, series count, has-time, has-interval →
+  one mark and its render defaults), a tested table; the admissible set stays.
+- Phase 32 — Renderer: `render(spec, data)` off the gate path beside
+  `templates/dsx_plotstyle.py` — fixed canvases, title/subtitle/plot/footer bands,
+  wrapping by measured width, sort, baseline, number formats, mandatory `units` and
+  `subtitle` as signature properties, direct labels with collision pushing, declared
+  annotations, hero-series emphasis; the matplotlib Sankey leaves the representative set.
+- Phase 33 — Pixel check: stdlib predicates over the sealed SVG (nothing clipped,
+  nothing colliding, subtitle present, unit token present) with the scoring anchors
+  from the operator's Chart_Audit_Framework branch (`c69dbf3`) as the observable
+  conditions; golden SVGs for the nine reference charts; any minted `DSX-VIZ-*` code
+  under D-05.
+- Phase 34 — Cookbook, skill and critic rewired to call the resolver and renderer;
+  `dsx-viz-critic` reads the PNG; calibration re-baseline (terminal).
+
+**Sources and their standing:** Chart_Audit_Framework branch
+`claude/analytics-audit-improvement-sdciz3` at `c69dbf3` (scoring anchors, chart-card
+metadata, ranking rule — `main` holds only the prototype Phase 22 already absorbed);
+BBC `bbplot::finalise_plot` (640×450, title 28 / subtitle 22 / axis 18, `#222222`,
+footer source-left) — licence **unverified, read before modelling**; FiveThirtyEight
+and Economist layout rules from the local article copies (signature bar, unit on the
+top tick only, bold zero line, red tag `Rectangle((0.02, 0.97), 0.04, 0.03)`, subtitle
+= unit + period, ≤ 6 hues, hero colour + greys). Not read: the Tableau 538 piece and
+Tim van Schaick's Economist article (403, no local copy) — never cited from memory.
+Traps: `ggthemes` (GPL), `RDeconomist` (GPL-3), the proprietary Econ Sans TTF, the
+unlicensed Economist PDFs, the licence-less 538 R theme.
+
 ## Requirements
 
 ### Validated
@@ -386,11 +441,9 @@ evidence candidates and the settled two-media conduct decision.
 
 ### Active
 
-None open. v2.7 has not been scoped. Candidate seeds, all entry-conditioned under
-D-13: `SEED-003` (analyst conduct, notebook execution integrity, share-vs-risk),
-`SEED-001` E-27 … E-31, `SEED-002`'s producer-side residue, growing the good-control
-corpus past 15, and brief §6.5 items 1–6. Earlier milestones' requirement sets are
-archived at `.planning/milestones/*-REQUIREMENTS.md`.
+v2.7 Figure Pipeline (Phases 31–34) — see `.planning/REQUIREMENTS.md`
+(REQ-P31-01 … REQ-P34-03) and `.planning/research/V2.7-SCOPE.md`. Earlier
+milestones' requirement sets are archived at `.planning/milestones/*-REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -406,6 +459,19 @@ archived at `.planning/milestones/*-REQUIREMENTS.md`.
   rows, one primary answer per declarable key) plus 15 declaration-only defect
   checks — a bounded, citable decision table, not "every named test" (Kanji
   enumerates ~100, Sheskin ~200; see `.planning/research/V2.3-V2.4-SCOPE.md` §1).
+- **Deferred to v2.8, not dropped (2026-09-16):** `SEED-003` (analyst conduct,
+  notebook integrity, share-vs-risk), `SEED-001` E-27 … E-31, `SEED-002`'s
+  producer-side `parse_health` residue, `SEED-004` (concurrent `DECISIONS.jsonl`
+  writers), growing the good-control corpus past 15, and brief §6.5 items 1–6 —
+  every entry condition unchanged. v2.7 took precedence because its miss is measured
+  (nine of nine charts) and it is the surface a portfolio reader sees first.
+- **A gate that renders** — the pixel check reads the sealed SVG as a hermetic
+  artifact (D-02); it never imports matplotlib on the gate path (D-01,
+  `tests/test_gate_path_hermetic.py`). The renderer is analyst-side, like the helper.
+- **Vendor look-alikes** — dsx reproduces the *general* charts of FiveThirtyEight,
+  The Economist and the BBC at comparable quality; it does not imitate their
+  typefaces, logos or bespoke editorial pieces, and vendors' proprietary assets in the
+  reference library are never vendored.
 - The Unified Framework playbook's `r>0.3` heuristic as a CUPED admissibility rule — not admissible under D-05 (`SURFACE.md` §8); Phase 15 cites the WSDM primary source directly instead.
 - Ratio-metric dilution (Deng & Hu 2015, Formula (3)) as a "changing-denominator" check — permanently out of scope for the declaration-only gate (no closed-form scalar, D-01/D-02); Phase 15's `DSX-MET-021` is scoped to a different defect (Simpson's-paradox-style allocation-rate shifts, Crook et al. 2009) and must not be confused with it.
 
@@ -503,6 +569,8 @@ archived at `.planning/milestones/*-REQUIREMENTS.md`.
 | **v2.6-05** Crashed-firing orphans are adopted only after independent re-verification, never trusted from the crashed firing's own claims | Three firings died mid-unit (usage limits, a dropped connection); losing the work or trusting it blind are both wrong | Delivered S4-2, S5-2, S5-4, S5-5 (loop) and the operator's S5-5 reconcile before travel — every adopted artifact re-gated on the real interpreter first |
 | **v2.6-06** Close-out runs interactively with the four documented framework defects bypassed by hand: merge by explicit branch name, plain git by explicit path, generated records read before commit, verification files read directly | Each defect has now recurred at every close since v2.2; the cost is budgeted, not rediscovered | Delivered 2026-09-10 — S7-2 sign-offs, S7-5 archive and S7-6 ship all hand-driven; accomplishment auto-extraction produced fragments a fourth time and the entry was written from the phase records |
 | **v2.6-07** Fixtures and goldens are location- and checkout-independent: a gate-read fixture never references `.planning/`; anything hashed or compared byte-for-byte is `-text` in `.gitattributes` or normalised first; a golden never carries an absolute path; the ship step re-verifies on `main` and in a fresh clone | The v2.6 ship check found five such defects, all invisible on the branch's LF working copy at a short path and all fatal on a fresh Windows clone | Delivered at ship (`e52d7da`, `0f61eb5`) — two narratives became fixture siblings; `tests/fixtures/profiler/*.csv -text`; golden `source_path` relative and compared by basename; profile pins hash LF-normalised bytes; README documents `core.longpaths`; full suite green in a fresh clone before the merge was redone |
+| **v2.7-01** A milestone on figure quality opens only on a rendered, viewed miss — never on the strength of determinism tests | Byte-reproducibility proves the bytes match, not that the picture is good; the earlier claim that the v2.4 stack "produces high-quality charts" was made without rendering one and was wrong. D-13 applied to figures: the nine-chart smoke test of 2026-09-11 is the measured miss | Recorded 2026-09-16 at open; the nine SVG/PNG pairs and the generating script become Phase 33 evidence fixtures |
+| **v2.7-02** Figure quality is a property of code the agent *calls*, not code the agent *writes*: resolver → renderer → pixel check, with `units` and `subtitle` as signature properties | Every reference examined (the operator's framework included) is doctrine a language model reads and applies freehand; freehand application is what the smoke test measured. The existing `source=` keyword already proves the signature-property pattern works | Recorded 2026-09-16 at open; Phases 31–33 deliver the three stages, Phase 34 rewires the callers |
 
 ## Non-goals
 
@@ -537,5 +605,5 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-10 — v2.6 Exploration Depth and Backlog Evidence shipped (tag
-`v2.6.0`, merge into `main` by explicit branch name); no milestone open.*
+*Last updated: 2026-09-16 — v2.7 Figure Pipeline opened (Phases 31–34, branch
+`gsd/v2.7.0-figure-pipeline`) on the measured nine-chart miss of 2026-09-11.*
