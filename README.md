@@ -1,10 +1,19 @@
 # gsd-dsx
 
-**Data science, analytics and BI rigour for [GSD Core](https://github.com/open-gsd/gsd-core).**
+```mermaid
+flowchart LR
+    discuss --> plan --> execute --> verify --> ship
+    plan -.->|"ANALYSIS-SPEC.yaml"| GP["dsx gate plan"]
+    execute -.-> GE["dsx gate execute"]
+    verify -.-> GV["dsx gate verify"]
+    ship -.-> GS["dsx gate ship"]
+```
 
-A capability overlay that specialises the GSD phase loop for analytical work. It
-installs alongside `gsd-core` — no fork, no patched workflows — and survives every
-upstream release.
+**Status:** Maintained · Python 3.9+ · GSD Core ≥ 1.6 · MIT
+
+Analytical work shipped through a generic agent loop still leaks, underpowers,
+and overclaims. `gsd-dsx` is the overlay that makes those errors blocking —
+code that runs at the gate, not advice in a prompt.
 
 ---
 
@@ -95,7 +104,14 @@ are in the [operating guide](docs/operating-guide.md).
 
 ---
 
-## What it adds to the loop
+## Architecture
+
+The overlay does not fork [GSD Core](https://github.com/open-gsd/gsd-core). It
+installs a capability whose gates are `command-exit-zero` predicates running
+`dsx gate <point>`: exit 0 passes, exit 1 blocks the loop with the findings in
+the gate message, exit 2 routes to the gate's `onError`. A spec judged bad
+stops the loop; a spec that could not be read is an operational error — the
+distinction matters, and the exit codes preserve it.
 
 ```text
   discuss ──▶ plan ──────▶ execute ──────▶ verify ──────▶ ship
@@ -110,15 +126,28 @@ are in the [operating guide](docs/operating-guide.md).
          CRITICAL         CRITICAL        HIGH           HIGH
 ```
 
-Each gate is a GSD `command-exit-zero` predicate running `dsx gate <point>`:
-exit 0 passes, exit 1 blocks the loop with the findings in the gate message,
-exit 2 routes to the gate's `onError`. A spec we judged bad stops the loop; a
-spec we could not read is an operational error — the distinction matters, and
-the exit codes preserve it.
-
 **Phases with no `ANALYSIS-SPEC.yaml` pass through untouched**, so this is safe
 to enable in a mixed repository. Set `dsx.require_spec true` in a pure analytics
 project to make the spec mandatory.
+
+Rollout, ceremony tiers, and the global-vs-per-project split are in the
+[operating guide](docs/operating-guide.md). Why the gates, the stdlib statistics
+kernel, and the YAML spec are shaped this way is under [Design notes](#design-notes).
+
+### Repository structure
+
+| Path | Responsibility |
+|---|---|
+| `capabilities/dsx/` | GSD capability manifest and gate wiring |
+| `dsx/` | Python CLI, check families, stdlib statistics kernel |
+| `agents/` | Six specialist agent briefs |
+| `skills/` | Fourteen workflow skills |
+| `templates/` | `ANALYSIS-SPEC.yaml` and the supporting templates |
+| `examples/` | Known-good and known-bad fixtures (the install self-test) |
+| `tests/` | `unittest` suite for every check family |
+| `scripts/` | Installer helpers, catalogue generator, project stamp |
+| `docs/` | Operating guide, tiers, literature notes |
+| `references/` | Finding-code catalogue generated from source |
 
 ---
 
@@ -888,4 +917,29 @@ findings until Phase 11.1 shipped the four codes that now block it.
 
 ---
 
+## Status
+
+**Status:** Maintained (v2.6.1). The overlay is released and in use; new check
+families still land behind the same fixture contract.
+
+---
+
+## License
+
 MIT. Built on [GSD Core](https://github.com/open-gsd/gsd-core) by open-gsd.
+
+---
+
+## Author
+
+<table>
+  <tr>
+    <td>
+      <strong>Rafael Braga-Kribitz</strong><br />
+      Seiersberg-Pirka, Austria · Portfolio project, 2026<br />
+      <a href="https://www.linkedin.com/in/rafaelbragakribitz/">LinkedIn</a>
+      ·
+      <a href="mailto:rafaelbragakribitz@gmail.com">rafaelbragakribitz@gmail.com</a>
+    </td>
+  </tr>
+</table>
