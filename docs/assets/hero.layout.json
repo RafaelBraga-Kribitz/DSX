@@ -5,15 +5,15 @@
   "mode": "light",
   "fonts": "Söhne from C:\\Users\\Benutzer1\\Dev\\braga-design-system-template\\public\\fonts",
   "title_size": 112,
-  "descriptor_size": 34,
+  "descriptor_size": 36,
   "attempts": 1,
   "blocks": {
     "kind": {
       "bbox": [
         72,
         72,
-        327,
-        102
+        344,
+        104
       ],
       "lines": [
         "BRAGA · FRAMEWORK"
@@ -22,10 +22,10 @@
     },
     "status": {
       "bbox": [
-        1378,
+        1368,
         72,
         1528,
-        102
+        104
       ],
       "lines": [
         "MAINTAINED"
@@ -36,11 +36,11 @@
       "bbox": [
         72,
         542,
-        981,
-        568
+        1278,
+        570
       ],
       "lines": [
-        "RUNTIME  Python 3.9+ · Node  ·  REPO  github.com/RafaelBraga-Kribitz/GSD-DSX"
+        "LICENSE  MIT  ·  RUNTIME  Python 3.9+ · Node  ·  REPO  github.com/RafaelBraga-Kribitz/GSD-DSX"
       ],
       "font": "SohneMono-Buch.otf"
     },
@@ -60,12 +60,12 @@
       "bbox": [
         72,
         326,
-        1186,
-        416
+        1153,
+        422
       ],
       "lines": [
-        "Data-science rigour for the GSD agent loop: deterministic gates that block",
-        "leakage, underpowered designs, and overclaimed results."
+        "Data-science rigour for the GSD agent loop: deterministic gates that",
+        "block leakage, underpowered designs, and overclaimed results."
       ],
       "font": "Sohne-Buch.otf"
     }
