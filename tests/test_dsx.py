@@ -5,6 +5,7 @@ Run:  python3 -m unittest discover -s tests -v
 
 from __future__ import annotations
 
+import ast
 import gc
 import io
 import json
@@ -393,6 +394,49 @@ note: >
         except ImportError:  # pragma: no cover
             self.skipTest("PyYAML not installed")
         self.assertEqual(_parse_yaml_subset(self.SAMPLE, "<test>"), yaml.safe_load(self.SAMPLE))
+
+    FLOW_IN_SEQUENCE = (
+        "results:\n"
+        "  overall_effect: -0.03\n"
+        "  segments:\n"
+        "    - { name: smb, effect: 0.021 }\n"
+        "    - { name: mid_market, effect: 0.018 }\n"
+        "metrics:\n"
+        "  - name: churn_rate\n"
+        "    reconciliation:\n"
+        "      sources:\n"
+        "        - { name: warehouse, value: 0.081 }\n"
+        "        - [a, b]\n"
+        "        - plain\n"
+    )
+
+    def test_flow_mapping_as_sequence_item(self):
+        # Regression. `- { name: smb, effect: 0.021 }` used to be split on its
+        # first ': ' as the inline key of a block mapping, yielding
+        # {"{ name": "smb, effect: 0.021 }"} — so every check reading
+        # results.segments or reconciliation.sources saw no data, and
+        # DSX-MET-011 / DSX-MET-030 vanished from the bad fixture wherever
+        # PyYAML was absent (first seen on the CPython 3.9 CI job). This
+        # assertion needs no PyYAML, so it runs on that job.
+        data = _parse_yaml_subset(self.FLOW_IN_SEQUENCE, "<test>")
+        self.assertEqual(
+            data["results"]["segments"],
+            [{"name": "smb", "effect": 0.021}, {"name": "mid_market", "effect": 0.018}],
+        )
+        self.assertEqual(
+            data["metrics"][0]["reconciliation"]["sources"],
+            [{"name": "warehouse", "value": 0.081}, ["a", "b"], "plain"],
+        )
+
+    def test_flow_mapping_as_sequence_item_matches_pyyaml(self):
+        try:
+            import yaml
+        except ImportError:
+            self.skipTest("PyYAML not installed")
+        self.assertEqual(
+            _parse_yaml_subset(self.FLOW_IN_SEQUENCE, "<test>"),
+            yaml.safe_load(self.FLOW_IN_SEQUENCE),
+        )
 
     def test_json_is_accepted(self):
         self.assertEqual(loads('{"a": 1}', suffix=".json")["a"], 1)
@@ -6613,6 +6657,22 @@ class TestPhase11_1Code(unittest.TestCase):
             original_limit = sys.getrecursionlimit()
             sys.setrecursionlimit(150)
             try:
+                # Precondition, not assumption: the property under test is
+                # "a RecursionError out of ast.parse reaches the text fallback,
+                # not a traceback". CPython 3.9 parses this chain without
+                # raising at all (measured: 3.9.23 returns a tree; 3.11+ raise),
+                # so on such an interpreter the property is vacuous and the ast
+                # path is the correct outcome. Skip rather than assert a
+                # fallback the interpreter never needed.
+                try:
+                    ast.parse(chain_expr)
+                except RecursionError:
+                    pass
+                else:
+                    self.skipTest(
+                        f"ast.parse does not raise RecursionError on this interpreter "
+                        f"({sys.version.split()[0]}); the fallback is never reached"
+                    )
                 report = self._check(tmp, entry)
             finally:
                 sys.setrecursionlimit(original_limit)
