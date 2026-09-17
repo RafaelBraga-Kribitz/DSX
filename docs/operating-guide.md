@@ -1,9 +1,15 @@
 # Operating guide
 
-How GSD-DSX and the house-style skills reach a project, how to choose a ceremony
+> **Scope.** This guide covers the GSD Core capability path — `node install.mjs`,
+> the `~/.gsd/capabilities/dsx` overlay, phase-boundary gates and ceremony tiers.
+> It is the optional, heaviest way to run DSX. The recommended path is the Claude
+> Code plugin (`/plugin install dsx@dsx`), which needs none of this: one
+> SessionStart hook, one Stop hook, skills on demand. See the README.
+
+How DSX and the house-style skills reach a project, how to choose a ceremony
 tier, and how to run several phases at once without losing track of them.
 
-Written against GSD Core 1.7.0 and GSD-DSX 2.0.0. Every claim here was checked
+Written against GSD Core 1.7.0 and DSX 2.0.0. Every claim here was checked
 against the running system rather than the reference documentation, because the
 two disagree in at least one place — see [gsd-tiers.md](gsd-tiers.md).
 
@@ -31,7 +37,7 @@ flowchart TD
         E[".claude/skills/<br/>plain-language, decision-format"]
     end
 
-    F["node install.mjs<br/>run once from the GSD-DSX repo"] --> GLOBAL
+    F["node install.mjs<br/>run once from the DSX repo"] --> GLOBAL
     G["scripts/gsd-stamp.ps1 -Project X<br/>run once per project"] --> PROJECT
 
     GLOBAL --> H["dsx gates fire<br/>dsx.enforce defaults to true"]
@@ -251,7 +257,7 @@ read.
 
 ---
 
-## 6. Propagating a change in GSD-DSX to every project
+## 6. Propagating a change in DSX to every project
 
 When the capability changes — new check, new finding code, new catalogue entry —
 this is the whole loop. Note that step 3 is *not* needed for capability changes,
@@ -259,7 +265,7 @@ only for skill or config changes.
 
 ```mermaid
 flowchart TD
-    A["change in GSD-DSX repo"] --> B["python -m pytest tests/"]
+    A["change in DSX repo"] --> B["python -m pytest tests/"]
     B --> C["node install.mjs"]
     C --> D["node install.mjs --check"]
     D --> E{"agents 6/6, skills 9/9,<br/>self-test passed?"}

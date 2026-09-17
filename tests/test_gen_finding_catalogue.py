@@ -290,9 +290,11 @@ class TestD05EnforcementFixture(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        # unittest exits 5 (not 0) when discovery finds zero tests — that IS the
-        # assertion: bad_check.py's two functions must never be collected.
-        self.assertIn("NO TESTS RAN", result.stderr, result.stderr)
+        # Zero tests collected IS the assertion: bad_check.py's two functions
+        # must never be picked up. "Ran 0 tests" is printed on every supported
+        # Python; the "NO TESTS RAN" verdict and exit 5 only arrived in 3.12,
+        # and the project promises 3.9+.
+        self.assertIn("Ran 0 tests", result.stderr, result.stderr)
         self.assertNotIn("bad_check", result.stderr)
 
     def test_collect_excludes_fixture_only_codes(self):

@@ -1,0 +1,21 @@
+# Project CI for dsx itself: unit tests, catalogue freshness, manifest
+# conformance, the good/bad fixture contract, determinism, and hook syntax.
+# All of it is scripts/check.sh — the same command a contributor runs locally.
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Full check
+        run: ./scripts/check.sh

@@ -1,10 +1,14 @@
-# gsd-dsx
+# DSX
 
-**Data science, analytics and BI rigour for [GSD Core](https://github.com/open-gsd/gsd-core).**
+**Deterministic guardrails for data science, analytics and business intelligence
+work — for any coding agent.**
 
-A capability overlay that specialises the GSD phase loop for analytical work. It
-installs alongside `gsd-core` — no fork, no patched workflows — and survives every
-upstream release.
+DSX is a contract (`ANALYSIS-SPEC.yaml`, written before the data is touched), a
+stdlib-only Python checker (`dsx`) that audits the contract and the artefacts
+against it with a three-way exit code, nine skills that load on demand, and six
+adversarial agents. It runs headless, as a Claude Code plugin, in continuous
+integration, or as a GSD Core capability. The rigour is code; the ceremony is
+optional.
 
 ---
 
@@ -16,7 +20,7 @@ random train/test split on time-ordered data invalidates the model, that three
 metrics tested at α = 0.05 carry a 14% family-wise error rate, or that a bar chart
 starting at 40 exaggerates whatever it shows.
 
-`gsd-dsx` supplies that knowledge — and, critically, supplies it as **code that
+`dsx` supplies that knowledge — and, critically, supplies it as **code that
 runs in blocking gates** rather than as advice in a prompt.
 
 ### Where the determinism goes
@@ -41,30 +45,69 @@ evidence in numbers, and a concrete fix.
 
 ---
 
+---
+
 ## Install
 
-```bash
-git clone https://github.com/RafaelBraga-Kribitz/GSD-DSX.git
-cd gsd-dsx
-node install.mjs                 # --runtime cursor|codex|opencode|... , --local
+### As a Claude Code plugin (recommended)
+
+```
+/plugin marketplace add RafaelBraga-Kribitz/GSD-DSX
+/plugin install dsx@dsx
 ```
 
-Requires GSD Core ≥ 1.6 and Python 3.9+. **No third-party Python packages** — the
-statistics kernel is stdlib-only, because a gate that breaks on a missing
-dependency is a gate that gets turned off.
+The repository is being renamed to `DSX`; GitHub redirects the old path, so
+this line keeps working before and after.
 
-The installer runs a self-test: it asserts the known-good fixture passes every
-gate and the known-bad fixture is blocked by every gate. If either fails, the
-install aborts.
+That gives you three things and nothing else:
+
+- **One always-on rule.** A SessionStart hook injects
+  [`skills/using-dsx/SKILL.md`](skills/using-dsx/SKILL.md) — 66 lines — into
+  every session: no data before a spec, no claim before `dsx audit`, and which
+  skill to invoke for which work. That is the entire per-session cost.
+- **Nine skills, loaded on demand.** `dsx-scope-analysis`, `dsx-explore-data`,
+  `dsx-design-experiment` and the rest load through the Skill tool only when the
+  work calls for them.
+- **A Stop hook that will not let the session end on a failing audit.** Before
+  the turn closes, [`hooks/stop-gate`](hooks/stop-gate) finds every
+  `ANALYSIS-SPEC.yaml` under the working directory and runs `dsx audit` on each.
+  Exit 1 blocks the stop and hands the findings back to the model. A directory
+  with no spec passes through untouched, so this is safe in a mixed repository.
+
+Requires Python 3.9+ on PATH. No third-party packages. Works on Windows through
+Git Bash via the polyglot [`hooks/run-hook.cmd`](hooks/run-hook.cmd).
+
+### In continuous integration (recommended alongside)
+
+Copy [`templates/github-workflow-dsx-gate.yml`](templates/github-workflow-dsx-gate.yml)
+to `.github/workflows/dsx-gate.yml` in any repository that holds analyses. Every
+spec is audited on every push; a finding at or above `HIGH` fails the job and
+blocks the merge. This gate costs no tokens and cannot be argued with.
+
+### Standalone
 
 ```bash
+git clone https://github.com/RafaelBraga-Kribitz/GSD-DSX.git dsx
+dsx/bin/dsx audit --spec path/to/ANALYSIS-SPEC.yaml     # 0 pass · 1 block · 2 could not run
+```
+
+### As a GSD Core capability (optional)
+
+```bash
+node install.mjs                 # --runtime cursor|codex|opencode|... , --local
 node install.mjs --check         # verify an existing install
 node install.mjs --uninstall
 ```
 
----
+Requires GSD Core ≥ 1.6. This installs the same engine as a capability overlay
+with blocking gates at `plan:post`, `execute:post`, `verify:post` and `ship:pre`,
+plus prompt fragments injected into the planner, researcher, checker, executor
+and verifier. It is the heaviest way to run DSX and the only one that gates on
+phase boundaries rather than at the end of the turn. The installer self-tests:
+the known-good fixture must pass every gate and the known-bad fixture must be
+blocked by every gate, or the install aborts.
 
-## What it adds to the loop
+#### What it adds to the GSD loop
 
 ```
   discuss ──▶ plan ──────▶ execute ──────▶ verify ──────▶ ship
@@ -88,6 +131,8 @@ the exit codes preserve it.
 **Phases with no `ANALYSIS-SPEC.yaml` pass through untouched**, so this is safe
 to enable in a mixed repository. Set `dsx.require_spec true` in a pure analytics
 project to make the spec mandatory.
+
+---
 
 ---
 
@@ -203,6 +248,12 @@ generated from the source, so it cannot drift from what the code emits.
 
 ## Agents and skills
 
+One always-on skill, [`using-dsx`](skills/using-dsx/SKILL.md): the two rules
+(spec before data, audit before claim), the exit-code contract, a routing table
+from the kind of work to the skill that owns it, and the rationalisations to
+watch for. It is injected at session start by the plugin's hook and is the only
+text paid for on every session.
+
 Six specialists, each with a narrow adversarial brief:
 
 | Agent | Role |
@@ -264,6 +315,17 @@ Add `--json` anywhere for machine-readable output. Exit codes are the contract:
 
 ## Configuration
 
+### Plugin and hooks
+
+| Variable | Default | Effect |
+|---|---|---|
+| `DSX_STOP_GATE` | `on` | `off` disables the end-of-session gate for one shell |
+| `DSX_BLOCK_ON` | `HIGH` | Minimum severity that blocks: `CRITICAL` · `HIGH` · `MEDIUM` · `LOW` |
+| `DSX_SEARCH_DEPTH` | `4` | How deep under the working directory the Stop hook looks for specs |
+| `DSX_PYTHON` | `python3` | Interpreter override |
+
+### GSD capability
+
 ```bash
 gsd config set dsx.enforce true            # master switch (default: true)
 gsd config set dsx.require_spec true       # mandatory spec (default: false)
@@ -290,11 +352,27 @@ Tier presets are in [docs/gsd-tiers.md](docs/gsd-tiers.md).
 
 ---
 
+## Bringing your own skills and agents
+
+[`intake/`](intake/README.md) is the landing zone for skills and agents written
+elsewhere. Drop a folder into `intake/skills/<name>/SKILL.md` or a file into
+`intake/agents/<name>.md`, then:
+
+```bash
+python3 scripts/intake.py                    # what is there, what collides, what overlaps
+python3 scripts/intake.py --promote <name>   # move it in and declare it in the manifest
+```
+
+Promoted skills load on demand like the shipped ones. Nothing is ever added to
+the always-on text automatically; that file stays short by hand.
+
+---
+
 ## Development
 
 ```bash
-./scripts/check.sh                           # the full gate: everything below
-python3 -m unittest discover -s tests -v     # 121 tests
+./scripts/check.sh                           # the full gate: everything below, plus hook syntax
+python3 -m unittest discover -s tests -v     # 324 tests
 python3 scripts/validate-capability.py       # manifest conformance
 python3 scripts/gen-finding-catalogue.py --write
 ```

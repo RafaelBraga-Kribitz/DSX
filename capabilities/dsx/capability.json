@@ -41,7 +41,8 @@
     "dsx-visualize",
     "dsx-chart-audit",
     "dsx-narrate",
-    "dsx-review-analysis"
+    "dsx-review-analysis",
+    "using-dsx"
   ],
   "agents": [
     "dsx-analysis-architect",

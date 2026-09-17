@@ -1,0 +1,52 @@
+# dsx gate for a repository that holds analyses.
+#
+# Copy this file to .github/workflows/dsx-gate.yml. On every push and pull
+# request it audits every ANALYSIS-SPEC in the repository. A finding at or
+# above DSX_BLOCK_ON fails the job, so the merge is blocked — not the
+# conversation. This gate costs no tokens and cannot be argued with.
+#
+# dsx is stdlib-only Python; there is nothing to pip install.
+name: dsx-gate
+on:
+  push:
+  pull_request:
+env:
+  # GitHub redirects the old URL after a repository rename, so this keeps
+  # working when GSD-DSX becomes DSX. Pin DSX_REF to a tag for reproducibility.
+  DSX_REPO: https://github.com/RafaelBraga-Kribitz/GSD-DSX
+  DSX_REF: main
+  DSX_BLOCK_ON: HIGH
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch dsx
+        run: git clone --depth 1 --branch "$DSX_REF" "$DSX_REPO" "$RUNNER_TEMP/dsx"
+      - name: Audit every ANALYSIS-SPEC
+        run: |
+          set -u
+          specs=$(find . -path ./.git -prune -o \
+            \( -name 'ANALYSIS-SPEC.yaml' -o -name 'ANALYSIS-SPEC.yml' -o -name 'ANALYSIS-SPEC.json' \) \
+            -type f -print | sort)
+          if [ -z "$specs" ]; then
+            echo "no ANALYSIS-SPEC found — nothing to gate"
+            exit 0
+          fi
+          failed=0
+          for spec in $specs; do
+            echo "::group::$spec"
+            if PYTHONPATH="$RUNNER_TEMP/dsx" python3 -m dsx audit --spec "$spec" --block-on "$DSX_BLOCK_ON"; then
+              :
+            else
+              failed=$((failed + 1))
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::$failed ANALYSIS-SPEC(s) blocked at $DSX_BLOCK_ON"
+            exit 1
+          fi
