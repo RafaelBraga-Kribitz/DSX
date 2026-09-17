@@ -396,3 +396,63 @@ never a guardrail. Accordingly `capabilities/dsx/capability.json` `hooks` stays 
 
 **Reversal condition:** if GSD Core later exposes a runtime-neutral file-change overlay
 hook, REQ-P14-05 may flip from the documented-skip branch to the hook branch.
+
+---
+
+## Configuration
+
+```bash
+gsd config set dsx.enforce true            # master switch (default: true)
+gsd config set dsx.require_spec true       # mandatory spec (default: false)
+gsd config set dsx.domain experimentation  # bias agent and reference loading
+```
+
+| Key | Default | Effect |
+|---|---|---|
+| `dsx.enforce` | `true` | Master switch for all gates |
+| `dsx.require_spec` | `false` | Fail the plan gate when a phase has no spec |
+| `dsx.viz_audit` | `true` | Audit chart specs before shipping |
+| `dsx.causal_guard` | `true` | Block causal wording the design does not support |
+| `dsx.reproducibility_gate` | `true` | Require seed, environment, data identity, entrypoint |
+| `dsx.dq_gate` | `true` | Compare `data[].assertions` to `DATA-PROFILE.yaml` |
+| `dsx.figure_seal` | `true` | Require `svg_sha256` when `artifact_path` is set |
+| `dsx.domain` | `auto` | `experimentation` · `machine_learning` · `business_intelligence` · `marketing_science` · `research` |
+| `dsx.python` | `python3` | Interpreter for the CLI |
+
+The capability installs once and is then visible from every project on the
+machine; per-project configuration is separate. [docs/operating-guide.md](operating-guide.md)
+covers that split, how to roll the setup out across several projects, how to
+pick a ceremony tier, and how the gates sit in the phase loop — with diagrams.
+Tier presets are in [docs/gsd-tiers.md](gsd-tiers.md).
+
+---
+
+## Development
+
+```bash
+./scripts/check.sh                           # the full gate: everything below
+python3 -m unittest discover -s tests -v     # 1633 tests at v2.6.1; the count grows with each phase
+python3 scripts/validate-capability.py       # manifest conformance
+python3 scripts/gen-finding-catalogue.py --write
+```
+
+**Adding a check.** Write it in the relevant `dsx/checks/*.py` module returning
+`Report` findings with a new code in that module's prefix. Add a test that proves
+it fires *and* a test that proves it does not fire on the good fixture. Regenerate
+the catalogue. Codes are never renumbered — a suppression written today stays
+valid.
+
+**The two fixtures are the contract.** `examples/good-ANALYSIS-SPEC.yaml` must
+pass every gate at every threshold; `examples/bad-ANALYSIS-SPEC.yaml` must be
+blocked by every gate. If a new check breaks the good fixture, either the check is
+wrong or the fixture has a real defect. Both are worth finding out.
+
+**Fixtures and goldens are location- and checkout-independent.** A committed,
+gate-read fixture must never reference anything under `.planning/` — that
+directory is planning history and the milestone close moves it. Anything a test
+hashes or compares byte-for-byte is either marked `-text`/`binary` in
+`.gitattributes` (the profiler's reference CSVs, the sealed figures) or normalised
+to LF before hashing, and a golden never records an absolute path — this
+repository checks out CRLF on Windows, and a pin recorded from one working copy is
+otherwise only valid on the machine that recorded it. Before tagging a release, run
+the suite on `main` after the merge and in a fresh clone, not only on the branch.
