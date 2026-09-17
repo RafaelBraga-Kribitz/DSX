@@ -75,7 +75,11 @@ def _check_atoms_under_density(
                 "Density/KDE/violin invent continuity where the data are discrete atoms. "
                 f"atomicity={visual.get('atomicity')!r}, n_unique={n_unique}."
             ),
-            remedy="Use an ECDF, stem, or strip plot instead.",
+            remedy=(
+                "Use an ECDF, stem, or strip plot instead; or split the data into "
+                "small multiples with a facet_by declaration (facet_by is orthogonal "
+                "to the mark — a declaration, not a chart type)."
+            ),
             where=f"{where}.type",
         )
 
@@ -142,7 +146,7 @@ def _check_self_correlation(
     # Patterns like a_over_b vs b, or y literally containing "/x"
     y_norm = y.replace(" ", "").lower()
     x_norm = x.replace(" ", "").lower()
-    if y_norm.endswith("/" + x_norm) or y_norm.endswith("_per_" + x_norm):
+    if y_norm.endswith(("/" + x_norm, "_per_" + x_norm)):
         report.add(
             "DSX-SMELL-011",
             "HIGH",

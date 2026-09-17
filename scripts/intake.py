@@ -28,7 +28,7 @@ STOPWORDS = {
     "a", "an", "and", "any", "are", "as", "at", "be", "before", "by", "for",
     "from", "in", "into", "is", "it", "its", "of", "on", "or", "that", "the",
     "this", "to", "use", "when", "with", "without", "you", "your", "whenever",
-    "after", "one", "someone", "else", "own", "made", "full", "without",
+    "after", "one", "someone", "else", "own", "made", "full",
 }
 OVERLAP_MIN_SHARED = 4
 
@@ -186,12 +186,12 @@ def declare_in_manifest(manifest_path: Path, key: str, name: str) -> None:
     keeps its layout. Validates the result parses before writing.
     """
     text = manifest_path.read_text(encoding="utf-8")
-    pattern = re.compile(r'("%s"\s*:\s*\[)(.*?)(\s*\])' % re.escape(key), re.DOTALL)
+    pattern = re.compile(rf'("{re.escape(key)}"\s*:\s*\[)(.*?)(\s*\])', re.DOTALL)
     match = pattern.search(text)
     if not match:
         raise SystemExit(f"intake: cannot find \"{key}\": [...] in {manifest_path}")
     head, body, tail = match.group(1), match.group(2), match.group(3)
-    if re.search(r'"%s"' % re.escape(name), body):
+    if re.search(rf'"{re.escape(name)}"', body):
         return
     stripped = body.rstrip()
     if stripped.strip():

@@ -6,7 +6,7 @@ installed or loaded. It is a staging area with a checker.
 
 ## Drop things in
 
-```
+```text
 intake/
   skills/<name>/SKILL.md        one folder per skill, SKILL.md inside
   agents/<name>.md              one file per agent

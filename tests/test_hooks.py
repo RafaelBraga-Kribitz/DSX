@@ -28,13 +28,21 @@ def run_hook(name: str, stdin: str = "", env: dict | None = None, cwd: Path | No
     return subprocess.run(
         [BASH, str(HOOKS / name)],
         input=stdin, capture_output=True, text=True, env=merged, cwd=str(cwd or ROOT),
+        check=False,
     )
 
 
 def analysis_dir(tmp: str, which: str) -> Path:
-    """Copy examples/ so relative artefacts resolve; rename one fixture to the discovered name."""
-    dst = Path(tmp) / "analysis"
-    shutil.copytree(ROOT / "examples", dst, ignore=shutil.ignore_patterns("known-bad", "__pycache__"))
+    """Copy examples/ under tmp and rename one fixture to the discovered name.
+
+    The fixtures declare sibling artefacts as repository-relative paths
+    (``examples/good-REPRO-REPORT.md``), so the copy keeps the ``examples/`` name
+    and the hook runs with ``tmp`` as its working directory, one level up — the
+    same layout as the repository root. Returns the copied examples/ folder.
+    """
+    dst = Path(tmp) / "examples"
+    shutil.copytree(ROOT / "examples", dst,
+                    ignore=shutil.ignore_patterns("known-bad", "__pycache__", "DECISIONS.jsonl"))
     (dst / f"{which}-ANALYSIS-SPEC.yaml").rename(dst / "ANALYSIS-SPEC.yaml")
     return dst
 
@@ -59,7 +67,7 @@ class TestHooksManifest(unittest.TestCase):
 
     def test_hook_scripts_parse(self):
         for name in ("session-start", "stop-gate", "run-hook.cmd"):
-            proc = subprocess.run([BASH, "-n", str(HOOKS / name)], capture_output=True, text=True)
+            proc = subprocess.run([BASH, "-n", str(HOOKS / name)], capture_output=True, text=True, check=False)
             self.assertEqual(proc.returncode, 0, f"{name}: {proc.stderr}")
 
 
@@ -94,6 +102,7 @@ class TestSessionStart(unittest.TestCase):
         proc = subprocess.run(
             [BASH, str(HOOKS / "run-hook.cmd"), "session-start"],
             capture_output=True, text=True, env={**os.environ, "CLAUDE_PLUGIN_ROOT": str(ROOT)},
+            check=False,
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         json.loads(proc.stdout)
@@ -114,15 +123,15 @@ class TestStopGate(unittest.TestCase):
 
     def test_good_spec_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "good")
-            proc = run_hook("stop-gate", stdin=payload(d), cwd=d)
+            analysis_dir(tmp, "good")
+            proc = run_hook("stop-gate", stdin=payload(Path(tmp)), cwd=Path(tmp))
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("1 ANALYSIS-SPEC(s) pass", proc.stdout)
 
     def test_bad_spec_blocks_with_findings(self):
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "bad")
-            proc = run_hook("stop-gate", stdin=payload(d), cwd=d)
+            analysis_dir(tmp, "bad")
+            proc = run_hook("stop-gate", stdin=payload(Path(tmp)), cwd=Path(tmp))
         self.assertEqual(proc.returncode, 2, proc.stdout)
         self.assertIn("BLOCKED", proc.stderr)
         self.assertIn("DSX-", proc.stderr)
@@ -131,27 +140,27 @@ class TestStopGate(unittest.TestCase):
     def test_stop_hook_active_lets_through(self):
         # Blocking twice on the same stop would loop forever.
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "bad")
-            proc = run_hook("stop-gate", stdin=payload(d, active=True), cwd=d)
+            analysis_dir(tmp, "bad")
+            proc = run_hook("stop-gate", stdin=payload(Path(tmp), active=True), cwd=Path(tmp))
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_off_switch(self):
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "bad")
-            proc = run_hook("stop-gate", stdin=payload(d), cwd=d, env={"DSX_STOP_GATE": "off"})
+            analysis_dir(tmp, "bad")
+            proc = run_hook("stop-gate", stdin=payload(Path(tmp)), cwd=Path(tmp), env={"DSX_STOP_GATE": "off"})
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_block_on_threshold_is_honoured(self):
         # The good fixture carries MEDIUM findings; raising sensitivity must block it.
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "good")
-            proc = run_hook("stop-gate", stdin=payload(d), cwd=d, env={"DSX_BLOCK_ON": "MEDIUM"})
+            analysis_dir(tmp, "good")
+            proc = run_hook("stop-gate", stdin=payload(Path(tmp)), cwd=Path(tmp), env={"DSX_BLOCK_ON": "MEDIUM"})
         self.assertEqual(proc.returncode, 2, proc.stdout)
 
     def test_malformed_payload_falls_back_to_pwd(self):
         with tempfile.TemporaryDirectory() as tmp:
-            d = analysis_dir(tmp, "bad")
-            proc = run_hook("stop-gate", stdin="this is not json", cwd=d)
+            analysis_dir(tmp, "bad")
+            proc = run_hook("stop-gate", stdin="this is not json", cwd=Path(tmp))
         self.assertEqual(proc.returncode, 2, proc.stdout)
 
     def test_spec_found_below_cwd(self):

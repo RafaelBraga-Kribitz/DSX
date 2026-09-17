@@ -17,6 +17,7 @@ from ..mathx import (
     srm_test,
 )
 from ..spec import (
+    CUPED_COVARIATE_TIMINGS,
     IDENTIFICATION_STRATEGIES,
     as_number,
     get,
@@ -82,6 +83,7 @@ def check(spec: dict, *, strict: bool = False) -> Report:
     _check_multiplicity(design, spec, report, strict=strict)
     _check_peeking(design, spec, report)
     _check_identification(design, spec, report)
+    _check_cuped(design, spec, report)
     return report
 
 
@@ -249,7 +251,7 @@ def _check_allocation(design: dict, spec: dict, report: Report) -> None:
             "CRITICAL",
             f"Sample ratio mismatch: chi2={statistic:.2f}, p={p_value:.2e}",
             detail=(
-                f"Observed split {['{:.4f}'.format(s) for s in actual_share]} against expected "
+                f"Observed split {[f'{s:.4f}' for s in actual_share]} against expected "
                 f"{expected}. A p below {SRM_ALPHA} means the assignment mechanism is broken — "
                 "bot filtering, redirect loss, logging drop or a bucketing bug. Any treatment "
                 "effect estimated from this data is confounded by whatever caused the imbalance."
@@ -362,12 +364,64 @@ def _check_guardrails(design: dict, report: Report) -> None:
 def _check_multiplicity(
     design: dict, spec: dict, report: Report, *, strict: bool = False
 ) -> None:
+    """Guard the multiplicity contract: correction coverage and family completeness.
+
+    DSX-EXP-053 (HIGH) fires when a non-empty declared family is a strict subset
+    of the reported tests — the correction then covers fewer hypotheses than were
+    actually run, and the reported metrics absent from the family are named.
+
+    Citation: reuses the multiplicity family's existing lineage — Benjamini &
+    Hochberg (1995), "Controlling the False Discovery Rate", J. R. Statist. Soc. B
+    57(1):289-300 — the same correction ontology DSX-EXP-050 rests on.
+    Structural criterion: the declared multiplicity.family must be a superset of
+    the reported results.tests metrics; a family shorter than the reported test
+    set under-declares the correction and fires DSX-EXP-053.
+    """
     family = get(design, "multiplicity.family")
     correction = get(design, "multiplicity.correction")
     tests = items(section(spec, "results"), "tests") if section(spec, "results") else []
-    n_tests = len(family) if isinstance(family, list) else 0
-    if not n_tests and tests:
-        n_tests = len(tests)
+    # Never silently undercount: a declared family with >=1 member must not
+    # suppress the results-based count. n_tests is the larger of the two so a
+    # family shorter than the reported tests still trips DSX-EXP-050 coverage.
+    n_tests = max(len(family) if isinstance(family, list) else 0, len(tests))
+
+    if isinstance(family, list) and family and len(family) < len(tests):
+        # A malformed spec can declare non-scalar family/test metrics (a list of
+        # mappings, a nested dict) or a non-dict test entry. The naming
+        # set-difference below must degrade to a controlled finding, never a
+        # gate-path TypeError/AttributeError (D-01) — every hashable/attribute
+        # site is guarded together, the one crash class hardened at once
+        # (cf. S0-6a). The count-based fire above stays on len(family)/len(tests)
+        # (D-01 max() semantics; IN-03), so no canonical verdict moves.
+        reported = {
+            t.get("metric")
+            for t in tests
+            if isinstance(t, dict)
+            and isinstance(t.get("metric"), str)
+            and not is_blank(t.get("metric"))
+        }
+        family_metrics = {m for m in family if isinstance(m, str)}
+        absent = sorted(reported - family_metrics)
+        report.add(
+            "DSX-EXP-053",
+            "HIGH",
+            f"Multiplicity family declares {len(family)} test(s) but {len(tests)} are reported",
+            detail=(
+                f"The declared family covers {len(family)} hypotheses while "
+                f"{len(tests)} tests are reported, so the correction is applied to fewer "
+                "comparisons than were run. "
+                + (
+                    f"Reported but absent from the family: {', '.join(absent)}."
+                    if absent
+                    else "The reported tests name no metric outside the family, but the "
+                    "family count still trails the reported test count."
+                )
+            ),
+            remedy="expand the multiplicity family to cover every reported test",
+            where="spec.design.multiplicity.family",
+            family_size=len(family),
+            reported_tests=len(tests),
+        )
 
     if n_tests <= 1:
         if n_tests == 1:
@@ -399,20 +453,23 @@ def _check_multiplicity(
 def _check_exploratory_looks(
     design: dict, spec: dict, report: Report, *, strict: bool
 ) -> None:
+    # No family early-return: comparisons_looked_at is audited against the
+    # reported test count whether or not a family is declared (D-02). The base
+    # is the larger of the declared family and the reported tests, so an absent
+    # family does not suppress the check.
     family = get(design, "multiplicity.family")
-    if not isinstance(family, list) or not family:
-        return
-    family_n = len(family)
     results = section(spec, "results")
     looked = as_number(results.get("comparisons_looked_at")) if results else None
     tests = items(results, "tests") if results else []
+    base = max(len(family) if isinstance(family, list) else 0, len(tests))
 
-    if looked is not None and looked > family_n:
+    if looked is not None and looked > base:
         report.add(
             "DSX-EXP-051",
             "HIGH",
-            f"comparisons_looked_at={int(looked)} exceeds multiplicity family size {family_n}",
+            f"comparisons_looked_at={int(looked)} exceeds the reported test count {base}",
             detail=(
+                f"{int(looked)} comparisons were examined but only {base} are reported. "
                 "Segment cuts and exploratory comparisons inflate the family-wise error "
                 "beyond what the declared correction covers."
             ),
@@ -422,16 +479,16 @@ def _check_exploratory_looks(
             ),
             where="spec.results.comparisons_looked_at",
             looked_at=int(looked),
-            family_size=family_n,
+            family_size=base,
         )
     elif looked is not None:
-        report.ok(f"comparisons_looked_at={int(looked)} within family size {family_n}")
+        report.ok(f"comparisons_looked_at={int(looked)} within the reported test count {base}")
 
     if strict and len(tests) >= 2 and looked is None:
         report.add(
             "DSX-EXP-052",
             "MEDIUM",
-            "Multiple tests with a declared family but comparisons_looked_at is missing",
+            "Multiple tests reported but comparisons_looked_at is missing",
             detail=(
                 "Without a count of cuts actually examined, the multiplicity family cannot "
                 "be audited against exploratory work."
@@ -449,14 +506,17 @@ def _check_peeking(design: dict, spec: dict, report: Report) -> None:
     looks = int(looks)
 
     if policy in ("", "fixed_horizon") and looks > 1:
-        inflated = inflation_from_peeking(looks, as_number(design.get("alpha")) or 0.05)
+        alpha = as_number(design.get("alpha"))
+        if alpha is None:
+            alpha = 0.05
+        inflated = inflation_from_peeking(looks, alpha)
         report.add(
             "DSX-EXP-060",
             "CRITICAL",
             f"{looks} interim looks were taken under a fixed-horizon design",
             detail=(
                 f"Repeatedly testing the same accumulating data inflates the true type-I error "
-                f"from {as_number(design.get('alpha')) or 0.05:.2f} to roughly {inflated:.2f}. "
+                f"from {alpha:.2f} to roughly {inflated:.2f}. "
                 "Any 'significant' reading here is not significant at the stated level."
             ),
             remedy=(
@@ -545,3 +605,63 @@ def _check_identification(design: dict, spec: dict, report: Report) -> None:
             ),
             where="spec.design.identification",
         )
+
+
+# ── CUPED covariate timing ───────────────────────────────────────────────────
+
+
+def _check_cuped(design: dict, spec: dict, report: Report) -> None:
+    """CUPED is only valid with a strictly pre-experiment covariate.
+
+    Citation: Deng, A., Xu, Y., Kohavi, R. & Walker, T. (2013), "Improving the
+    Sensitivity of Online Controlled Experiments by Utilizing Pre-Experiment Data",
+    WSDM '13, pp. 123-132, DOI 10.1145/2433396.2433413 — the adjustment covariate
+    must be independent of the treatment effect, i.e. measured strictly before
+    treatment. NOT the Unified Framework playbook snippet. A post-treatment covariate
+    reintroduces exactly the bias CUPED exists to remove.
+
+    Structural criterion: runs only when normalize(design.variance_adjustment) ==
+    "cuped". Fires DSX-EXP-070 (CRITICAL) when design.cuped.covariate_timing is not
+    "pre_experiment" (a recognised "post_treatment", an unrecognised value, or an
+    absent one); "pre_experiment" → report.ok. Computes nothing — the θ/ρ/variance
+    reference arithmetic lives in dsx/mathx.py and is imported by no check.
+    """
+    if not design:
+        return
+    adjustment = normalize(design.get("variance_adjustment", ""))
+    if adjustment != "cuped":
+        return
+    raw = get(design, "cuped.covariate_timing")
+    timing = normalize(raw) if not is_blank(raw) else ""
+    if timing == "pre_experiment":
+        report.ok("CUPED covariate is declared pre-experiment")
+        return
+    if timing in CUPED_COVARIATE_TIMINGS:
+        detail = (
+            "design.cuped.covariate_timing is declared 'post_treatment'. A covariate measured "
+            "after treatment is affected by the treatment, so adjusting on it biases the effect "
+            "estimate — the opposite of what CUPED is for."
+        )
+    elif not timing:
+        detail = (
+            "design.cuped.covariate_timing is absent. CUPED requires a covariate measured "
+            "strictly before treatment; an undeclared timing cannot be assumed pre-experiment."
+        )
+    else:
+        detail = (
+            f"design.cuped.covariate_timing is {raw!r}, not a recognised covariate timing "
+            f"(expected one of {sorted(CUPED_COVARIATE_TIMINGS)}). Only 'pre_experiment' is valid."
+        )
+    report.add(
+        "DSX-EXP-070",
+        "CRITICAL",
+        "CUPED declared with a covariate that is not pre-experiment",
+        detail=detail,
+        remedy=(
+            "Use a covariate measured strictly before treatment (e.g. the same metric from the "
+            "pre-experiment period) and declare design.cuped.covariate_timing: pre_experiment; "
+            "otherwise drop the CUPED adjustment."
+        ),
+        where="spec.design.cuped.covariate_timing",
+        declared_timing=str(raw),
+    )

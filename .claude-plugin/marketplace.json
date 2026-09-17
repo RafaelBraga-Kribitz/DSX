@@ -5,8 +5,8 @@
   "plugins": [
     {
       "name": "dsx",
-      "description": "ANALYSIS-SPEC contract, stdlib-only audit with a three-way exit code, nine on-demand skills, six adversarial agents, one always-on rule and a Stop hook that will not end the session on a failing audit.",
-      "version": "2.1.0",
+      "description": "ANALYSIS-SPEC contract, stdlib-only audit with a three-way exit code, fourteen on-demand skills, six adversarial agents, one always-on rule and a Stop hook that will not end the session on a failing audit.",
+      "version": "2.6.1",
       "source": "./",
       "author": { "name": "Rafael Braga" }
     }

@@ -1,6 +1,6 @@
 ---
 name: dsx-review-analysis
-description: "Adversarial end-to-end review of an analysis before it ships. Use before any readout, and when reviewing someone else's work."
+description: "Adversarial end-to-end review of an analysis before it ships. Use before any readout, and when reviewing someone else's work. Triggers: 'review this analysis', 'check before it ships', 'sanity-check this work' — routes intent without GSD phase names."
 argument-hint: "[--phase <N>] [--report <file>]"
 allowed-tools:
   - Read
@@ -18,6 +18,7 @@ Find the reason this analysis is wrong before a stakeholder does.
 <process>
 
 1. **Run the deterministic audit.** Its findings are facts, not opinions:
+
    ```bash
    dsx audit --phase-dir <phase-dir> --verbose --report <phase-dir>/DATA-REVIEW.md
    ```

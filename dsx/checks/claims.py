@@ -17,9 +17,9 @@ from pathlib import Path
 from ..findings import Report
 from ..pct_base import relative_percent_without_base
 from ..spec import (
-    CAUSAL_VERBS,
     IDENTIFICATION_STRATEGIES,
     as_number,
+    causal_verb_matches,
     get,
     is_blank,
     items,
@@ -43,7 +43,7 @@ _NUMBER_RE = re.compile(r"(\d+\.\d+|\d+)\s*(%|pp|percentage points)?")
 
 def check(
     spec: dict,
-    phase_dir: "str | None" = None,
+    phase_dir: str | None = None,
     *,
     strict: bool = False,
 ) -> Report:
@@ -81,6 +81,7 @@ def check(
         _check_causal_support(claim, ctype, strategy, strength, where, report)
         _check_evidence_pointer(claim, where, report, roots)
         _check_numeric_overlap(claim, text, tests, where, report)
+        _check_supported_by_traceability(claim, text, tests, where, report)
         _check_predictive_support(claim, ctype, spec, where, report)
         _check_generalisation(claim, text, spec, where, report)
         _check_precision(claim, text, where, report)
@@ -93,7 +94,7 @@ def check(
     return report
 
 
-def _resolve_roots(phase_dir: "str | None") -> list[Path]:
+def _resolve_roots(phase_dir: str | None) -> list[Path]:
     roots: list[Path] = []
     if phase_dir:
         roots.append(Path(phase_dir))
@@ -105,10 +106,18 @@ def _check_causal_language(
     claim: dict, text: str, ctype: str, where: str, report: Report
 ) -> None:
     lowered = text.lower()
-    hits = [verb for verb in CAUSAL_VERBS if verb in lowered]
+    hits = causal_verb_matches(lowered)
     if not hits:
         return
-    if ctype == "causal":
+    # A causal claim is licensed to name an effect, and so is a prescriptive one
+    # (a recommendation IS an intervention on an effect) — for both, the causal
+    # *language* is not the defect; the *support* is, and _check_causal_support
+    # already enforces it via DSX-CLM-020 (no identification) / DSX-CLM-021 (weak).
+    # Firing DSX-CLM-011 on a prescriptive claim double-codes one fact (D-04) and
+    # its remedy ("retype as causal") counsels a strength DOWNGRADE
+    # (prescriptive=4 > causal=3) — incoherent for a well-identified recommendation
+    # (WR-01, 11.2 code review, §4 persona round).
+    if ctype in {"causal", "prescriptive"}:
         return
     hedged = any(term in lowered for term in HEDGE_TERMS)
     if hedged and ctype == "association":
@@ -144,29 +153,81 @@ def _check_causal_language(
 def _check_causal_support(
     claim: dict, ctype: str, strategy: str, strength: str, where: str, report: Report
 ) -> None:
-    if ctype != "causal":
+    # Superset gate (D-03): a prescriptive claim recommends an intervention, so it
+    # asserts an effect AND that acting on it is warranted — it is held to the same
+    # identification standard as a causal claim, reusing DSX-CLM-020/021 with no new
+    # code. Causal's path is unchanged (strict superset, RESEARCH landmine c).
+    if ctype not in {"causal", "prescriptive"}:
         return
+    is_prescriptive = ctype == "prescriptive"
+    # Read the claim-layer identification, never validity_frame.identification.strength
+    # (D-11: a claim-layer check must not condition on the frame layer).
     claim_strategy = normalize(claim.get("identification", "")) or strategy
     if not claim_strategy or claim_strategy == "none":
-        report.add(
-            "DSX-CLM-020",
-            "CRITICAL",
-            "Causal claim with no identification strategy behind it",
-            detail=(
-                f"“{str(claim.get('text', ''))[:160]}” asserts an effect, but neither the claim "
-                "nor the design declares how confounding is ruled out."
-            ),
-            remedy=(
-                "Declare design.identification, or downgrade the claim to an association."
-            ),
-            where=where,
-        )
+        # Two literal report.add sites (not a variable title) so the finding
+        # catalogue generator's extract() keeps DSX-CLM-020 documented — mirroring
+        # the existing divergent-text codes (e.g. DSX-COH-030). The message is
+        # parameterised on claim type; the CRITICAL severity is identical.
+        if is_prescriptive:
+            report.add(
+                "DSX-CLM-020",
+                "CRITICAL",
+                "Prescriptive claim recommends an intervention with no identification strategy behind it",
+                detail=(
+                    f"“{str(claim.get('text', ''))[:160]}” recommends acting on an effect, but "
+                    "neither the claim nor the design declares how confounding is ruled out. A "
+                    "recommendation is an intervention, which needs identification — not merely "
+                    "an association."
+                ),
+                remedy=(
+                    "Declare design.identification behind the recommended intervention, or "
+                    "downgrade the claim to an association."
+                ),
+                where=where,
+            )
+        else:
+            report.add(
+                "DSX-CLM-020",
+                "CRITICAL",
+                "Causal claim with no identification strategy behind it",
+                detail=(
+                    f"“{str(claim.get('text', ''))[:160]}” asserts an effect, but neither the "
+                    "claim nor the design declares how confounding is ruled out."
+                ),
+                remedy=(
+                    "Declare design.identification, or downgrade the claim to an association."
+                ),
+                where=where,
+            )
         return
 
     claim_strength = IDENTIFICATION_STRATEGIES.get(claim_strategy, {}).get("strength", "none")
     if claim_strength == "weak":
         lowered = str(claim.get("text", "")).lower()
-        if not any(term in lowered for term in HEDGE_TERMS):
+        hedged = any(term in lowered for term in HEDGE_TERMS)
+        # A causal claim's hedging routes it out of DSX-CLM-021; a prescriptive claim's
+        # hedging does NOT — a recommendation is an action commitment, not a probabilistic
+        # statement (D-03, no hedge exemption for prescriptive). Two literal report.add
+        # sites keep DSX-CLM-021 documented in the finding catalogue.
+        remedy = (
+            "Add the conditional explicitly: 'conditional on the observed covariates, "
+            "we estimate…', and cite the sensitivity analysis."
+        )
+        if is_prescriptive:
+            report.add(
+                "DSX-CLM-021",
+                "HIGH",
+                f"Prescriptive claim recommends an intervention on a weak strategy ('{claim_strategy}')",
+                detail=(
+                    "Matching and regression adjustment identify effects only if every "
+                    "confounder is measured — an assumption no dataset can confirm. "
+                    "Recommending an intervention on that basis commits to an action, so a "
+                    "hedge does not soften it."
+                ),
+                remedy=remedy,
+                where=where,
+            )
+        elif not hedged:
             report.add(
                 "DSX-CLM-021",
                 "HIGH",
@@ -176,14 +237,11 @@ def _check_causal_support(
                     "confounder is measured — an assumption no dataset can confirm. Stating the "
                     "conclusion flatly hides that dependence."
                 ),
-                remedy=(
-                    "Add the conditional explicitly: 'conditional on the observed covariates, "
-                    "we estimate…', and cite the sensitivity analysis."
-                ),
+                remedy=remedy,
                 where=where,
             )
     else:
-        report.ok(f"causal claim supported by '{claim_strategy}' ({claim_strength})")
+        report.ok(f"{ctype} claim supported by '{claim_strategy}' ({claim_strength})")
 
 
 def _check_evidence_pointer(
@@ -386,6 +444,136 @@ def _close_enough(a: float, b: float, rel: float = 0.05, abs_tol: float = 0.0005
     return abs(a - b) / scale <= rel
 
 
+def _round_sig(x: float, sig: int) -> float:
+    """Round x to `sig` significant figures."""
+    if x == 0:
+        return 0.0
+    return round(x, -math.floor(math.log10(abs(x))) + (sig - 1))
+
+
+def _sig_figs_from_claim(claim: dict) -> int:
+    """Read claims[].rounding as significant figures, defaulting to 2 (D-28-03)."""
+    value = as_number(claim.get("rounding", 2))
+    if value is None:
+        return 2
+    sig = int(value)
+    return sig if sig >= 1 else 2
+
+
+def _reconciles_to_sig_figs(a: float, b: float, sig: int) -> bool:
+    """True iff a and b agree to `sig` significant figures AND fall within
+    DSX-CLM-033's rel-5%/abs-5e-4 window.
+
+    The significant-figures test is the tightening leg (D-28-03: `rounding` may
+    tighten per claim, never loosen); the ``_close_enough`` conjunct guarantees the
+    comparator is never LOOSER than DSX-CLM-033's window.
+    """
+    same_sig = math.isclose(
+        _round_sig(a, sig), _round_sig(b, sig), rel_tol=1e-9, abs_tol=1e-12
+    )
+    return same_sig and _close_enough(a, b)
+
+
+def _check_supported_by_traceability(
+    claim: dict, text: str, tests: list, where: str, report: Report
+) -> None:
+    """Every claim magnitude must trace to its cited test (DSX-CLM-034).
+
+    Citation: Wilkinson, L. & the Task Force on Statistical Inference (1999),
+    American Psychologist 54(8):594-604. This is the MOTIVATING PRINCIPLE only
+    ("Always present effect sizes for primary outcomes"; "Interval estimates should
+    be given for any effect sizes involving principal outcomes"). Wilkinson mandates
+    *reporting* effect sizes and intervals for primary outcomes; it does NOT mandate
+    any numeric-overlap mechanism, and this check does not claim it does.
+
+    Structural criterion: a declaration-level traceability corollary of that
+    principle. When a claim declares ``supported_by`` (the ``metric`` of the
+    ``results.tests[]`` entry it rests on), every numeric literal in the claim text
+    must trace to a reported number of THAT specific cited test -- its effect, the
+    x100 percent/proportion scale bridge DSX-CLM-033 already uses, or a CI bound --
+    to ``claims[].rounding`` significant figures (default 2). This is a
+    text-to-declared-number overlap (the DSX-REP-061 mould), never a recomputation:
+    the gate reads only declared numbers and runs nothing. It resolves numbers from
+    ONLY the named test(s), not the all-tests union DSX-CLM-033 uses.
+
+    Tolerance / tie-break contract: a literal ``L`` reconciles with a cited number
+    ``T`` iff they agree when both are rounded to ``rounding`` significant figures
+    AND they fall within DSX-CLM-033's rel-5%/abs-5e-4 window. The sig-figs leg is
+    only ever TIGHTER than that window (``rounding`` may tighten per claim, never
+    loosen). A literal agreeing to exactly ``rounding`` significant figures is
+    silent; one disagreeing at the last significant figure fires.
+
+    Bounded-catch honesty: this catches only via a STRAY claim number that lies
+    outside the cited test -- never via metric-identity. A claim whose every number
+    happens to sit inside the one cited test still passes, even if that test measured
+    the wrong metric. The check closes "a claim number absent from the cited test,"
+    not "the cited test measures the wrong metric."
+    """
+    supported_by = claim.get("supported_by")
+    if not supported_by:
+        return  # declaration-gated: absent pointer -> silent (attribution, not detection)
+    if not tests:
+        return
+
+    if isinstance(supported_by, (list, tuple)):
+        cited = [str(name) for name in supported_by if str(name).strip()]
+    else:
+        cited = [str(supported_by)] if str(supported_by).strip() else []
+    if not cited:
+        return
+
+    reference: list[float] = []
+    for test in tests:
+        if not isinstance(test, dict):
+            continue
+        if str(test.get("metric", "")) not in cited:
+            continue
+        effect = as_number(test.get("effect"))
+        if effect is not None:
+            reference.append(effect)
+            reference.append(effect * 100.0)
+        ci = test.get("ci")
+        if isinstance(ci, (list, tuple)) and len(ci) == 2:
+            for bound in ci:
+                value = as_number(bound)
+                if value is not None:
+                    reference.append(value)
+                    reference.append(value * 100.0)
+    if not reference:
+        return  # the named test(s) declare no numbers to trace against
+
+    claim_numbers = _extract_claim_magnitudes(text, claim)
+    if not claim_numbers:
+        return
+
+    rounding = _sig_figs_from_claim(claim)
+    unmatched = [
+        number
+        for number in claim_numbers
+        if not any(_reconciles_to_sig_figs(number, ref, rounding) for ref in reference)
+    ]
+    if unmatched:
+        report.add(
+            "DSX-CLM-034",
+            "HIGH",
+            "Claim magnitude does not trace to its cited test",
+            detail=(
+                f"Claim declares supported_by={cited!r} but the figure(s) "
+                f"{', '.join(f'{n:g}' for n in unmatched)} do not appear among that "
+                "test's reported numbers (effect, x100 pp/% bridge, or CI bound) to "
+                f"{rounding} significant figure(s). The magnitude is not traceable to "
+                "the cited test — it may have been copied from a different metric's row."
+            ),
+            remedy=(
+                "Point supported_by at the results.tests entry that actually reports "
+                "this magnitude, correct the claim figure, or add the covering test."
+            ),
+            where=where,
+        )
+    else:
+        report.ok("claim magnitudes trace to cited test(s)")
+
+
 def _check_predictive_support(
     claim: dict, ctype: str, spec: dict, where: str, report: Report
 ) -> None:
@@ -456,7 +644,7 @@ def _check_precision(claim: dict, text: str, where: str, report: Report) -> None
         resolution = width / 2.0
         if resolution <= 0:
             continue
-        justified = max(0, int(math.floor(-math.log10(resolution))) + 1)
+        justified = max(0, math.floor(-math.log10(resolution)) + 1)
         if decimals > justified + 1:
             report.add(
                 "DSX-CLM-060",

@@ -1,6 +1,6 @@
 ---
 name: dsx-build-model
-description: "Build a predictive model with leakage prevention designed in rather than audited for. Use for any classification, regression or forecasting task."
+description: "Build a predictive model with leakage prevention designed in rather than audited for. Use for any classification, regression or forecasting task. Triggers: 'build a model', 'predict <y> from <extract.csv>', 'train a classifier' — routes intent without GSD phase names."
 argument-hint: "[--task <type>] [--target <column>] [--time <column>]"
 allowed-tools:
   - Read
@@ -16,6 +16,32 @@ allowed-tools:
 A model whose offline score predicts its production score. Everything below
 exists to close the gap between those two numbers.
 </objective>
+
+<inputs>
+**Read `EDA.md` front-matter first when it exists** in the phase directory — a model
+designs leakage prevention in from the profile's measured suspects, dependence structure
+and categorical cardinality rather than auditing for it after the split is drawn.
+
+EDA front-matter keys read:
+
+- `leakage_suspects[]`
+- `grain.implied_dependence.structure`
+- `grain.implied_dependence.cluster_var`
+- `segments_candidates[]`
+
+DATA-PROFILE keys read (the fallback source when EDA is absent):
+
+- `columns[].n_unique`
+- `columns[].dtype`
+- `columns[].categorical`
+- `unit.rows_per_unit`
+- `time.column`
+- `time.max_gap_days`
+
+These set: `model.features_excluded_for_leakage` (from the leakage suspects), the split type — temporal, grouped, or `grouped_temporal` (from the dependence structure, cluster variable and time column), the `entity_column` (from the cluster variable and rows-per-unit), and the encoding policy (from categorical cardinality and dtype).
+Also consult (EDA prose, not front-matter): section 4 Wide categoricals — the policy recommendation informing the encoding choice.
+When absent: no `EDA.md` → record `eda_artifact: none` and source the leakage-suspect, dependence and cardinality facts from the DATA-PROFILE keys above; where the profile is also absent, declare each with `computed_by` honesty rather than asserting a clean split.
+</inputs>
 
 <order_of_operations>
 The sequence is not stylistic. Each step makes the next one checkable.
@@ -34,7 +60,11 @@ The sequence is not stylistic. Each step makes the next one checkable.
 
 4. **Choose the primary metric before training.** For an imbalanced target,
    accuracy and ROC-AUC both flatter. Use PR-AUC or balanced accuracy. For
-   regression, pair R² with an error metric in the target's own units.
+   regression, pair R² with an error metric in the target's own units. If that
+   primary metric is an error measure — RMSE, MAE, MAPE, log loss — declare
+   `model.metric_direction: lower_is_better`. The gate compares scores but does
+   not guess which way they point, so leaving it out makes a halved error read
+   as a loss against the baseline.
 
 5. **Build features inside a pipeline.** Every transform fitted on the training
    fold only. This is not a style preference — a scaler fitted on the full frame

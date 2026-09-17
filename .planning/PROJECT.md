@@ -46,10 +46,85 @@ written profile.
   decidable (DQ, evidence, coherence, viz/seals/smells, narrative/code, analytical
   logic / stats extensions including decision replay and repro_lock, plus scored
   CHART-REVIEW and ADR-authorised suppressions).
+- **v2.0.0 DSX Validity Frame — SHIPPED 2026-08-28** (tag `v2.1.0`). All 11 phases
+  (6, 7, 8, 9, 10, 11, 11.1, 11.1.1, 11.2, 11.3, 12) complete — 89 plans, 208 tasks.
+  Every phase is verified and Nyquist-validated; cross-phase integration INTEGRATED;
+  the milestone audit reached `passed` (75/75 requirements accounted, 0 unsatisfied,
+  0 orphaned). The full validity-frame surface gates: `validity_frame:` and
+  paradigm-aware `inference:` blocks in `ANALYSIS-SPEC.yaml`; the `DSX-VAL-*`
+  (estimand, unit triad, dependence, identification, sampling frame, missingness,
+  measurement), `DSX-INT-*` (interference/SUTVA, triggered-vs-eligible dilution,
+  novelty/primacy), `DSX-PAR-*` (paradigm manifest + symmetric monitoring pair),
+  `DSX-PRE-*` (pre-registered inference plan, declared-vs-executed branch
+  reconciliation), `DSX-ADM-*` (frequentist procedure admissibility over
+  `references/families.yaml`), the prescriptive-claim layer (`DSX-CLM-*`/
+  `DSX-COH-040`), and reporting-completeness / missing-data discipline families.
+  Phase 12 delivered the calibration corpus with a measured catch rate and
+  false-positive rate and `dsx stats --paradigm`. Full detail archived under
+  `.planning/milestones/v2.0.0-*`.
+- **v2.2 Analytic Surface — SHIPPED 2026-08-29** (tag `v2.2.0`). All 4 phases
+  (13, 14, 15, 16) complete — 20 plans. Every phase is verified (`threats_open: 0`)
+  and human-signed-off; the milestone audit reached `passed` (23/23 requirements,
+  10/10 cross-phase integration seams, Nyquist compliant, 0 unsatisfied/orphaned).
+  Delivered: four operator-facing router skills (`dsx-cohort`, `dsx-funnel`,
+  `dsx-root-cause`, `dsx-segment`) that point marketing work at existing gates
+  instead of restating them; a compounding-learnings search step and a portable
+  `DATA-DICTIONARY.md` for onboarding; CUPED as a declared, gated variance
+  adjustment (`DSX-EXP-070`, CRITICAL, post-treatment-covariate guard) and a
+  changing-denominator BI check (`DSX-MET-021`, HIGH), both under full D-05
+  primary-source citation discipline; and off-gate-path re-run verification via
+  the new `dsx-reproduce` skill (`DSX-REP-060`/`061`, both HIGH). Package version
+  is still 2.0.0 (v2.2 is additive, not a breaking contract change — see Version
+  rationale below). The finding catalogue now holds **260 codes**, grown
+  additively from 256 with the frozen Phase-12 snapshot unmutated. Full detail
+  archived under `.planning/milestones/v2.2-*`.
+- **v2.3 Test Catalog — SHIPPED 2026-09-02** (tag `v2.3.0`). All 4 phases
+  (17, 18, 19, 20) complete — 11 plans. Every phase is verified (`threats_open: 0`
+  across 54 threats, all seven HIGH) and human-signed-off; the milestone audit
+  reached `passed` (22/22 requirements, 5/5 cross-phase integration seams,
+  Nyquist compliant, 0 unsatisfied/orphaned). Delivered: the `recommend_test`
+  decision table grew from ~15 to ~75 rows across 11 categories, backed by 15 new
+  declaration-only gate checks (`DSX-STA-050`…`122`) under full D-05 citation
+  discipline — every citation independently re-verified against primary sources
+  before shipping (27 citations checked, 7 corrected). The finding catalogue now
+  holds **275 codes**, grown additively from 260 with both frozen snapshots
+  (Phase-12 at 256, v2.2's set) unmutated. Full detail archived under
+  `.planning/milestones/v2.3-*`.
+- **v2.4 Visual Excellence — SHIPPED 2026-09-03** (tag `v2.4.0`). All 4 phases
+  (21, 22, 23, 24) complete — 11 plans. Every phase is verified (`threats_open: 0`
+  across 36 threats) and human-signed-off; the milestone audit reached `passed`
+  (16/16 requirements, 5/5 cross-phase integration seams, Nyquist compliant, 0
+  unsatisfied/orphaned). Delivered: an 81-row merged chart catalog across five
+  named taxonomies with three citable axes per entry; Wilke's real 10-mark
+  uncertainty vocabulary as an 11th `RELATIONSHIP_CHARTS` key; a 5-layer
+  question→chart selection heuristic with Cleveland & McGill's real 6-rank tied
+  perceptual ordering; a license-audited style layer (four `.mplstyle` files,
+  one vendored OFL font, a proven SVG-determinism recipe); a snippet catalog
+  routing to existing codes; and a portfolio exemplar upgraded in place with a
+  real 95%-CI uncertainty figure plus the project's first bad-chart-choice
+  fixtures. Two independent verification rounds caught defects before ship: 7
+  of 13 D-05 citations needed correction (HQ-27), and a house-default style's
+  palette license/attribution was found wrong and corrected (HQ-33). The
+  finding catalogue now holds **276 codes**, grown additively from 275 with all
+  three frozen snapshots (Phase-12 at 256, v2.2's set, v2.3's set) unmutated.
+  Full detail archived under `.planning/milestones/v2.4-*`.
+- **v2.4.1 and v2.5.0 — SHIPPED 2026-09-06** (tags `v2.4.1` on `07d3db0`, `v2.5.0`
+  on `ad43ec6`), both executed interactively by operator direction rather than
+  through the ceremony. v2.4.1 fixed an inverted verdict in four ML checks for
+  lower-is-better metrics via a declared `model.metric_direction`. v2.5.0 closed the
+  post-ship audit's last escalated item — every one of the 21 `DSX-VIZ-*` codes is
+  now the declared target of a known-bad fixture (19 added; corpus 20 → 39), with a
+  LOW stratum, positive MEDIUM/LOW guards and a family-wide every-code-has-a-fixture
+  invariant — fixed the installer self-test (which had failed on every fresh install
+  since Phase 10) and its trail leak, re-synced the installed skill and agent copies,
+  and recorded the project's engagement with *The AI Data Scientist*
+  (arXiv:2508.18113) in `docs/literature/`. Catalogue unchanged at **276**. Full
+  suite 1528 OK. **Development is paused** after v2.5.0 while the project is used for
+  the operator's portfolio work; no milestone is open.
 
-## Current Milestone: v2.0.0 DSX Validity Frame
+## Shipped Milestone: v2.0.0 DSX Validity Frame (shipped 2026-08-28)
 
-**Goal:** Check the layer beneath every existing DSX check — that the estimand,
+**Goal (delivered):** Check the layer beneath every existing DSX check — that the estimand,
 unit triad, dependence structure, interference risk, triggering, sampling frame,
 missingness mechanism, measurement and declared inferential paradigm are coherent
 enough for any DSX finding to mean anything.
@@ -79,6 +154,196 @@ paid-media budgets. The check set is weighted accordingly.
 required from plan (the `plan` gate point, at CRITICAL severity), so existing
 specs without it begin to block — a breaking contract change.
 
+## Shipped Milestone: v2.2 Analytic Surface (shipped 2026-08-29)
+
+**Goal (delivered):** Close the operator-surface gaps that Claude Code data-science packs
+cover with playbooks — cohort/funnel/root-cause skills, knowledge compounding,
+CUPED as a declared variance adjustment, a CSV-first start, file-first scripts,
+and off-gate re-run verification — without turning DSX into a prompt pack and
+without computing statistics on the gate path.
+
+**Why after v2.0.0:** Brief §3 ranks risk reduction first. The comparison packs
+do not gate shared-budget interference, triggering dilution, or Bayesian
+continuous monitoring. Folding their playbooks into Phases 7–12 would delay
+that work. Entry condition was Phase 12 closed (`brief.md` §6.5).
+
+**Delivered features:** Phases 13–16, archived at `.planning/milestones/v2.2-ROADMAP.md`.
+All 23 requirements (`REQ-P13-*` … `REQ-P16-*`) satisfied — archived traceability at
+`.planning/milestones/v2.2-REQUIREMENTS.md`. Comparison evidence:
+`.planning/research/SURFACE.md`.
+
+**Anti-features held (not built, by design):** Docker as a required runtime; MLflow
+or Great Expectations on the gate path; notebooks as the shipped artifact;
+Shapiro–Wilk auto-switch; SEM/HLM/IRT; bundled education datasets; a batch
+path that skips the plan gate.
+
+**What did not ship as originally worded:** REQ-P15-04 named two defects
+(survivorship bias and changing denominator). A direct primary-source read
+(not just bibliographic corroboration) found the candidate survivorship-bias
+citation (Brown, Goetzmann, Ibbotson & Ross 1992) does not transfer to a
+declaration-checkable rule — it is a narrower, fund-performance-persistence
+result that never states a general "exclude non-survivors from the
+denominator" criterion. Per the requirement's own stated escape clause ("a
+code without a citation does not ship and remains in `brief.md` §6.5"), only
+the changing-denominator half shipped (`DSX-MET-021`, HIGH); survivorship bias
+stays an open, unpromoted item in `brief.md` §6.5. This was a loud, recorded
+decision (HUMAN-QUEUE HQ-8/HQ-13), not a silent scope cut.
+
+## Shipped Milestone: v2.3 Test Catalog (shipped 2026-09-02)
+
+**Goal (delivered):** Expand the analyst-facing test-selection surface as close
+to exhaustion as stays manageable and citable: the `recommend_test` decision
+table grows ~15 → ~75 rows across 11 categories (correlation/association,
+agreement/reliability, repeated measures, trend, categorical, resampling,
+variance/scale, proportions, counts, post-hoc, power conventions), plus 15 new
+declaration-only gate checks and the effect-size band growth — every row cited,
+every check under full D-05 discipline.
+
+**Why tests before charts:** both subjects write the same single-writer files
+(finding-codes, spec template, shared skills) and D-06 makes range collisions
+permanent, so the milestones run strictly sequentially; tests carry the heavier
+D-05 read burden (27 citations vs v2.4's expected ~8–12) and began with
+mandatory repairs (the Boschloo doc/code divergence; the missing `estimand_kind`
+vocabulary), so they went first while the operator queue was fresh.
+
+**Scope boundary held:** the gate did not become a per-test catalog.
+`families.yaml` remains the admissibility ontology; what expanded is the
+routing surface plus declaration-only checks. See
+`.planning/research/V2.3-V2.4-SCOPE.md`.
+
+**Delivered features:** Phases 17–20, archived at
+`.planning/milestones/v2.3-ROADMAP.md`. All 22 requirements (`REQ-P17-*` …
+`REQ-P20-*`) satisfied — archived traceability at
+`.planning/milestones/v2.3-REQUIREMENTS.md`.
+
+**The independent citation re-verification that mattered:** before shipping,
+an interactive session re-verified all 27 citations against primary sources
+(not just the loop's bibliographic corroboration) using parallel research
+agents. Seven citations needed correction — the most consequential: a proposed
+Krippendorff's-alpha worked-example fixture (0.743, with a claimed 0.734
+"textbook typo") did not actually appear anywhere in the cited paper (Hayes &
+Krippendorff 2007); the paper's own worked example gives α = 0.7598. Corrected
+before the code shipped, not after. The other six were smaller: a kappa
+companion-reporting citation reworded to the actual recommended statistics
+(p_pos/p_neg, not "p_o and marginals"); a Zimmerman (2004) gate scoped to the
+two-group case it actually studied, not generalized to k-group ANOVA; a
+McCullagh & Nelder locator upgraded from an unconfirmed guess to a
+well-supported specific section; a Lakens (2022) term corrected to his actual
+wording; a Wilson (2015) DEPRECATED row stripped of an unsupported
+replacement-test claim; a Maxwell & Delaney claim softened pending further
+source access.
+
+## Shipped Milestone: v2.4 Visual Excellence (shipped 2026-09-03)
+
+**Goal (delivered):** The exhaustive-but-manageable chart catalog (81 entries
+on the FT Visual Vocabulary spine + Wilke's uncertainty family + rigour
+staples, three citable axes per entry), the 5-layer question→chart selection
+heuristic (Munzner → FT function → data signature → shortlist →
+Cleveland-McGill tie-break), the license-audited publication style layer
+(dsx-urban default, dsx-538, dsx-econ/dsx-bbc reimplemented from published
+doctrine), the SVG determinism recipe, and a portfolio exemplar capstone that
+exercises both v2.3 and v2.4 end-to-end.
+
+**Entry condition met:** v2.3 shipped 2026-09-02 (tag `v2.3.0`, 22/22
+requirements `passed`). Scope re-verified against the live tree at open
+(`dsx/checks/viz.py` untouched since before v2.3; catalogue confirmed at 275)
+— no fresh scoping round needed.
+
+**Delivered features:** Phases 21–24, archived at
+`.planning/milestones/v2.4-ROADMAP.md`. All 16 requirements (`REQ-P21-*` …
+`REQ-P24-*`) satisfied — archived traceability at
+`.planning/milestones/v2.4-REQUIREMENTS.md`. Milestone audit `passed` (16/16
+requirements, 4/4 phases, 5/5 integration seams, 0 critical gaps); catalogue
+grew 275 → 276, additively.
+
+**The independent verification that mattered — two rounds, mirroring v2.3's
+discipline:**
+
+1. *Citations (HQ-27, 5 parallel research agents).* 7 of 13 proposed citations
+   needed correction before Phase 22 shipped; the most consequential:
+   Cleveland & McGill (1984) publish 6 perceptual-accuracy ranks over 10 tasks
+   **with ties** — their own p.537 states there is not enough information to
+   separate ranks 3/5/6 — not the proposed 7-item strict order with
+   `length > angle`, a relation neither cited paper supports. Also caught:
+   2 of 4 proposed Wilke uncertainty-mark names did not exist in the source;
+   the "FT Visual Vocabulary is MIT-licensed" claim was false (the FT
+   explicitly reserves its content); a word-cloud citation had conflated two
+   different people named Harris; a Datawrapper source had been publicly
+   amended after the original citation was drafted.
+2. *License audit (HQ-33, at ship-prep, one week after HQ-27).* The
+   house-default style's palette was independently re-checked against its
+   claimed source rather than merely confirmed: Urban Institute's own README
+   states GPL-3.0, not the Apache-2.0 that GitHub's detector read from
+   unmodified template boilerplate; and 3 of the palette's 6 hex colors were
+   ColorBrewer's PRGn/PuOr stops mislabeled as "Urban shades." Corrected
+   before ship — same colors, accurate attribution.
+
+**v3.0 (models) remains future scope** — nothing here touches it.
+
+## Shipped Milestone: v2.6 Exploration Depth and Backlog Evidence (shipped 2026-09-10)
+
+**Goal (delivered):** The exploration artifact made hash-bound and consumed — `dsx
+profile` now computes the explore protocol's trust-core numbers itself (five-number
+summaries, zeros/negatives, categorical shares, daily volume and edge ratios, rows
+per unit, a weekly base-rate table with verdict), byte-stable and stdlib-only, and
+five downstream skills read `EDA.md` front-matter and the profile through named,
+guard-tested contracts — followed by the three paper-derived backlog items (brief
+§6.5 items 7, 8, 9) each tested against a real corpus case instead of left with
+unmet entry conditions, and a calibration re-baseline with the new cases classified.
+
+**Entry condition met:** v2.5.0 shipped 2026-09-06; the milestone was opened the same
+day by operator direction (HUMAN-QUEUE HQ-39, reversing HQ-38 on SEED-002 within
+hours — a recorded reversal, not a silent one). Scope written against the live tree
+at `d2f0140` (`.planning/research/V2.6-SCOPE.md`); no fresh scoping round needed.
+
+**Delivered features:** Phases 25–30, archived at
+`.planning/milestones/v2.6-ROADMAP.md`. All 18 requirements (REQ-P25-01 …
+REQ-P30-03) Met — archived traceability at `.planning/milestones/v2.6-REQUIREMENTS.md`.
+Milestone audit `passed` (18/18 requirements, 6/6 phases, 4/4 integration seams,
+Nyquist 6/6); catalogue 276 → 279, additively; known-bad corpus 39 → 42 plus 15
+good-control specs; full suite 1629 OK.
+
+**The measurement that mattered (D-13, applied three times):** every evidence phase
+built its case, ran it at all four gate points *before* designing anything, and
+recorded a `VERDICT:` first line. All three were genuine live misses, so all three
+minted — but the rule was the same rule that would have closed a caught case with
+no mint. Two of the mints (`DSX-ML-034`, `DSX-CLM-034`) buy attribution only, honestly
+labelled: a spec that declares no provenance or no claim-to-test pointer stays
+silent. The third (`DSX-COH-041`) is a real catch — the corpus's first `kind: target`
+fixture, on which the new code fires CRITICAL at plan/verify/ship and the
+swap-still-fires counterfactual toggles it off.
+
+**The independent verification that mattered:**
+
+1. *Citations (HQ-40, five rows read at their locators).* Wilkinson & the Task Force
+   on Statistical Inference (1999) was chosen over the APA JARS–Quant candidate
+   because only the hedged 2024 web table of the latter was reachable, not the 2018
+   article; Gail & Simon (1985) ships as the *motivating definition* of a
+   qualitative interaction only, never the likelihood-ratio mechanic the gate does
+   not run. Kaufman et al. (2012) could not be opened (paywalled, nine routes) and
+   shipped **secondary-corroborated with that label in the code itself** — then, at
+   close-out (2026-09-10), the operator supplied the PDF, the definition was read at
+   p. 15:8–9 (eq. 3: a feature is legitimate only if observable to the client earlier
+   than its target element) and every record was upgraded the same day, history kept.
+2. *The sign-off round re-ran everything rather than trusting reports* — the full
+   suite, the catalogue, both guards, the reproducer, the three fixtures through
+   `dsx audit`, the new profiler flags by hand on a generated CSV and on the
+   hand-computed fixture — before any of the six approvals was written.
+
+**Resilience, observed rather than claimed:** three firings crashed mid-unit (usage
+limits, a dropped connection); each time the next firing adopted the orphaned
+artifacts only after independently re-verifying them, and once the operator's
+session reconciled a stranded `SECURITY.md` before a laptop shutdown. A stray-branch
+guard was built mid-milestone, proven in a sandbox first, and had its own
+over-strictness caught before it ever mattered.
+
+**Carried forward, not hidden:** fifteen good-control specs is a thin false-positive
+denominator (the readout states the one-sided 95% bound ≈0.181 rather than a ~0
+point estimate); growing that corpus is a v2.7 candidate. SEED-003 records the next
+evidence candidates and the settled two-media conduct decision.
+
+**v3.0 (models) remains future scope** — nothing here touches it.
+
 ## Requirements
 
 ### Validated
@@ -88,10 +353,44 @@ specs without it begin to block — a breaking contract change.
 - ✓ Narrative discipline, forbidden-claim SSOT, SQL anti-patterns, entrypoint smell scan — v1.3.0
 - ✓ Assumption checkoffs/waivers, TOST/CI/MDE, multiplicity family, repro_lock, decision replay — v1.4.0
 - ✓ ANALYSIS-SPEC `suppressions[]` with authority, scored CHART-REVIEW.md — v1.5.0
+- ✓ `validity_frame:`/`inference:` contract blocks, decision records + `dsx explain`, `DSX-PAR-001` paradigm manifest, `dsx/frame/` package with enforced D-03a boundary, mechanical D-05 citation enforcement, known-bad corpus — Phase 6 (REQ-P6-01 … REQ-P6-16)
+- ✓ Symmetric monitoring pair `DSX-PAR-010`/`DSX-PAR-011` plus membership-free `DSX-PAR-002` (requiredness; `DSX-SPEC-085` owns vocabulary membership) — Phase 9 (REQ-P9-01 … REQ-P9-07)
+- ✓ Interference adjudication `DSX-INT-010`/`-011` (unaddressed risk; channel-inadmissible mitigation, disjoint on the mitigation dimension alone), triggered-versus-eligible dilution `DSX-INT-030` (additive metrics only, ratio metrics explicitly out of scope), novelty/primacy `DSX-INT-040`, and the no-paradigm-read invariant — Phase 8 (REQ-P8-01 … REQ-P8-06)
+- ✓ Validity-frame checks `DSX-VAL-*` — estimand completeness/falsifiability, unit triad, dependence method family, identification strength, sampling frame, missingness, measurement — Phase 7 (REQ-P7-01 … REQ-P7-09; REQ-P7-08 satisfied within its declared D-06 scope) — v2.0.0
+- ✓ Pre-registered inference plan `DSX-PRE-*` — fallback-rule DSL, `declared_at` provenance, declared-vs-executed branch reconciliation blocking on branch identity alone — Phase 10 (REQ-P10-01 … REQ-P10-04) — v2.0.0
+- ✓ Frequentist admissibility adjudicator `DSX-ADM-*` over `references/families.yaml` (14 cited families) — ranked admissible set, `no_admissible_procedure` escalation — Phase 11 (REQ-P11-01 … REQ-P11-06) — v2.0.0
+- ✓ Generated-pipeline reality — widened entrypoint fit-scan, cleaning-stage fit boundary, score/selection provenance, imbalance disclosure — Phase 11.1 — v2.0.0
+- ✓ Detection-code hardening — `ast.parse` primary path with text-scan fallback, closing false negatives and two false positives — Phase 11.1.1 — v2.0.0
+- ✓ Prescriptive claim layer — `prescriptive` claim type + coherence ladder, causal-verb lexicon tiers, `decision.revisit_when` (`DSX-COH-040`), amendment counting on the locked plan, self-reported-fields view — Phase 11.2 (REQ-P11.2-01 … -07) — v2.0.0
+- ✓ Reporting completeness and missing-data discipline — multiplicity over reported tests, examined-vs-reported gap, missingness method vocabulary + single-imputation denial, exclusion rules under the plan-time lock — Phase 11.3 (REQ-P11.3-01 … -07) — v2.0.0
+- ✓ Calibration — full known-bad corpus with measured catch rate and false-positive rate, `dsx stats --paradigm`, gated-backlog re-evaluation — Phase 12 (REQ-P12-01 … REQ-P12-05) — v2.0.0
+- ✓ Four router skills (`dsx-cohort`, `dsx-funnel`, `dsx-root-cause`, `dsx-segment`) filling `ANALYSIS-SPEC.yaml` fields against existing gates, a hypothesis register, What/So What/Now What narrative shape, advisory-only tier routing, and a `scripts/*.py` entrypoint preference — Phase 13 (REQ-P13-01 … REQ-P13-06) — v2.2
+- ✓ Compounding-learnings search, `DATA-DICTIONARY.md` onboarding artifact, opt-in research-domain AI-assistance disclosure, CSV-first slash aliases, and a documented file-drop-hook skip — Phase 14 (REQ-P14-01 … REQ-P14-06) — v2.2
+- ✓ CUPED as a closed-vocabulary variance adjustment with a post-treatment-covariate gate check (`DSX-EXP-070`), a changing-denominator BI check (`DSX-MET-021`), an optional APA research table, and a Shapiro–Wilk auto-switch prohibition — Phase 15 (REQ-P15-01 … REQ-P15-07; REQ-P15-04 satisfied as-worded via its own escape clause — see Shipped Milestone note below) — v2.2
+- ✓ Off-gate-path reproduce verification (`dsx-reproduce` skill, `DSX-REP-060`/`061`), corpus `protocol_adherence` tagging, and a static no-entrypoint-execution guard — Phase 16 (REQ-P16-01 … REQ-P16-04) — v2.2
+- ✓ Boschloo doc/code reconciliation, `estimand_kind` closed vocabulary (6 members), D-12a disposition table, and D-06 range pre-allocation — Phase 17 (REQ-P17-01 … REQ-P17-05) — v2.3
+- ✓ Correlation/association routing (`recommend_association`) and agreement/reliability gates — scale/kind mismatch (`DSX-STA-050/051`), ICC/kappa declaration completeness (`DSX-STA-060/061/062`) — plus report-only effect-size conventions in `dsx/mathx.py` — Phase 18 (REQ-P18-01 … REQ-P18-06) — v2.3
+- ✓ Repeated-measures/trend/categorical/resampling/post-hoc routing and ten declaration-only gates (`DSX-STA-070` … `122`) — unconditional Greenhouse-Geisser, declared dose scores/autocorrelation, resampling quadruples, post-hoc/omnibus matching, variance-test-as-precondition ban, observed-power ban, Wilson-not-Wald, declared exposure offsets — Phase 19 (REQ-P19-01 … REQ-P19-07; REQ-P19-03 verified zero-mint) — v2.3
+- ✓ Calibration close — known-bad fixtures + FPR negative controls for the 15 new codes, a live HIGH verify/ship calibration stratum, category-complete no-autoswitch coverage, and a permanent doc/code agreement cross-check — Phase 20 (REQ-P20-01 … REQ-P20-04; zero-mint verified, catalogue stays 275) — v2.3
+- ✓ Viz vocabulary reconciliation — every chart mark given a capability home, `BANNED_TYPES` refusal entries enriched in place to `{reason, code, citation}` records, zero-mint (275→275) — Phase 21 (REQ-P21-01 … REQ-P21-03) — v2.4
+- ✓ Catalog spine, uncertainty family, selection heuristic — 81-row merged chart catalog across five named taxonomies, Wilke's real 10-mark uncertainty vocabulary as an 11th `RELATIONSHIP_CHARTS` key, 5-layer question→chart selection heuristic, Cleveland & McGill's real 6-rank tied perceptual ordering (not a fabricated 7-item strict order) — Phase 22 (REQ-P22-01 … REQ-P22-05; mints `DSX-VIZ-071`, 275→276) — v2.4
+- ✓ License-audited style and snippet layer — four `.mplstyle` files (dsx-urban house default, dsx-538 fork, dsx-econ/dsx-bbc reimplemented from doctrine), one vendored OFL font, a proven SVG-determinism recipe, and a snippet catalog routing to existing codes — Phase 23 (REQ-P23-01 … REQ-P23-05; zero-mint, 276→276) — v2.4
+- ✓ Portfolio exemplar and viz calibration — the onboarding-activation exemplar upgraded in place with a real 95%-CI uncertainty figure and sealed manifest, plus the project's first bad-chart-choice fixtures — Phase 24 (REQ-P24-01 … REQ-P24-03; zero-mint, 276→276) — v2.4
+
+- ✓ Hermetic profile depth — `dsx profile` computes numeric/categorical/time/unit/target blocks additively and byte-stably, cited definitions (Hyndman & Fan type 7 for `statistics.quantiles(method="inclusive")`, verified), reference-value fixtures, the DQ gate provably inert to every new key — Phase 25 (REQ-P25-01 … -03; zero-mint 276→276) — v2.6
+- ✓ Per-skill read contracts — five skills name the `EDA.md`/`DATA-PROFILE.yaml` keys they read, with an off-gate-path guard (CRLF-tolerant, negative-controlled) that fails on any orphaned key — Phase 26 (REQ-P26-01 … -03; skill-only, zero-mint) — v2.6
+- ✓ Feature-origin-only leak case — measured LIVE MISS at all four points; optional `model.feature_provenance[]` + `DSX-ML-034` (CRITICAL after-prediction / HIGH unattested), attribution-only, D-05 Kaufman et al. 2012 (read first-hand at close) — Phase 27 (REQ-P27-01 … -03) — v2.6
+- ✓ Magnitude-without-computed-effect case — measured LIVE MISS; `claims[].supported_by` + `DSX-CLM-034` (HIGH, stray-number-in-cited-test, never metric identity — its own docstring says so), D-05 Wilkinson & TFSI 1999 — Phase 28 (REQ-P28-01 … -03) — v2.6
+- ✓ Subgroup-harm-under-prescriptive case — measured LIVE MISS; `decision.subgroup_harm[]` + `subgroup_harm_floor` + `DSX-COH-041` (missing-row CRITICAL / accept-without-rationale HIGH), the corpus's first `kind: target`; D-05 Gail & Simon 1985 as motivating definition; documented public case Obermeyer et al. 2019 — Phase 29 (REQ-P29-01 … -03) — v2.6
+- ✓ Calibration re-baseline — miss 5/5 (construction invariant, no interval), FPR 0/15 with its one-sided 95% bound ≈0.181 stated, `kind: target` excluded from the miss denominators with an invariance proof, docs re-pinned to the live corpus by an agreement test, zero-mint 279→279 — Phase 30 (REQ-P30-01 … -03) — v2.6
 
 ### Active
 
-See `.planning/REQUIREMENTS.md` for the v2.0.0 requirement set (REQ-P6-* … REQ-P12-*).
+None open. v2.7 has not been scoped. Candidate seeds, all entry-conditioned under
+D-13: `SEED-003` (analyst conduct, notebook execution integrity, share-vs-risk),
+`SEED-001` E-27 … E-31, `SEED-002`'s producer-side residue, growing the good-control
+corpus past 15, and brief §6.5 items 1–6. Earlier milestones' requirement sets are
+archived at `.planning/milestones/*-REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -101,7 +400,14 @@ See `.planning/REQUIREMENTS.md` for the v2.0.0 requirement set (REQ-P6-* … REQ
 - Causal identification *strategy* checking — `DSX-CAU-*` owns this
 - Survival, time-series and spatial estimation *methods* — temporal/spatial dependence are declared types; the methods are out
 - Reading a data warehouse from a gate — breaks the determinism doctrine
-- A catalogue of every named statistical test — families, not tests
+- A catalogue of every named statistical test as a computing GATE — `families.yaml`
+  stays the admissibility ontology (families, not tests), and no gate computes a
+  statistic. v2.3 expanded the *routing surface* instead (`recommend_test` ~15→~75
+  rows, one primary answer per declarable key) plus 15 declaration-only defect
+  checks — a bounded, citable decision table, not "every named test" (Kanji
+  enumerates ~100, Sheskin ~200; see `.planning/research/V2.3-V2.4-SCOPE.md` §1).
+- The Unified Framework playbook's `r>0.3` heuristic as a CUPED admissibility rule — not admissible under D-05 (`SURFACE.md` §8); Phase 15 cites the WSDM primary source directly instead.
+- Ratio-metric dilution (Deng & Hu 2015, Formula (3)) as a "changing-denominator" check — permanently out of scope for the declaration-only gate (no closed-form scalar, D-01/D-02); Phase 15's `DSX-MET-021` is scoped to a different defect (Simpson's-paradox-style allocation-rate shifts, Crook et al. 2009) and must not be confused with it.
 
 ## Context
 
@@ -115,9 +421,36 @@ See `.planning/REQUIREMENTS.md` for the v2.0.0 requirement set (REQ-P6-* … REQ
   - `DSX-EXP-060` already fires on undeclared interim looks under a fixed horizon.
   - `DSX-EXP-020/021` already reconciles `randomization_unit` vs `analysis_unit`.
   - `PEEKING_POLICIES` in `dsx/spec.py` already covers the stopping-rule concept.
-  - `VARIANCE_ADJUSTMENTS` overlaps the proposed `dependence.method_family_required`.
-  - `dsx explain` and `dsx stats` do not exist yet — new subcommands.
-  - No `dsx/frame/` package; `references/families.yaml` absent (correct until M4).
+  - `VARIANCE_ADJUSTMENTS` overlaps `dependence.method_family_required`. As of
+    v2.2, the set is `{cluster_robust, delta_method, bootstrap_cluster,
+    mixed_effects, cuped}` — CUPED landed in Phase 15 (REQ-P15-01).
+  - `dsx explain` and `dsx stats` shipped in v2.0.0; `dsx-reproduce` (skill, not
+    a subcommand) shipped in v2.2 Phase 16, re-running `reproducibility.entrypoint`
+    off the gate path and writing `REPRO-REPORT.md`.
+  - `dsx/frame/` package and `references/families.yaml` shipped in v2.0.0 (M2a/M4).
+  - Analytic-surface comparison against five Claude Code packs: `.planning/research/SURFACE.md`
+    (2026-08-26). That file does not authorise finding codes.
+  - The capability now registers 14 skills (v2.2 added `dsx-cohort`, `dsx-funnel`,
+    `dsx-root-cause`, `dsx-segment`, `dsx-reproduce`); the finding catalogue holds
+    279 codes (v2.0.0 shipped 256; Phase 15 added `DSX-EXP-070`/`DSX-MET-021`,
+    Phase 16 added `DSX-REP-060`/`061`; v2.3 added 15 `DSX-STA-*` codes to 275;
+    Phase 22 added `DSX-VIZ-071` to 276; v2.6 added `DSX-ML-034`, `DSX-CLM-034` and
+    `DSX-COH-041` to 279, each under a human-read D-05 citation).
+  - v2.4 shipped: `references/chart-catalog.md` (81-row merged chart catalog,
+    three citable axes per entry), `styles/*.mplstyle` (four license-audited
+    styles, `dsx-urban` house default), `templates/dsx_plotstyle.py`
+    (analyst-side, off the gate path), `references/chart-snippets.md`
+    (route-to-codes snippet catalog), and an 11th `RELATIONSHIP_CHARTS` key
+    `"uncertainty"` (10 Wilke marks). `dsx/checks/viz.py`'s `BANNED_TYPES`
+    entries are now full `{reason, code, citation}` records.
+  - v2.6 shipped (2026-09-10): `dsx profile` numeric/categorical/time/unit/target blocks
+    (`--unit`/`--target` flags; producer, never a gate); per-skill read contracts with
+    `tests/test_skill_read_contracts.py` as the guard; three evidence fixtures
+    (`feature-origin-only-leak`, `magnitude-without-computed-effect`, `subgroup-harm-
+    without-disposition` — the last is the corpus's first `kind: target`); known-bad
+    corpus 42 + 15 good-control; calibration readout `30-READOUT.md` (miss 5/5, FPR 0/15,
+    bound ≈0.181); full suite 1629 OK. Operator tooling added the same milestone:
+    `scripts/gsd-reconcile-branch.ps1` (stray-branch guard) and the `.paused` switch.
 
 ## Constraints
 
@@ -131,24 +464,45 @@ See `.planning/REQUIREMENTS.md` for the v2.0.0 requirement set (REQ-P6-* … REQ
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| D-03 Extend DSX in place, one install/contract/gate/test suite/catalogue | Highest-value checks are cross-cutting; a check spanning two contracts cannot live cleanly in either of two plugins | — Pending |
-| D-03a Keep an extractable boundary: `dsx/frame/` imports only `Report`/`Finding` from `dsx/checks/` | If in six months there are no upward imports, extraction is a `git filter-repo` | — Pending |
-| D-04 Never block to teach — gates emit a decision record, `dsx explain` renders it | A gate that stops to explain is disabled on a deadline, losing guardrail and lesson both | — Pending |
-| D-05 Citation + published reference value per check | Prevents laundering model statistics knowledge into a blocking gate | — Pending |
-| D-10 An unsupported paradigm is never blocking on its own | Blocking on `paradigm: bayesian` makes typing `frequentist` the cheapest way past the gate | — Pending |
-| D-11 Frame-layer checks never read `paradigm` | A prior does not save you from pseudo-replication; if a frame check branches on paradigm it is in the wrong layer | — Pending |
-| D-12/D-12a Paradigm-specific checks ship in symmetric pairs, and symmetry is the scoping rule | Asymmetric enforcement is how a tool silently steers method choice | — Pending |
-| D-13 Deferred checks carry an entry condition, not a wish | A trigger tied to a measured catch rate is falsifiable; a priority is not | — Pending |
-| D-14 Reversing a D-table decision requires a reversal record; evidence-free reversal logs as `SELF-001` | "Here is what would change my mind" is stronger than "here is what I chose" | — Pending |
-| **M-01** `DSX-PAR-010` ships as a distinct code, `DSX-EXP-060` untouched | Triggers are disjoint — undeclared looks under a fixed horizon vs a declared continuous design with no sequential method. Widening EXP-060 would silently broaden existing suppressions, against the spirit of D-06 | — Pending |
-| **M-02** No `inference.stopping_rule` field; `DSX-PAR-010/011` read the existing `design.peeking_policy` | One concept, one field. Avoids a permanent consistency check between two vocabularies for the same thing. Deviates from brief §5.2, which specified a new field | — Pending |
-| **M-03** `PEEKING_POLICIES` gains a value for uncontrolled continuous monitoring | Consequence of M-02: the existing vocabulary has `always_valid` (disciplined) but no value for "peeking continuously with no correction" — precisely what `DSX-PAR-010` must fire on | — Pending |
-| **M-04** Automated import test enforces the D-03a boundary from M1 | Enforces the boundary without scaffolding an empty `families.yaml`, which brief §6.6 warns accumulates speculative structure | — Pending |
-| **M-05** `SELF-001` stays a convention for v2.0.0; `REVERSALS.md` template seeded in M1 | Enforcement is a planning-process concern, not a gate concern; a subcommand adjudicating planning docs is outside the gate path | — Pending |
-| **M-06** `validity_frame` sub-block requiredness is gated by `question_type` from M1 | Requiring the whole block for descriptive/BI work forces reflexive `none` answers — the exact incentive distortion D-10 exists to prevent. Far cheaper decided in M1 than retrofitted after M2a/M2b are written against the wrong requiredness | — Pending |
-| **M-07** Existing `suppressions[]` with its authority requirement is the grandfather path for pre-v2.0.0 specs | Zero new code, and the ADR/SPEC authority requirement makes grandfathering deliberate and attributable rather than silent | — Pending |
-| **M-08** D-05 citation enforcement is automated in M1 via `scripts/gen-finding-catalogue.py` | D-05 says "if velocity pressure arrives, cut checks, never this" — an unenforced constraint is the first thing velocity pressure removes. It was the only major constraint nothing checked | — Pending |
-| **M-09** `dependence.method_family_required` reuses `VARIANCE_ADJUSTMENTS` | Same reasoning as M-02: one concept, one vocabulary. Consequence: the field holds a single member, so the brief's example `cluster_robust_or_mixed` is not expressible — carried as an open item for the M2a discuss rather than silently modelled as a disjunction | — Pending |
+| D-03 Extend DSX in place, one install/contract/gate/test suite/catalogue | Highest-value checks are cross-cutting; a check spanning two contracts cannot live cleanly in either of two plugins | Delivered v2.0.0 — all `DSX-VAL/INT/PAR/PRE/ADM/CLM/COH` families ship in the one package, contract, gate profile set and catalogue (256 codes) |
+| D-03a Keep an extractable boundary: `dsx/frame/` imports only `Report`/`Finding` from `dsx/checks/` | If in six months there are no upward imports, extraction is a `git filter-repo` | Delivered Phase 6 — `dsx/frame/` exists; `tests/test_frame_boundary.py` fails the suite on any upward import |
+| D-04 Never block to teach — gates emit a decision record, `dsx explain` renders it | A gate that stops to explain is disabled on a deadline, losing guardrail and lesson both | Delivered Phase 6 — `dsx/decisions.py` emits, `dsx explain` renders, always exit 0; the gate-path write is a guarded side channel |
+| D-05 Citation + published reference value per check | Prevents laundering model statistics knowledge into a blocking gate | Delivered Phase 6 — `check_d05` in `gen-finding-catalogue.py --check` fails the build on a missing `Citation:` line |
+| D-10 An unsupported paradigm is never blocking on its own | Blocking on `paradigm: bayesian` makes typing `frequentist` the cheapest way past the gate | Delivered Phase 6 — `DSX-PAR-001` is INFO (10); every default `GATE_THRESHOLDS` value is 40 or 50 |
+| D-11 Frame-layer checks never read `paradigm` | A prior does not save you from pseudo-replication; if a frame check branches on paradigm it is in the wrong layer | Delivered Phase 7 — AST-enforced import boundary; `applies_to_frequentist_admissibility` is the one predicate allowed to read declared paradigm, tested |
+| D-12/D-12a Paradigm-specific checks ship in symmetric pairs, and symmetry is the scoping rule | Asymmetric enforcement is how a tool silently steers method choice | Delivered Phase 9 for the monitoring pair (`DSX-PAR-010`/`-011` at identical CRITICAL; `is_blank_text` as the single clearing predicate; committed symmetry audit). D-12a deferred codes (`DSX-PAR-020`/`-021`/`-030`) remain out of scope |
+| D-13 Deferred checks carry an entry condition, not a wish | A trigger tied to a measured catch rate is falsifiable; a priority is not | Delivered Phase 12 — the §6.5 gated backlog was re-evaluated against the measured catch rate/FPR (carry 8, remove 1 as structurally unevaluable) |
+| D-14 Reversing a D-table decision requires a reversal record; evidence-free reversal logs as `SELF-001` | "Here is what would change my mind" is stronger than "here is what I chose" | Delivered Phase 6 (template) + exercised — `REVERSALS.md` carries REV-001 and REV-002 (Phase 12 §6.5 relocate-not-delete) with all four template fields |
+| **M-01** `DSX-PAR-010` ships as a distinct code, `DSX-EXP-060` untouched | Triggers are disjoint — undeclared looks under a fixed horizon vs a declared continuous design with no sequential method. Widening EXP-060 would silently broaden existing suppressions, against the spirit of D-06 | Delivered Phase 9 — pair ships in `dsx/frame/paradigm.py`; `dsx/checks/design.py` untouched |
+| **M-02** No `inference.stopping_rule` field; `DSX-PAR-010/011` read the existing `design.peeking_policy` | One concept, one field. Avoids a permanent consistency check between two vocabularies for the same thing. Deviates from brief §5.2, which specified a new field | Delivered Phase 9 — both codes trigger on `peeking_policy: uncontrolled_continuous` |
+| **Phase 9 D-08** `DSX-PAR-002` is presence/requiredness only; `DSX-SPEC-085` owns closed-vocabulary membership | Two codes for one defect would violate one-stable-fact-per-code. UAT 2026-08-13 accepted the split; ROADMAP SC 4 / REQ-P9-04 amended to name both codes | Delivered Phase 9 |
+| **M-03** `PEEKING_POLICIES` gains a value for uncontrolled continuous monitoring | Consequence of M-02: the existing vocabulary has `always_valid` (disciplined) but no value for "peeking continuously with no correction" — precisely what `DSX-PAR-010` must fire on | Delivered Phase 6 — `uncontrolled_continuous` added (`dsx/spec.py:71`) |
+| **M-04** Automated import test enforces the D-03a boundary from M1 | Enforces the boundary without scaffolding an empty `families.yaml`, which brief §6.6 warns accumulates speculative structure | Delivered Phase 6 — AST scanner proven against three deliberately violating sources |
+| **M-05** `SELF-001` stays a convention for v2.0.0; `REVERSALS.md` template seeded in M1 | Enforcement is a planning-process concern, not a gate concern; a subcommand adjudicating planning docs is outside the gate path | Delivered Phase 6 — `REVERSALS.md` seeded with the four-field D-14 template; SELF-001 trigger stated. Human-validated (UAT 1) |
+| **M-06** `validity_frame` sub-block requiredness is gated by `question_type` from M1 | Requiring the whole block for descriptive/BI work forces reflexive `none` answers — the exact incentive distortion D-10 exists to prevent. Far cheaper decided in M1 than retrofitted after M2a/M2b are written against the wrong requiredness | Delivered Phase 6 — REQ-P6-03 |
+| **M-07** Existing `suppressions[]` with its authority requirement is the grandfather path for pre-v2.0.0 specs | Zero new code, and the ADR/SPEC authority requirement makes grandfathering deliberate and attributable rather than silent | Delivered Phase 6 — README states authority as a requirement (DSX-SPEC-070) and the "a frame that lies passes" known limit. Human-validated (UAT 2) |
+| **M-08** D-05 citation enforcement is automated in M1 via `scripts/gen-finding-catalogue.py` | D-05 says "if velocity pressure arrives, cut checks, never this" — an unenforced constraint is the first thing velocity pressure removes. It was the only major constraint nothing checked | Delivered Phase 6 — see D-05 |
+| **M-09** `dependence.method_family_required` reuses `VARIANCE_ADJUSTMENTS` | Same reasoning as M-02: one concept, one vocabulary. Consequence: the field holds a single member, so the brief's example `cluster_robust_or_mixed` is not expressible — carried as an open item for the M2a discuss rather than silently modelled as a disjunction | Delivered Phase 7 — the dependence check reads the reused vocabulary; resolved in M2a discuss |
+| **v2.2-01** REQ-P15-04's survivorship-bias half ships unminted; only the changing-denominator half (`DSX-MET-021`) ships | A direct primary-source read of the candidate citation (Brown, Goetzmann, Ibbotson & Ross 1992) found it does not transfer to a declaration-checkable "denominator must exclude non-survivors" rule — it is a narrower, fund-performance-persistence-specific result. D-05 and brief §6.5: an honest non-promotion beats a stretched citation | Delivered Phase 15 — `DSX-MET-021` (HIGH) ships citing Crook, Frasca, Kohavi & Longbotham (2009) §6; survivorship bias stays an open item in `brief.md` §6.5. Decided via direct-read (not corroboration-only), recorded HUMAN-QUEUE HQ-8/HQ-13 |
+| **v2.2-02** `DSX-REP-060`/`DSX-REP-061` mint in Phase 16, not Phase 15 | Keeps the `dsx-reproduce` skill and its enforcing gate check in one phase (no window where the skill exists but nothing enforces it). Phase 15's codes all carry D-05 statistical citations; these are engineering-hygiene checks (report missing / numbers don't overlap) with none — mixing the two would blur the citation discipline | Delivered Phase 16 — both HIGH, in `dsx/checks/repro.py`; catalogue moved 256→258 here, then 258→260 in Phase 15. Decided by Architect+Auditor persona round, unanimous, recorded HUMAN-QUEUE HQ-11 |
+| **v2.3-01** Citation granularity: one human D-05 read per new gate CODE, one bibliographic citation per catalog ENTRY | A ~75-row decision table with a human read per row would put ~90 reads in front of one milestone, stalling the ceremony's one human-gated step; reads are only load-bearing for the codes that actually gate | Delivered Phases 18–19 — 15 new gate codes drew ~27 human reads (2 evidence packs, HQ-16/17), not 75+; row-level catalog citations confirmed at execute-time bibliography passes instead |
+| **v2.3-02** All 15 new gate checks are declaration-only, keyed on DECLARED fields, never on inspecting data then choosing | The anti-two-stage doctrine (already shipped for Shapiro–Wilk) extends structurally: a routing key that reads "skew observed → pick test" recreates the exact banned pattern under a new name | Delivered Phases 18–19 — `inspect.signature` structural proofs + the no-autoswitch test suite extended to every new category; two new NEGATIVE gates (variance-test-as-precondition ban, observed-power ban) enforce the doctrine rather than merely avoiding violating it |
+| **v2.3-03** Independent re-verification of all 27 D-05 citations against primary sources before shipping, not after | The Krippendorff-alpha citation (HQ-16 B4) would have shipped a fixture value (0.743) that appears nowhere in its cited paper — caught only by reading the actual paper, exactly the CUPED-author-misattribution failure mode from v2.2's HQ-8 | Delivered at S5-2 close-out — 7 of 27 citations corrected (1 wrong fixture value, 6 smaller wording/scope/locator fixes); corrections recorded in `HUMAN-QUEUE.md` HQ-16/17 before the codes' citations were considered in hand |
+| **v2.4-01** Perceptual ordering ships as Cleveland & McGill's real 6-rank order WITH ties (D-1), not the originally proposed 7-item strict order | The 1984 paper's own p.537 states there is not enough information to separate ranks 3/5/6; the `length > angle` relation the strict order implied has no support in either cited paper (Heer & Bostock independently found angle not worse than length) | Delivered Phase 22 — `perceptual_ranks` ties length/direction/angle at rank 3; `test_perceptual_tie_break_structural_criterion` asserts `<=` throughout, never a strict `<`; `density` asserted absent |
+| **v2.4-02** Uncertainty vocabulary adopts Wilke's actual 10 §5.6 marks (D-2), not the 4 originally proposed | 2 of the 4 proposed names ("fan chart", "gradient CI band") do not exist anywhere in the source; verified against the book's full-text index | Delivered Phase 22 — 11th `RELATIONSHIP_CHARTS` key `"uncertainty"` carries all 10 real marks; mints `DSX-VIZ-071` |
+| **v2.4-03** FT Visual Vocabulary's nine-category axis is attributed, not vendored (D-3) | The "FT content is MIT-licensed" claim was false — the FT explicitly reserves its content in writing, twice, in the same repo whose code license is MIT. **Post-ship audit finding (2026-09):** the FT's own repo turns out to be internally inconsistent about this — the poster image itself prints a conflicting CC BY-SA 4.0 notice in its own footer, confirmed by direct inspection. D-3's outcome is unaffected either way, since it relies on neither license claim (own descriptions only, nothing copied) | Delivered Phase 22 — own descriptions written per category; no FT prose or poster PDF copied |
+| **v2.4-04** `dual_axis_line`'s ban cites Muth 2018 "as amended July 2026" and is scoped to general audiences (D-4) | Datawrapper publicly reversed its dual-axis position in July 2026, carving out expert (finance) audiences; the ban now stands as DSX's own general-audience position rather than an appeal to a since-softened claim | Delivered Phase 22 (citation), corrected into the shipped tree at v2.4 close-out after an independent re-check found it had not actually landed in `dsx/checks/viz.py` at the time of Phase 22's own security sign-off |
+| **v2.4-05** Independent license re-verification of the house-default style's vendored palette before ship, not just its citation | Urban Institute's own README states GPL-3.0; the Apache-2.0 claim traced to GitHub's detector misreading unmodified Jekyll-theme boilerplate. 3 of 6 vendored hex colors were ColorBrewer's PRGn/PuOr stops, mislabeled as "Urban shades." Same discipline as v2.3-03, applied to a license claim instead of a citation | Delivered at ship-prep (HQ-33) — palette unchanged (bare hex values are not independently copyrightable regardless of license), header and two planning docs corrected to state the real license position and split attribution |
+| **v2.5-01** Every `DSX-VIZ-*` code in the catalogue must be some known-bad fixture's declared target | Phase 24 scoped fixtures to the codes minted in v2.4 (GA-2/S4-1), a deliberate ruling the post-ship audit escalated rather than reopened unilaterally; the operator reversed it by direction on 2026-09-06. A phase-level ruling, not a D-table entry, so no `REVERSALS.md` record is owed. Enforcing the family-wide rule as a test makes the next minted visualization code owe its fixture in the same commit | Delivered v2.5.0 — 19 fixtures, a LOW stratum, MEDIUM/LOW positive guards, `test_every_viz_code_in_the_catalogue_is_some_fixtures_declared_target` |
+| **v2.5-02** The installer self-test gates each example spec at all four points, in order, in its own scratch copy, and never ships a decision trail | `gate ship` alone exits 2 by design wherever `gate plan` never ran (Phase 10's pre-registration lock), so the single-point self-test had failed every fresh install since then; the payload copy also carried the gitignored `examples/DECISIONS.jsonl`, whose digests trip `DSX-PRE-041` in the installed copy. README already stated the every-gate contract; the code now keeps it | Delivered v2.5.0 — `install.mjs::selfTest` mirrors `scripts/check.sh`; verified on a fresh overlay; `node install.mjs --check` passes |
+| **v2.5-03** *The AI Data Scientist*'s three positive ideas stay on the §6.5 backlog until their D-13 entry conditions are met | Items 7 (feature provenance), 8 (magnitude residual) and 9 (subgroup-harm declaration) carry explicit, falsifiable entry conditions and the corpus holds zero qualifying cases; promoting on the strength of a paper is the estimate-driven promotion D-13 forbids and D-14 would log as `SELF-001` | Recorded 2026-09-06 in `docs/literature/the-ai-data-scientist.md`, one row per item with its standing |
+| **v2.6-01** Every evidence phase measures its corpus case live at all four gate points before any check is designed; a caught case closes with no mint (D-13 applied three times) | The rule that authorizes a mint must be the same rule that would refuse one; "we estimate this matters" is how a backlog becomes a graveyard | Delivered Phases 27–29 — three `VERDICT: LIVE MISS` first lines (27/28/29-MEASUREMENT.md), each independently re-run by the orchestrator; three mints; the counterfactual (swap-still-fires) recorded for each |
+| **v2.6-02** The profiler stays a producer: Phase 25's new keys must be provably inert to every gate | D-01/D-02 — a gate reading the numbers is a separate D-06 decision, never a side effect of computing them | Delivered Phase 25 — `TestDQGateIgnoresNewKeys`; `dsx/checks/dq.py` byte-frozen through the whole milestone (empty diffs at every phase gate) |
+| **v2.6-03** Attribution-only mints are labelled as such in the code (`DSX-ML-034`, `DSX-CLM-034`); `DSX-COH-041` is a real catch and is wired as the corpus's first `kind: target` | Honesty about what a check buys prevents a declaration-only check being read as detection | Delivered Phases 27–29 — docstrings state "buys attribution, not detection"; the harness vocabulary grew `("miss","caught","target")` with the target excluded from miss denominators (Phase 30 invariance proof) |
+| **v2.6-04** D-05 reads: Wilkinson & TFSI (1999) alone (JARS–Quant dropped — only the hedged 2024 web table was reachable); Gail & Simon (1985) as motivating definition, never mechanic; Kaufman et al. (2012) shipped secondary-corroborated with the label in the docstring | A read at the locator beats corroboration; when a read is impossible, say so in the durable record rather than launder | Delivered HQ-40 (2026-09-07) and upgraded at close (2026-09-10) — the operator supplied the Kaufman PDF, the definition was read at p. 15:8–9, eleven records corrected the same day with the 09-07 status kept as history |
+| **v2.6-05** Crashed-firing orphans are adopted only after independent re-verification, never trusted from the crashed firing's own claims | Three firings died mid-unit (usage limits, a dropped connection); losing the work or trusting it blind are both wrong | Delivered S4-2, S5-2, S5-4, S5-5 (loop) and the operator's S5-5 reconcile before travel — every adopted artifact re-gated on the real interpreter first |
+| **v2.6-06** Close-out runs interactively with the four documented framework defects bypassed by hand: merge by explicit branch name, plain git by explicit path, generated records read before commit, verification files read directly | Each defect has now recurred at every close since v2.2; the cost is budgeted, not rediscovered | Delivered 2026-09-10 — S7-2 sign-offs, S7-5 archive and S7-6 ship all hand-driven; accomplishment auto-extraction produced fragments a fourth time and the entry was written from the phase records |
+| **v2.6-07** Fixtures and goldens are location- and checkout-independent: a gate-read fixture never references `.planning/`; anything hashed or compared byte-for-byte is `-text` in `.gitattributes` or normalised first; a golden never carries an absolute path; the ship step re-verifies on `main` and in a fresh clone | The v2.6 ship check found five such defects, all invisible on the branch's LF working copy at a short path and all fatal on a fresh Windows clone | Delivered at ship (`e52d7da`, `0f61eb5`) — two narratives became fixture siblings; `tests/fixtures/profiler/*.csv -text`; golden `source_path` relative and compared by basename; profile pins hash LF-normalised bytes; README documents `core.longpaths`; full suite green in a fresh clone before the merge was redone |
 
 ## Non-goals
 
@@ -168,6 +522,7 @@ cheap, structured and repeatable, so it actually happens. To be stated in the RE
 This document evolves at phase transitions and milestone boundaries.
 
 **After each phase transition** (via `/gsd-transition`):
+
 1. Requirements invalidated? → Move to Out of Scope with reason
 2. Requirements validated? → Move to Validated with phase reference
 3. New requirements emerged? → Add to Active
@@ -175,10 +530,12 @@ This document evolves at phase transitions and milestone boundaries.
 5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone** (via `/gsd-complete-milestone`):
+
 1. Full review of all sections
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-07 after starting milestone v2.0.0 DSX Validity Frame*
+*Last updated: 2026-09-10 — v2.6 Exploration Depth and Backlog Evidence shipped (tag
+`v2.6.0`, merge into `main` by explicit branch name); no milestone open.*

@@ -1,14 +1,24 @@
 # DSX
 
-**Deterministic guardrails for data science, analytics and business intelligence
-work — for any coding agent.**
+![DSX — Data-science rigour for analytical work: deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
 
-DSX is a contract (`ANALYSIS-SPEC.yaml`, written before the data is touched), a
-stdlib-only Python checker (`dsx`) that audits the contract and the artefacts
-against it with a three-way exit code, nine skills that load on demand, and six
-adversarial agents. It runs headless, as a Claude Code plugin, in continuous
-integration, or as a GSD Core capability. The rigour is code; the ceremony is
-optional.
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
+[![CI](https://github.com/RafaelBraga-Kribitz/GSD-DSX/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/GSD-DSX/actions/workflows/ci.yml)
+
+**Status:** Maintained · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
+
+Analytical work shipped through a coding agent still leaks, underpowers, and overclaims.
+`dsx` makes those errors blocking — code that runs at a gate, not advice in a prompt: at the end of every session, on every push, or at each phase of the GSD loop.
+
+```mermaid
+flowchart LR
+    discuss --> plan --> execute --> verify --> ship
+    plan -.->|"ANALYSIS-SPEC.yaml"| GP["dsx gate plan"]
+    execute -.-> GE["dsx gate execute"]
+    verify -.-> GV["dsx gate verify"]
+    ship -.-> GS["dsx gate ship"]
+```
 
 ---
 
@@ -40,76 +50,82 @@ outcome. The agent stays flexible; the output stops being a matter of opinion.
 
 **Finding codes** across check families (contract, experiment, causal, stats, ML,
 metrics/SQL, claims, narrative, code, decision, data quality, coherence,
-visualization, reproducibility), each with a stable identifier, a severity,
-evidence in numbers, and a concrete fix.
-
----
+visualization, reproducibility, paradigm/monitoring, validity frame,
+interference, pre-registered inference, frequentist admissibility, chart
+review), each with a stable identifier, a severity, evidence in numbers, and a
+concrete fix.
 
 ---
 
 ## Install
 
-### As a Claude Code plugin (recommended)
+### Claude Code plugin (recommended)
 
-```
+```text
 /plugin marketplace add RafaelBraga-Kribitz/GSD-DSX
 /plugin install dsx@dsx
 ```
 
-The repository is being renamed to `DSX`; GitHub redirects the old path, so
-this line keeps working before and after.
+One always-on rule, [`using-dsx`](skills/using-dsx/SKILL.md), injected at
+session start; fourteen skills loaded on demand; and a Stop hook,
+[`hooks/stop-gate`](hooks/stop-gate), that runs `dsx audit` on every
+`ANALYSIS-SPEC.yaml` under the working directory and refuses to end the session
+on exit 1. A directory with no spec passes through, so it is safe in a mixed
+repository. Python 3.9+, **no third-party packages** — a gate that breaks on a
+missing dependency is a gate that gets turned off. For the same gate on every
+push, copy [`templates/github-workflow-dsx-gate.yml`](templates/github-workflow-dsx-gate.yml)
+into `.github/workflows/`: a finding at or above `HIGH` blocks the merge, at no
+token cost. Hook contract, environment variables, Windows notes and the
+repository rename: [docs/plugin.md](docs/plugin.md).
 
-That gives you three things and nothing else:
-
-- **One always-on rule.** A SessionStart hook injects
-  [`skills/using-dsx/SKILL.md`](skills/using-dsx/SKILL.md) — 66 lines — into
-  every session: no data before a spec, no claim before `dsx audit`, and which
-  skill to invoke for which work. That is the entire per-session cost.
-- **Nine skills, loaded on demand.** `dsx-scope-analysis`, `dsx-explore-data`,
-  `dsx-design-experiment` and the rest load through the Skill tool only when the
-  work calls for them.
-- **A Stop hook that will not let the session end on a failing audit.** Before
-  the turn closes, [`hooks/stop-gate`](hooks/stop-gate) finds every
-  `ANALYSIS-SPEC.yaml` under the working directory and runs `dsx audit` on each.
-  Exit 1 blocks the stop and hands the findings back to the model. A directory
-  with no spec passes through untouched, so this is safe in a mixed repository.
-
-Requires Python 3.9+ on PATH. No third-party packages. Works on Windows through
-Git Bash via the polyglot [`hooks/run-hook.cmd`](hooks/run-hook.cmd).
-
-### In continuous integration (recommended alongside)
-
-Copy [`templates/github-workflow-dsx-gate.yml`](templates/github-workflow-dsx-gate.yml)
-to `.github/workflows/dsx-gate.yml` in any repository that holds analyses. Every
-spec is audited on every push; a finding at or above `HIGH` fails the job and
-blocks the merge. This gate costs no tokens and cannot be argued with.
-
-### Standalone
+### GSD Core capability (optional, heaviest)
 
 ```bash
-git clone https://github.com/RafaelBraga-Kribitz/GSD-DSX.git dsx
-dsx/bin/dsx audit --spec path/to/ANALYSIS-SPEC.yaml     # 0 pass · 1 block · 2 could not run
+node install.mjs                 # --runtime cursor|codex|opencode|... , --local ; --check ; --uninstall
 ```
 
-### As a GSD Core capability (optional)
+Requires GSD Core ≥ 1.6. The same engine as a capability overlay: blocking gates
+at `plan:post`, `execute:post`, `verify:post` and `ship:pre`, plus prompt fragments
+into the planner, researcher, checker, executor and verifier — the only path that
+gates on phase boundaries. The installer self-tests both fixtures and aborts on failure.
 
-```bash
-node install.mjs                 # --runtime cursor|codex|opencode|... , --local
-node install.mjs --check         # verify an existing install
-node install.mjs --uninstall
-```
+---
 
-Requires GSD Core ≥ 1.6. This installs the same engine as a capability overlay
-with blocking gates at `plan:post`, `execute:post`, `verify:post` and `ship:pre`,
-plus prompt fragments injected into the planner, researcher, checker, executor
-and verifier. It is the heaviest way to run DSX and the only one that gates on
-phase boundaries rather than at the end of the turn. The installer self-tests:
-the known-good fixture must pass every gate and the known-bad fixture must be
-blocked by every gate, or the install aborts.
+## Which path applies to you
 
-#### What it adds to the GSD loop
+`node install.mjs` installs the capability **once, globally, for the whole
+machine** — it is not a per-project version. What varies per project is
+whether [GSD Core](https://github.com/open-gsd/gsd-core) is running there at
+all, and whether that project already has an `ANALYSIS-SPEC.yaml` written
+against an older ruleset. Six starting points, and the path for each:
 
-```
+| Your situation | Path |
+|---|---|
+| **You want the guardrails without the phase loop.** Any harness, any project. | Install the Claude Code plugin and drop the CI gate template into the repository (both under [Install](#install)). No GSD, no `.planning/`, no installer. The Stop hook and the CI job run `dsx audit` against every `ANALYSIS-SPEC.yaml` they find; a directory with none passes through. |
+| **Brand-new project.** Nothing exists yet. | `/gsd-new-project` (bootstraps GSD) → `node install.mjs` (once per machine, skip if already installed) → `pwsh scripts/gsd-stamp.ps1 -Project . -Tier <N>` → set `dsx.require_spec true` if this is a pure analytics project → `/gsd-plan-phase`. |
+| **Already being built**, but never used GSD or DSX. | Same as above, except use `/gsd-onboard` in place of `/gsd-new-project` — it maps the existing codebase and ingests any existing docs before anything is wired in. DSX gates apply from the next phase you plan onward; it does not retroactively judge code already written. |
+| **Already runs GSD**, no DSX yet. | Skip the GSD bootstrap entirely. Install DSX globally if this machine doesn't have it yet, then `pwsh scripts/gsd-stamp.ps1 -Project .` to wire this project's skills, pick a tier (§3 of the [operating guide](docs/operating-guide.md)), and set `dsx.require_spec` if wanted. The next phase you plan picks up the gates; phases already shipped are untouched. |
+| **Already built and shipped.** No active GSD phase running on it any more. | There is no phase loop left to gate. If you plan to keep evolving the project, treat it as "has GSD, no DSX" or "no GSD, no DSX" above, depending on what it already runs, and the gates cover future work only. If you instead want a trust check on the *finished* piece before calling it portfolio-grade, skip GSD entirely: write an `ANALYSIS-SPEC.yaml` describing what was actually done, then run `dsx audit --spec ANALYSIS-SPEC.yaml --verbose --report DATA-REVIEW.md` by hand (see [Standalone CLI](#standalone-cli)) and fix whatever it finds. |
+| **Already on dsx, on an older version.** | Re-run `node install.mjs` — it overwrites the one global install and self-tests before committing, so there's nothing to do per project for the tool itself. What can lag is a project's *spec*: an `ANALYSIS-SPEC.yaml` written against an older ruleset can start failing gates it used to pass. Run `dsx audit` against every existing spec in that project; a newly-blocking finding is a version-delta, not a new bug in your work. Only one jump so far has been schema-breaking rather than additive — see [Migrating a pre-v2.0.0 spec](docs/CHANGELOG-notes.md#migrating-a-pre-v200-spec) — and `suppressions[]` with a named authority is the documented interim path when a real fix needs more time. |
+
+`gsd-stamp.ps1` requires `.planning/` to already exist, which is exactly the
+marker that GSD has been bootstrapped on that project — it is the check that
+tells "has GSD" apart from "does not" in the table above. Full mechanics for
+rollout, tiers and propagating a DSX change to every project already using it
+are in the [operating guide](docs/operating-guide.md).
+
+---
+
+## Architecture
+
+The overlay does not fork [GSD Core](https://github.com/open-gsd/gsd-core). It
+installs a capability whose gates are `command-exit-zero` predicates running
+`dsx gate <point>`: exit 0 passes, exit 1 blocks the loop with the findings in
+the gate message, exit 2 routes to the gate's `onError`. A spec judged bad
+stops the loop; a spec that could not be read is an operational error — the
+distinction matters, and the exit codes preserve it.
+
+```text
   discuss ──▶ plan ──────▶ execute ──────▶ verify ──────▶ ship
                │             │               │              │
         ┌──────┴──────┐      │        ┌──────┴──────┐       │
@@ -122,17 +138,30 @@ blocked by every gate, or the install aborts.
          CRITICAL         CRITICAL        HIGH           HIGH
 ```
 
-Each gate is a GSD `command-exit-zero` predicate running `dsx gate <point>`:
-exit 0 passes, exit 1 blocks the loop with the findings in the gate message,
-exit 2 routes to the gate's `onError`. A spec we judged bad stops the loop; a
-spec we could not read is an operational error — the distinction matters, and
-the exit codes preserve it.
-
 **Phases with no `ANALYSIS-SPEC.yaml` pass through untouched**, so this is safe
 to enable in a mixed repository. Set `dsx.require_spec true` in a pure analytics
-project to make the spec mandatory.
+project to make the spec mandatory. Without GSD the same audit runs at the end of the turn ([`hooks/stop-gate`](hooks/stop-gate)) and on every push (CI).
 
----
+Rollout, ceremony tiers, and the global-vs-per-project split are in the
+[operating guide](docs/operating-guide.md). Why the gates, the stdlib statistics
+kernel, and the YAML spec are shaped this way is under [Design notes](#design-notes).
+
+### Repository structure
+
+| Path | Responsibility |
+|---|---|
+| `capabilities/dsx/` | GSD capability manifest and gate wiring |
+| `dsx/` | Python CLI, check families, stdlib statistics kernel |
+| `agents/` | Six specialist agent briefs |
+| `skills/` | Fourteen workflow skills and the one always-on rule, `using-dsx` |
+| `templates/` | `ANALYSIS-SPEC.yaml` and the supporting templates |
+| `examples/` | Known-good and known-bad fixtures (the install self-test) |
+| `tests/` | `unittest` suite for every check family |
+| `hooks/` | SessionStart and Stop hooks for the plugin path; polyglot Windows wrapper |
+| `intake/` | Landing zone for skills and agents brought in from elsewhere |
+| `scripts/` | Installer helpers, catalogue generator, project stamp, intake checker |
+| `docs/` | Operating guide, tiers, literature notes |
+| `references/` | Finding-code catalogue generated from source |
 
 ---
 
@@ -179,22 +208,11 @@ Run `dsx init` to scaffold it, `dsx vocab` to see every closed vocabulary.
 
 ### Migrating a pre-v2.0.0 spec
 
-From v2.0.0, `validity_frame:` is required starting at the `plan` gate, at
-CRITICAL severity — so a spec written against v1.x begins blocking the moment
-you upgrade. The supported path is to fill the frame: `estimand`, `units`,
-`identification`, `dependence`, `interference`, `triggering`, `stability`,
-`sampling_frame`, `missingness`, `measurement`.
-
-The supported *interim* path is the existing `suppressions[]` mechanism (see
-[Finding suppressions](#finding-suppressions) below): declare the missing-frame
-findings there with a `reason` and an `authority` naming a real ADR or SPEC
-file. Suppressions apply after checks and before the blocking threshold, and
-an unknown code aborts the run with exit 2.
-
-Say this plainly: a suppression is an attributable, dated decision with a
-named authority, not a way to make the finding go away. A suppression with no
-resolvable `authority` reference already produces `DSX-SPEC-070` — the
-grandfather path is deliberate, not silent.
+From v2.0.0, `validity_frame:` is required at the `plan` gate at CRITICAL
+severity, so a v1.x spec blocks on upgrade. Fill the frame, or use
+`suppressions[]` with a `reason` and a real `authority` as the interim path.
+Full notes, and the entrypoint leak scan that now parses code, are in
+[docs/CHANGELOG-notes.md](docs/CHANGELOG-notes.md).
 
 ---
 
@@ -202,7 +220,7 @@ grandfather path is deliberate, not silent.
 
 Real output, not a description of it:
 
-```
+```bash
 $ dsx audit --spec examples/bad-ANALYSIS-SPEC.yaml
 
 [CRITICAL] DSX-EXP-006  Experiment is underpowered: 1,200 per arm vs 47,528 required
@@ -240,6 +258,12 @@ gap.
 | **Plot smells** | `DSX-SMELL-*` | Dead series, density on atoms, stacked scenarios, category dropouts, self-correlation, disagreeing `run_id` |
 | **Visualization** | `DSX-VIZ-*` | Truncated baselines on length-encoded charts, dual axes, chart type wrong for the relationship or data_input_type, takeaway = name, >5 pie slices, 3D, red/green as sole distinction, rainbow scales, estimates with no uncertainty, missing units |
 | **Reproducibility** | `DSX-REP-*` | No seed on stochastic methods, unpinned environment, unidentifiable data extracts, missing entrypoint, notebooks not confirmed clean top-to-bottom, missing/`null`/incomplete `repro_lock` |
+| **Paradigm & monitoring** | `DSX-PAR-*` | Declared inferential paradigm manifest; uncontrolled continuous peeking with no monitoring discipline declared, frequentist or Bayesian |
+| **Validity frame** | `DSX-VAL-*` | Estimand missing attributes or non-discriminating, unit-triad mismatch, dependence with no admissible method, weak identification with no constraint, inconsistent sampling frame, missingness mechanism paired with an unlicensed method, unoperationalised measurement construct, unjustified exclusion rule |
+| **Interference & stability** | `DSX-INT-*` | Interference/SUTVA risk with no mitigation, an inadmissible mitigation, triggered-vs-eligible dilution with no adjustment, novelty/primacy over the declared stability window |
+| **Pre-registered inference** | `DSX-PRE-*` | Declared fallback rule that doesn't resolve, a pre-data plan that isn't what plan-time locked, executed procedure diverging from the declared branch, missing spec_id, an uncleared plan amendment |
+| **Frequentist admissibility** | `DSX-ADM-*` | A declared procedure admissible but dominated by a cited ordering; no admissible procedure at all for the declared frame |
+| **Chart review conformance** | `DSX-CRV-*` | Structural conformance of CHART-REVIEW.md — schema tag, the forbidden free-form scale, the terminal sentinel, finding-line traceability |
 
 Full catalogue: [`references/finding-codes.md`](references/finding-codes.md) —
 generated from the source, so it cannot drift from what the code emits.
@@ -248,13 +272,9 @@ generated from the source, so it cannot drift from what the code emits.
 
 ## Agents and skills
 
-One always-on skill, [`using-dsx`](skills/using-dsx/SKILL.md): the two rules
-(spec before data, audit before claim), the exit-code contract, a routing table
-from the kind of work to the skill that owns it, and the rationalisations to
-watch for. It is injected at session start by the plugin's hook and is the only
-text paid for on every session.
-
-Six specialists, each with a narrow adversarial brief:
+One always-on skill, [`using-dsx`](skills/using-dsx/SKILL.md): the two rules,
+the exit-code contract, and a routing table from the kind of work to the skill
+that owns it. Then six specialists, each with a narrow adversarial brief:
 
 | Agent | Role |
 |---|---|
@@ -265,10 +285,15 @@ Six specialists, each with a narrow adversarial brief:
 | `dsx-viz-critic` | Encoding correctness and proportional geometry |
 | `dsx-data-storyteller` | The decision-ready narrative, without outrunning the evidence |
 
-Eight skills covering the workflow end to end: `dsx-scope-analysis`,
+14 skills covering the workflow end to end: `dsx-scope-analysis`,
 `dsx-explore-data`, `dsx-design-experiment`, `dsx-define-metrics`,
 `dsx-build-model`, `dsx-visualize`, `dsx-chart-audit`, `dsx-narrate`,
-`dsx-review-analysis`.
+`dsx-review-analysis`, `dsx-cohort`, `dsx-funnel`, `dsx-root-cause`,
+`dsx-segment` (four task playbooks that route marketing-analytics questions to
+the existing gates instead of restating them), and `dsx-reproduce` (off-gate-path
+re-run verification).
+
+Skills and agents from elsewhere enter through [`intake/`](intake/README.md) — `scripts/intake.py --promote`.
 
 `dsx-chart-audit` is the standalone retroactive path: run `dsx check viz smells
 figures`, spawn `dsx-viz-critic`, write scored `CHART-REVIEW.md`
@@ -315,78 +340,17 @@ Add `--json` anywhere for machine-readable output. Exit codes are the contract:
 
 ## Configuration
 
-### Plugin and hooks
-
-| Variable | Default | Effect |
-|---|---|---|
-| `DSX_STOP_GATE` | `on` | `off` disables the end-of-session gate for one shell |
-| `DSX_BLOCK_ON` | `HIGH` | Minimum severity that blocks: `CRITICAL` · `HIGH` · `MEDIUM` · `LOW` |
-| `DSX_SEARCH_DEPTH` | `4` | How deep under the working directory the Stop hook looks for specs |
-| `DSX_PYTHON` | `python3` | Interpreter override |
-
-### GSD capability
-
-```bash
-gsd config set dsx.enforce true            # master switch (default: true)
-gsd config set dsx.require_spec true       # mandatory spec (default: false)
-gsd config set dsx.domain experimentation  # bias agent and reference loading
-```
-
-| Key | Default | Effect |
-|---|---|---|
-| `dsx.enforce` | `true` | Master switch for all gates |
-| `dsx.require_spec` | `false` | Fail the plan gate when a phase has no spec |
-| `dsx.viz_audit` | `true` | Audit chart specs before shipping |
-| `dsx.causal_guard` | `true` | Block causal wording the design does not support |
-| `dsx.reproducibility_gate` | `true` | Require seed, environment, data identity, entrypoint |
-| `dsx.dq_gate` | `true` | Compare `data[].assertions` to `DATA-PROFILE.yaml` |
-| `dsx.figure_seal` | `true` | Require `svg_sha256` when `artifact_path` is set |
-| `dsx.domain` | `auto` | `experimentation` · `machine_learning` · `business_intelligence` · `marketing_science` · `research` |
-| `dsx.python` | `python3` | Interpreter for the CLI |
-
-The capability installs once and is then visible from every project on the
-machine; per-project configuration is separate. [docs/operating-guide.md](docs/operating-guide.md)
-covers that split, how to roll the setup out across several projects, how to
-pick a ceremony tier, and how the gates sit in the phase loop — with diagrams.
-Tier presets are in [docs/gsd-tiers.md](docs/gsd-tiers.md).
-
----
-
-## Bringing your own skills and agents
-
-[`intake/`](intake/README.md) is the landing zone for skills and agents written
-elsewhere. Drop a folder into `intake/skills/<name>/SKILL.md` or a file into
-`intake/agents/<name>.md`, then:
-
-```bash
-python3 scripts/intake.py                    # what is there, what collides, what overlaps
-python3 scripts/intake.py --promote <name>   # move it in and declare it in the manifest
-```
-
-Promoted skills load on demand like the shipped ones. Nothing is ever added to
-the always-on text automatically; that file stays short by hand.
+Plugin: `DSX_STOP_GATE`, `DSX_BLOCK_ON`, `DSX_SEARCH_DEPTH` and `DSX_PYTHON`,
+tabulated in [docs/plugin.md](docs/plugin.md#environment-variables). GSD:
+`gsd config set dsx.<key>` toggles each gate; the key table and the
+install-once, configure-per-project split are in [docs/operating-guide.md](docs/operating-guide.md#configuration).
 
 ---
 
 ## Development
 
-```bash
-./scripts/check.sh                           # the full gate: everything below, plus hook syntax
-python3 -m unittest discover -s tests -v     # 324 tests
-python3 scripts/validate-capability.py       # manifest conformance
-python3 scripts/gen-finding-catalogue.py --write
-```
-
-**Adding a check.** Write it in the relevant `dsx/checks/*.py` module returning
-`Report` findings with a new code in that module's prefix. Add a test that proves
-it fires *and* a test that proves it does not fire on the good fixture. Regenerate
-the catalogue. Codes are never renumbered — a suppression written today stays
-valid.
-
-**The two fixtures are the contract.** `examples/good-ANALYSIS-SPEC.yaml` must
-pass every gate at every threshold; `examples/bad-ANALYSIS-SPEC.yaml` must be
-blocked by every gate. If a new check breaks the good fixture, either the check is
-wrong or the fixture has a real defect. Both are worth finding out.
+`./scripts/check.sh` runs the full gate, hook scripts included; adding a check, the two-fixture
+contract and the fixture/golden rules are in [docs/operating-guide.md](docs/operating-guide.md#development).
 
 ---
 
@@ -405,46 +369,12 @@ vocabulary respected, every cross-field check satisfied — and still false,
 because nothing in the frame's shape can verify that "difference in 7-day
 activation rate" was the right question to ask in the first place.
 
-### Concurrent `dsx gate` invocations are not supported
-
-Run `dsx gate` points against one analysis directory sequentially, not in
-parallel. The per-invocation identifier in `DECISIONS.jsonl` is derived by
-reading and counting existing invocation headers, and nothing locks that
-read against a second process's write. Two concurrent `dsx gate` runs
-against the same directory can both derive the same invocation identifier
-and both append a header carrying it, merging their decision trails under
-one invocation in `dsx explain`'s output. This does not affect any gate's
-exit code — the trail stays a side channel — but it does corrupt the
-grouping guarantee the trail is supposed to provide for that one invocation.
-Serialising `dsx gate` runs against a given analysis directory is the
-operator's responsibility today.
-
-### Two tiers of evidentiary rigour
-
-Not every finding code in the catalogue carries the same evidentiary bar.
-
-**Tier one — codes introduced in v2.0.0.** Every new finding code carries, in
-its docstring, a `Citation:` line naming author, year, work and the exact
-formulation, plus a `Reference value:` line (or `Structural criterion:` where
-the check is structural rather than numeric), plus a `# D-05: <CODE>` marker
-comment in `tests/` linking the code to the test that proves it fires. All
-three are enforced mechanically:
-
-```bash
-python3 scripts/gen-finding-catalogue.py --check
-```
-
-**Tier two — pre-existing codes.** The finding codes that predate this rule
-are carried on a finite allow-list inside `gen-finding-catalogue.py`. Many
-are structural (contract shape, SQL fan-out) with no primary statistical
-source to cite — forcing a citation there would manufacture exactly the fake
-authority the rule exists to prevent. The allow-list is designed to shrink:
-as an old code earns a citation, it comes off the list.
-
-The `# D-05: <CODE>` test-linkage convention isn't cosmetic bookkeeping — it
-is how every check family from here forward proves its citation is actually
-exercised by a test, not just quoted in a comment. It binds every later
-milestone phase from the moment it lands.
+- [The verbless recommendation is not caught](docs/known-limits.md#the-verbless-recommendation-is-not-caught) — a recommendation typed `descriptive` and phrased with no causal verb evades both the type ceiling and the causal-verb lexicon and ships unflagged.
+- [What the amendment counter does not enforce](docs/known-limits.md#what-the-amendment-counter-does-not-enforce) — the `dsx explain` amendment counter is not tamper-proof, covers only `validity_frame:` and `inference:`, cannot separate specs sharing a root, and checks a reason for form, not truth.
+- [Concurrent `dsx gate` invocations are not supported](docs/known-limits.md#concurrent-dsx-gate-invocations-are-not-supported) — two `dsx gate` runs against the same analysis directory can derive the same invocation identifier and merge their decision trails, so serialising them is the operator's responsibility.
+- [What the declared-versus-executed reconciliation cannot see](docs/known-limits.md#what-the-declared-versus-executed-reconciliation-cannot-see) — `declared_at`, the "executed" side, the content lock and the missing-lock case all rest on operator declarations or discipline the gate cannot verify.
+- [Two tiers of evidentiary rigour](docs/known-limits.md#two-tiers-of-evidentiary-rigour) — codes introduced in v2.0.0 carry a mechanically enforced citation and test linkage; pre-existing codes sit on a shrinking allow-list without one.
+- [What the entrypoint scan does not catch](docs/known-limits.md#what-the-entrypoint-scan-does-not-catch) — a clean leak scan is evidence that particular shapes were not found in the one declared entrypoint file, not evidence that the file does not leak.
 
 ---
 
@@ -474,6 +404,45 @@ and safe to run anywhere — but also that a spec can lie. That is what
 declarations match. Deterministic checks catch the errors; the audit catches the
 misdeclarations.
 
+**Where the published literature was engaged, and how.** `docs/literature/` records,
+paper by paper, which ideas are present in DSX, which are present as the thing a gate
+catches, and which sit on the gated backlog with an entry condition. The first entry
+is *The AI Data Scientist* (arXiv:2508.18113), whose six-subagent pipeline was
+transcribed stage for stage into the known-bad corpus and passed the gate with zero
+findings until Phase 11.1 shipped the four codes that now block it.
+
 ---
 
+## Status
+
+**Status:** Maintained (v2.6.1). Released and in use as a plugin, in CI, standalone
+and as a GSD capability; new check families still land behind the same fixture contract.
+
+---
+
+## License
+
 MIT. Built on [GSD Core](https://github.com/open-gsd/gsd-core) by open-gsd.
+
+---
+
+## Author
+
+<table>
+  <tr>
+    <td width="110">
+      <img
+        src="docs/assets/Author_MDS_Rafael_Braga-Kribitz_kroped.png"
+        alt="Rafael Braga-Kribitz"
+        width="96"
+      />
+    </td>
+    <td>
+      <strong>Rafael Braga-Kribitz</strong><br />
+      Seiersberg-Pirka, Austria · Portfolio project, 2026<br />
+      <a href="https://www.linkedin.com/in/rafaelbragakribitz/">LinkedIn</a>
+      ·
+      <a href="mailto:rafaelbragakribitz@gmail.com">rafaelbragakribitz@gmail.com</a>
+    </td>
+  </tr>
+</table>

@@ -40,6 +40,11 @@ Invoke the skill BEFORE responding, exploring, or asking clarifying questions. A
 | Reviewing figures someone else made | `dsx-chart-audit` |
 | The executive summary, readout or report | `dsx-narrate` |
 | Reviewing an analysis before it ships | `dsx-review-analysis` |
+| A retention or cohort-grid question | `dsx-cohort` |
+| An ordered funnel — drop-off between step N and N+1 | `dsx-funnel` |
+| "Why did this metric move" | `dsx-root-cause` |
+| "Who differs" — segments, multi-cut comparisons | `dsx-segment` |
+| Re-running the entrypoint to substantiate declared results | `dsx-reproduce` |
 
 On a fresh question, `dsx-scope-analysis` comes first. Then the domain skill.
 

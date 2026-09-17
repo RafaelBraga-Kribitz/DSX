@@ -9,7 +9,8 @@
 How DSX and the house-style skills reach a project, how to choose a ceremony
 tier, and how to run several phases at once without losing track of them.
 
-Written against GSD Core 1.7.0 and DSX 2.0.0. Every claim here was checked
+Written against GSD Core 1.7.0 and DSX 2.0.0 (the release steps in section 6
+were added at 2.6.1). Every claim here was checked
 against the running system rather than the reference documentation, because the
 two disagree in at least one place — see [gsd-tiers.md](gsd-tiers.md).
 
@@ -29,7 +30,7 @@ flowchart TD
     subgraph GLOBAL["Global — install once, every project sees it"]
         A["~/.gsd/capabilities/dsx<br/>gates, dsx CLI, IT001-IT040 catalogue"]
         B["~/.claude/agents/<br/>6 dsx agents"]
-        C["~/.claude/skills/<br/>9 dsx skills"]
+        C["~/.claude/skills/<br/>14 dsx skills"]
     end
 
     subgraph PROJECT["Per project — must be applied to each one"]
@@ -63,7 +64,7 @@ agents that talk to you, sets the readability flags, and then verifies by
 resolving the skills back out rather than trusting that the write succeeded.
 
 ```powershell
-pwsh scripts/gsd-stamp.ps1 -Project C:\Users\Benutzer1\Dev\warehouse_humanoid_tco -Tier 2
+pwsh scripts/gsd-stamp.ps1 -Project C:\path\to\your-project -Tier 2
 pwsh scripts/gsd-stamp.ps1 -Project . -VerifyOnly
 ```
 
@@ -283,6 +284,17 @@ script exists.
 
 ---
 
+### Cutting a release
+
+The release number lives in three places that must move together, and a test
+holds them together (`tests/test_release_version.py`): `dsx/__init__.py`
+(`__version__`, what `dsx --version` prints and what every decision record
+carries as `dsx_version`), `capabilities/dsx/capability.json` (`version`), and
+`repro_lock.dsx_version` in every example spec and in
+`templates/ANALYSIS-SPEC.yaml` (the gate's `DSX-REP-053` fires MEDIUM when a spec's
+declared lock version differs from the running package). Bump all three, run the
+suite, then tag.
+
 ## 7. Command reference
 
 | Task | Command |
@@ -293,6 +305,8 @@ script exists.
 | Check a project's wiring only | `pwsh scripts/gsd-stamp.ps1 -Project X -VerifyOnly` |
 | Switch ceremony tier | `pwsh scripts/gsd-tier.ps1 -Tier 0\|1\|2` |
 | Read current tier values | `pwsh scripts/gsd-tier.ps1 -Show` |
+| Every GSD Core defect this project works around, with its line and status | [docs/gsd-core-known-defects.md](gsd-core-known-defects.md) |
+| Recover a subagent commit stranded on a stray branch (`gsd-tools query commit` defect) | `pwsh scripts/gsd-reconcile-branch.ps1 -Branch <canonical>` — runs automatically after every headless ceremony firing; run by hand after an interactive `/gsd-execute-phase` or `/gsd-plan-phase` if you suspect the same thing happened |
 | Permitted charts for a data shape | `dsx charts IT005 --relationship comparison` |
 | Whole chart catalogue | `dsx charts --list` |
 | Every closed vocabulary | `dsx vocab` |
@@ -325,3 +339,126 @@ flowchart TD
 
 For an existing repository, `/gsd-onboard` replaces `/gsd-new-project` and adds
 codebase mapping and document ingest first.
+
+---
+
+## 9. CSV-first aliases
+
+A CSV-first conversation should start as simply as with a data-analysis assistant —
+without knowing GSD phase names, and **without a `data_storage/` special folder**. The
+CSV is passed **as an argument** (`explore <extract.csv>`), not dropped into a watched
+directory.
+
+The **portable path** is this documented alias convention plus the CSV-first trigger
+phrases carried in each DSX skill's frontmatter `description`. It works on any host that
+reads skill descriptions, honouring the capability's `runtimeCompat.supported: ["*"]`
+contract. A `capability.json` `aliases` key is deliberately **not** used: it is not
+grounded in the installed GSD Core schema, and the repo's Tool Version Grounding rule
+forbids writing a key that may silently no-op. The `.claude/commands/*.md` shims are
+optional, Claude-Code-only sugar — non-load-bearing, never the sole path.
+
+| Alias | Skill | CSV-first example |
+|---|---|---|
+| `/dsx-scope` | dsx-scope-analysis | "scope this question", "can you look into churn" (csv-first framing) |
+| `/dsx-eda` | dsx-explore-data | `explore <extract.csv>`, "profile this csv", "eda" |
+| `/dsx-experiment` | dsx-design-experiment | "design an A/B test", "read out this experiment" |
+| `/dsx-metrics` | dsx-define-metrics | "define this metric", "why do these two numbers disagree" |
+| `/dsx-model` | dsx-build-model | "build a model to predict <y> from <extract.csv>" |
+| `/dsx-visualize` | dsx-visualize | "chart this", "which chart for this" |
+| `/dsx-chart-audit` | dsx-chart-audit | "audit this figure", "is this chart honest" |
+| `/dsx-narrate` | dsx-narrate | "write the readout", "executive summary" |
+| `/dsx-review` | dsx-review-analysis | "review this analysis before it ships" |
+| `/dsx-cohort` | dsx-cohort | "cohort analysis", "retention by cohort" |
+| `/dsx-funnel` | dsx-funnel | "funnel analysis", "where do users drop off" |
+| `/dsx-root-cause` | dsx-root-cause | "why did <metric> move" |
+| `/dsx-segment` | dsx-segment | "segment analysis", "which segment drove this" |
+
+All 13 DSX skills carry a `Triggers:` clause in their frontmatter `description`, so
+intent routes to the right skill on any description-reading host even without the alias.
+
+### Why there is no file-drop hook
+
+REQ-P14-05 asked for a "profile a CSV automatically when it appears" file-drop hook. It
+is satisfied by a **documented skip**, decided against the installed GSD Core — honestly,
+not for convenience:
+
+1. The portable hook floor — `{SessionStart, PreToolUse, PostToolUse, Stop,
+   SessionEnd}` — exposes **no "a file appeared" event**, and GSD Core exposes no
+   capability-declarable file-drop overlay hook to bind.
+2. The only file-change surface, **`FileChanged`**, is **Claude-Code-family only**,
+   runtime-descriptor-gated, filename-matched, and used solely for `config.json`
+   hot-reload; its firing on a **new arbitrary CSV is unverified** host behaviour.
+3. DSX ships `supported: ["*"]` and will **not** ship a hook that works on one runtime
+   and silently no-ops on every other — binding `FileChanged` would breach that
+   contract, uncaught (exactly the "config that silently no-ops" the Tool Version
+   Grounding rule forbids).
+4. So `dsx profile` stays **analyst-invoked**, with the exact command
+   `dsx profile <extract.csv> --out DATA-PROFILE.yaml --pk <key> --time <col>`.
+
+The compensating control is **`DSX-DQ-001`** (CRITICAL): it fires when a spec's
+`data[].assertions` declare a missing or unreadable `profile_path`, so the analyst is
+forced to produce the profile regardless of any hook — automation here was convenience,
+never a guardrail. Accordingly `capabilities/dsx/capability.json` `hooks` stays `[]`.
+
+**Reversal condition:** if GSD Core later exposes a runtime-neutral file-change overlay
+hook, REQ-P14-05 may flip from the documented-skip branch to the hook branch.
+
+---
+
+## Configuration
+
+```bash
+gsd config set dsx.enforce true            # master switch (default: true)
+gsd config set dsx.require_spec true       # mandatory spec (default: false)
+gsd config set dsx.domain experimentation  # bias agent and reference loading
+```
+
+| Key | Default | Effect |
+|---|---|---|
+| `dsx.enforce` | `true` | Master switch for all gates |
+| `dsx.require_spec` | `false` | Fail the plan gate when a phase has no spec |
+| `dsx.viz_audit` | `true` | Audit chart specs before shipping |
+| `dsx.causal_guard` | `true` | Block causal wording the design does not support |
+| `dsx.reproducibility_gate` | `true` | Require seed, environment, data identity, entrypoint |
+| `dsx.dq_gate` | `true` | Compare `data[].assertions` to `DATA-PROFILE.yaml` |
+| `dsx.figure_seal` | `true` | Require `svg_sha256` when `artifact_path` is set |
+| `dsx.domain` | `auto` | `experimentation` · `machine_learning` · `business_intelligence` · `marketing_science` · `research` |
+| `dsx.python` | `python3` | Interpreter for the CLI |
+
+The capability installs once and is then visible from every project on the
+machine; per-project configuration is separate. [docs/operating-guide.md](operating-guide.md)
+covers that split, how to roll the setup out across several projects, how to
+pick a ceremony tier, and how the gates sit in the phase loop — with diagrams.
+Tier presets are in [docs/gsd-tiers.md](gsd-tiers.md).
+
+---
+
+## Development
+
+```bash
+./scripts/check.sh                           # the full gate: everything below
+python3 -m unittest discover -s tests -v     # 1633 tests at v2.6.1; the count grows with each phase
+python3 scripts/validate-capability.py       # manifest conformance
+python3 scripts/gen-finding-catalogue.py --write
+```
+
+**Adding a check.** Write it in the relevant `dsx/checks/*.py` module returning
+`Report` findings with a new code in that module's prefix. Add a test that proves
+it fires *and* a test that proves it does not fire on the good fixture. Regenerate
+the catalogue. Codes are never renumbered — a suppression written today stays
+valid.
+
+**The two fixtures are the contract.** `examples/good-ANALYSIS-SPEC.yaml` must
+pass every gate at every threshold; `examples/bad-ANALYSIS-SPEC.yaml` must be
+blocked by every gate. If a new check breaks the good fixture, either the check is
+wrong or the fixture has a real defect. Both are worth finding out.
+
+**Fixtures and goldens are location- and checkout-independent.** A committed,
+gate-read fixture must never reference anything under `.planning/` — that
+directory is planning history and the milestone close moves it. Anything a test
+hashes or compares byte-for-byte is either marked `-text`/`binary` in
+`.gitattributes` (the profiler's reference CSVs, the sealed figures) or normalised
+to LF before hashing, and a golden never records an absolute path — this
+repository checks out CRLF on Windows, and a pin recorded from one working copy is
+otherwise only valid on the machine that recorded it. Before tagging a release, run
+the suite on `main` after the merge and in a fresh clone, not only on the branch.

@@ -42,6 +42,23 @@ PREFIX_GROUPS = [
     ("DSX-SMELL", "Plot smells", "Declaration-based plot-construction smells."),
     ("DSX-PAR", "Paradigm and monitoring discipline",
      "The declared inferential paradigm manifest and its symmetric peeking-monitoring pair."),
+    ("DSX-VAL", "Validity frame",
+     ("Estimand, unit triad, dependence, identification, sampling frame, missingness and "
+     "measurement content — whether a validity_frame block that is present and structurally "
+     "well-formed is also internally coherent.")),
+    ("DSX-INT", "Interference, triggering and stability",
+     ("Interference and SUTVA risk, triggered-versus-eligible dilution, and novelty or primacy "
+     "over the declared stability window.")),
+    ("DSX-PRE", "Pre-registered inference plan",
+     ("The declared fallback rule resolved against the declared observed facts, the plan-time "
+     "content lock, and reconciliation of the declared branch against the executed procedure.")),
+    ("DSX-ADM", "Frequentist admissibility",
+     ("The ranked admissible set for a declared frequentist frame, naming the assumptions each "
+     "family buys and charges, and the refusal when no procedure in the ontology is admissible.")),
+    ("DSX-CRV", "Chart review conformance",
+     ("Structural conformance of CHART-REVIEW.md against its own schema — schema tag, the "
+     "forbidden ten-point scale, the terminal sentinel, and finding-line traceability tokens — "
+     "never the stochastic agent verdict content itself (scores, gates, final_assessment).")),
 ]
 
 # D-20: the finite, visible exemption boundary for D-05 citation/reference-value
@@ -55,16 +72,162 @@ PREFIX_GROUPS = [
 # human noticing the allow-list needs updating. A single code that lives inside a
 # pre-existing family — where a family prefix would drag the whole legacy family
 # into enforcement — is named individually in `_D05_ALLOWLIST_CODES` instead.
-_D05_ALLOWLIST_PREFIXES = ("DSX-PAR-",)
+#
+# Phase 11 adds "DSX-ADM-" here: `dsx/frame/admissibility.py`'s two report.add
+# call sites (DSX-ADM-010, DSX-ADM-020) already carry `Citation:` and
+# `Structural criterion:` docstring lines and `# D-05:` test markers, so this
+# entry is what turns those from convention into an enforced build gate.
+#
+# Phase 11.3 (REQ-P11.3-06, D-12) adds "DSX-CRV-" here: `dsx/checks/chart_review.py`
+# is a brand-new file with zero legacy siblings, and each of its four report.add
+# call sites (DSX-CRV-010/011/012/013) already carries a `Citation:` line (the
+# schema file itself, since D-13 forbids citing any judgement-source content) and
+# a `Structural criterion:` docstring line plus a `# D-05:` test marker, so this
+# entry is what turns those from convention into an enforced build gate.
+_D05_ALLOWLIST_PREFIXES = (
+    "DSX-PAR-", "DSX-VAL-", "DSX-INT-", "DSX-PRE-", "DSX-ADM-", "DSX-CRV-",
+)
 
 # The individually-enumerated half of D-20's finite, visible boundary: exact
-# codes this milestone introduced inside a pre-existing family (DSX-SPEC-*),
-# where a family prefix is not usable without pulling in that family's 200+
-# pre-existing legacy codes. Measured against the real tree, not copied from
-# review prose — re-derive by enumerating `collect()`'s codes under the old
-# bare-prefix match if this set is ever suspected stale.
+# codes this milestone introduced inside a pre-existing family (DSX-SPEC-*,
+# and — from Phase 11.1 — DSX-CODE-*), where a family prefix is not usable
+# without pulling in that family's 200+ pre-existing legacy codes. Measured
+# against the real tree, not copied from review prose — re-derive by
+# enumerating `collect()`'s codes under the old bare-prefix match if this set
+# is ever suspected stale.
+#
+# Phase 11.1 (REQ-P11.1-01, REQ-P11.1-03) adds DSX-CODE-020, DSX-CODE-021,
+# DSX-CODE-030 and DSX-CODE-031 here, not to `_D05_ALLOWLIST_PREFIXES`:
+# `DSX-CODE-*` is a pre-existing family (v1.3.0) with ~4 legacy codes
+# (001-003, 010) that carry no `Citation:`/`Structural criterion:` docstring
+# line and no `# D-05:` test marker. Adding the `"DSX-CODE-"` prefix to
+# `_D05_ALLOWLIST_PREFIXES` would retroactively obligate every one of those
+# legacy codes to carry a citation none of them have — the visible
+# consequence is `scripts/check.sh --check` failing red on files this phase
+# never touched. The exact-code path used here is the one Phase 6 already
+# established for `DSX-SPEC-080`-`086` inside the pre-existing `DSX-SPEC-*`
+# family; this is the same precedent applied to a second family.
+#
+# Phase 11.1 (REQ-P11.1-04) adds DSX-ML-043 here for the same reason:
+# `DSX-ML-*` is a pre-existing family (v1.0.0) whose ~40 legacy codes carry
+# no citation. DSX-ML-040, DSX-ML-041 and DSX-ML-042 — the three legacy
+# codes sharing DSX-ML-043's enclosing function, `_check_metric_choice` —
+# are deliberately NOT added here: they are pre-existing, uncited, and this
+# plan only extended the function they already lived in. Naming them would
+# turn the build red on a function this plan did not rewrite from scratch.
+#
+# Phase 11.1 (REQ-P11.1-03) adds DSX-ML-023 and DSX-ML-024 here for the same
+# reason as DSX-ML-043 above: both live in `dsx/checks/ml.py`'s pre-existing
+# `DSX-ML-*` family. DSX-ML-020, DSX-ML-021 and DSX-ML-022 — the legacy
+# codes sharing `_check_preprocessing`, the function DSX-ML-023/024 borrow
+# their shared accepted-value constant from — are deliberately NOT added
+# here; this plan only extracted that constant out of _check_preprocessing
+# without rewriting its citation-free body.
+#
+# Phase 11.1 (REQ-P11.1-05) adds DSX-ML-052 and DSX-ML-053 here for the same
+# reason: both live inside `_check_baseline`, a pre-existing `DSX-ML-*`
+# function. DSX-ML-050 and DSX-ML-051 — the two legacy codes sharing that
+# same function — are deliberately NOT added here; this plan only extended
+# the branch they already lived in, it did not rewrite their citation-free
+# bodies.
+#
+# Phase 11.1 (REQ-P11.1-06) adds DSX-ML-090, DSX-ML-091 and DSX-ML-092 here.
+# Unlike the DSX-ML-* entries above, all three live in a brand-new function,
+# `_check_selection_ledger`, that this plan wrote from scratch — there is no
+# legacy sibling code sharing the function to carry forward uncited.
+#
+# Phase 11.2 (REQ-P11.2-04) adds DSX-COH-040 here: `DSX-COH-*` is a
+# pre-existing family (v1.0.0) with no `_D05_ALLOWLIST_PREFIXES` entry and
+# five legacy codes (001, 010, 020, 030, 031) carrying no `Citation:`/
+# `Structural criterion:` docstring line and no `# D-05:` test marker.
+# DSX-COH-040 lives in a brand-new function, `_check_revisit_completeness`,
+# that this plan wrote from scratch — naming it individually here obligates
+# only the new code, not the family's four legacy siblings.
+#
+# Phase 15 (REQ-P15-02, REQ-P15-04) adds DSX-EXP-070 and DSX-MET-021 here, by
+# exact code and NOT via `_D05_ALLOWLIST_PREFIXES`: each lives inside a
+# pre-existing family (DSX-EXP-*, DSX-MET-*) whose legacy siblings carry no
+# `Citation:`/`Structural criterion:` docstring line and no `# D-05:` marker, so a
+# prefix add would fail the build red on codes this phase never touched.
+# DSX-EXP-070 (`_check_cuped`) cites Deng et al. 2013 WSDM; DSX-MET-021
+# (`_check_cohort_denominator_shift`) cites Crook et al. 2009 KDD. Both live in
+# brand-new functions this phase wrote, so no legacy sibling is dragged in — the
+# same exact-code precedent as DSX-SPEC-080..086 and DSX-COH-040 above.
+#
+# Phase 18 (REQ-P18-03, REQ-P18-04, 2026-09-01) adds DSX-STA-050, DSX-STA-051,
+# DSX-STA-060, DSX-STA-061 and DSX-STA-062 here, by exact code and NOT via
+# `_D05_ALLOWLIST_PREFIXES`: `DSX-STA-*` is a large pre-existing family (~40
+# legacy codes) carrying no `Citation:`/`Structural criterion:` docstring line
+# and no `# D-05:` test marker, so a `"DSX-STA-"` prefix add would fail the build
+# red on all of them (18-RESEARCH.md Pitfall 3 / Anti-Patterns). The two
+# correlation codes (050/051) live in `_check_correlation_scale_kind` and the
+# three agreement codes (060/061/062) in `_check_agreement_completeness` — two
+# brand-new helpers this phase wrote, split by predicate group so each carries
+# its own attributable D-05 docstring (18-RESEARCH.md Pattern 1); the same
+# exact-code precedent as DSX-EXP-070/DSX-MET-021/DSX-COH-040 above.
+#
+# Phase 19 (REQ-P19-01/02/04/05/06/07, 2026-09-02) adds DSX-STA-070, DSX-STA-080,
+# DSX-STA-081, DSX-STA-090, DSX-STA-100, DSX-STA-110, DSX-STA-111, DSX-STA-120,
+# DSX-STA-121 and DSX-STA-122 here, by EXACT CODE and NOT via
+# `_D05_ALLOWLIST_PREFIXES`: `DSX-STA-*` is a large pre-existing family (~40 legacy
+# codes) carrying no `Citation:`/`Structural criterion:` docstring line and no
+# `# D-05:` test marker, so a `"DSX-STA-"` prefix add would fail the build red on all
+# of them (19-RESEARCH.md Pitfall 3). All ten live in seven brand-new per-family
+# helpers this phase wrote (`_check_declared_rm_sphericity`, `_check_declared_trend`,
+# `_check_declared_resampling`, `_check_declared_posthoc`,
+# `_check_declared_variance_role`, `_check_declared_power_reporting`,
+# `_check_declared_proportion_count`), split by predicate group so each carries its own
+# attributable D-05 docstring (`_resolve_docstrings` binds each code to its enclosing
+# FunctionDef) — a monolith would launder seven distinct citation obligations under one
+# docstring. Same exact-code precedent as the Phase-18 DSX-STA-050..062 block above.
 _D05_ALLOWLIST_CODES = frozenset(
-    {"DSX-SPEC-080", "DSX-SPEC-081", "DSX-SPEC-082", "DSX-SPEC-085", "DSX-SPEC-086"}
+    {
+        "DSX-SPEC-080", "DSX-SPEC-081", "DSX-SPEC-082", "DSX-SPEC-085", "DSX-SPEC-086",
+        "DSX-CODE-020", "DSX-CODE-021", "DSX-CODE-030", "DSX-CODE-031",
+        "DSX-ML-023", "DSX-ML-024", "DSX-ML-043", "DSX-ML-052", "DSX-ML-053",
+        "DSX-ML-090", "DSX-ML-091", "DSX-ML-092",
+        "DSX-COH-040",
+        "DSX-EXP-070", "DSX-MET-021",
+        "DSX-STA-050", "DSX-STA-051", "DSX-STA-060", "DSX-STA-061", "DSX-STA-062",
+        "DSX-STA-070", "DSX-STA-080", "DSX-STA-081", "DSX-STA-090", "DSX-STA-100",
+        "DSX-STA-110", "DSX-STA-111", "DSX-STA-120", "DSX-STA-121", "DSX-STA-122",
+        # Phase 22 (REQ-P22-05) adds DSX-VIZ-071 here by EXACT CODE, not via a
+        # "DSX-VIZ-" prefix: DSX-VIZ-* is a pre-existing family (~20 legacy codes)
+        # carrying no Citation:/Structural criterion: docstring line and no
+        # `# D-05:` marker, so a prefix add would fail the build red on all of
+        # them. DSX-VIZ-071 lives in the brand-new `_check_uncertainty_vocabulary`
+        # helper this phase wrote (cites Wilke §5.6 + §16.2); same exact-code
+        # precedent as the DSX-STA-* blocks above.
+        "DSX-VIZ-071",
+        # Phase 27 (REQ-P27-02) adds DSX-ML-034 here by EXACT CODE, not via a
+        # "DSX-ML-" prefix: DSX-ML-* is a pre-existing family (v1.0.0) whose ~40
+        # legacy codes carry no Citation:/Structural criterion: docstring line and
+        # no `# D-05:` marker, so a prefix add would fail the build red on all of
+        # them. DSX-ML-034 lives in the brand-new `_check_feature_provenance`
+        # helper this phase wrote (cites Kaufman et al. 2012 -- read first-hand from
+        # the ACM PDF on 2026-09-10; it was secondary-corroborated / paywalled at
+        # mint time, 2026-09-07); same exact-code precedent as DSX-VIZ-071 above.
+        "DSX-ML-034",
+        # Phase 28 (REQ-P28-02) adds DSX-CLM-034 here by EXACT CODE, not via a
+        # "DSX-CLM-" prefix: DSX-CLM-* is a pre-existing family whose ~15 legacy
+        # codes carry no Citation:/Structural criterion: docstring line and no
+        # `# D-05:` marker, so a prefix add would fail the build red on all of them.
+        # DSX-CLM-034 is the FIRST DSX-CLM code to carry a D-05 citation; it lives in
+        # the brand-new `_check_supported_by_traceability` helper this phase wrote
+        # (cites Wilkinson & TFSI 1999 as the motivating principle only); same
+        # exact-code precedent as DSX-ML-034 above.
+        "DSX-CLM-034",
+        # Phase 29 (REQ-P29-03) adds DSX-COH-041 here by EXACT CODE, not via a
+        # "DSX-COH-" prefix: DSX-COH-* is a pre-existing family whose legacy codes
+        # 001/010/020/030/031 carry no Citation:/Structural criterion: docstring line
+        # and no `# D-05:` marker, so a prefix add would fail the build red on all of
+        # them (DSX-COH-040 is already carried here by exact code for the same reason).
+        # DSX-COH-041 lives in the brand-new `_check_subgroup_harm_disposition` helper
+        # this phase wrote (cites Gail & Simon 1985 as the motivating definition of a
+        # qualitative/crossover interaction only, never the enforcement mechanic); same
+        # exact-code precedent as DSX-CLM-034 above.
+        "DSX-COH-041",
+    }
 )
 
 _CITATION_RE = re.compile(r"^\s*Citation:\s*\S", re.MULTILINE)
@@ -130,10 +293,13 @@ def extract_sql_rules(path: Path) -> list[tuple[str, str, str]]:
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == "_SQL_RULES":
                     _from_list(node.value)
-        elif isinstance(node, ast.AnnAssign):
-            if isinstance(node.target, ast.Name) and node.target.id == "_SQL_RULES":
-                if node.value is not None:
-                    _from_list(node.value)
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "_SQL_RULES"
+            and node.value is not None
+        ):
+            _from_list(node.value)
     return found
 
 
@@ -148,13 +314,48 @@ def collect() -> list[tuple[str, str, str, str]]:
         if source.name == "metrics.py":
             for code, severity, title in extract_sql_rules(source):
                 rows.append((code, severity, title, module))
-    rows.sort(key=lambda r: r[0])
-    seen: dict[str, tuple[str, str, str, str]] = {}
+    rows.sort(key=lambda r: r[0])  # stable: emit sites keep their source order within a code
+    return [_merge_code(group) for group in _group_by_code(rows)]
+
+
+# Ladder order for the severity cell of a code emitted at more than one severity.
+_SEVERITY_ORDER = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO")
+
+
+def _group_by_code(rows: list[tuple[str, str, str, str]]) -> list[list[tuple[str, str, str, str]]]:
+    groups: list[list[tuple[str, str, str, str]]] = []
     for row in rows:
-        if row[0] in seen and seen[row[0]][1:] != row[1:]:
-            print(f"warning: {row[0]} declared twice with different text", file=sys.stderr)
-        seen[row[0]] = row
-    return list(seen.values())
+        if groups and groups[-1][0][0] == row[0]:
+            groups[-1].append(row)
+        else:
+            groups.append([row])
+    return groups
+
+
+def _merge_code(group: list[tuple[str, str, str, str]]) -> tuple[str, str, str, str]:
+    """One catalogue row for one code, however many emit sites it has (v2.6.1).
+
+    A code emitted at more than one severity lists every severity it can carry,
+    ladder order (``CRITICAL / HIGH``); a code emitted with more than one message
+    lists the last-declared text first -- the emit sites of the nine such codes
+    are ordered so that the headline disposition comes last, see
+    ``tests/test_gen_finding_catalogue.py::_CANONICAL_DECLARATIONS`` -- and the
+    other distinct texts after ``also:``, in source order. Until v2.6.1 the row
+    kept only the last-seen severity and text and a warning was printed for the
+    rest; the catalogue then under-described nine codes (DSX-ML-034 was listed
+    CRITICAL only, although it also fires HIGH). The pin above is the guard that
+    a new divergence must pass; the warning added nothing to it.
+    """
+    code = group[0][0]
+    severities = sorted({row[1] for row in group}, key=_SEVERITY_ORDER.index)
+    titles: list[str] = []
+    for _code, _severity, title, _module in group:
+        if title not in titles:
+            titles.append(title)
+    headline = group[-1][2]
+    others = [title for title in titles if title != headline]
+    rendered = headline + (f" (also: {'; '.join(others)})" if others else "")
+    return (code, " / ".join(severities), rendered, group[-1][3])
 
 
 def render(rows: list[tuple[str, str, str, str]]) -> str:
@@ -173,6 +374,11 @@ def render(rows: list[tuple[str, str, str, str]]) -> str:
         "",
         "**Gate thresholds.** `plan` and `execute` block at CRITICAL; `verify` and",
         "`ship` block at HIGH.",
+        "",
+        "A code that fires at more than one severity lists every severity it can carry",
+        "(`CRITICAL / HIGH`). A code emitted with more than one message lists its",
+        "headline text first and the other texts after `also:`. `<…>` stands for a",
+        "value filled in at run time.",
         "",
         f"**Total: {len(rows)} codes.**",
         "",
@@ -280,6 +486,59 @@ def check_d05(
     return problems
 
 
+def check_families_citations(families_path: Path) -> list[str]:
+    """Build-time citation gate over ``references/families.yaml`` (D-23, D-24).
+
+    This is a sibling to ``check_d05`` above, not an extension of it.
+    ``check_d05`` operates exclusively on rows extracted by walking abstract
+    syntax trees for ``report.add(...)`` call sites and on docstrings
+    resolved from Python sources under a code root — it has no file-path
+    parameter for a data file and no awareness of any data format, and until
+    this function was written the script never inserted the repository root
+    onto the import path, so it could not import the loader at all. This
+    function supplies exactly that capability, scoped to the one data file
+    it needs. It reads the ontology through ``dsx.loader`` — the same reader
+    ``dsx/frame/admissibility.py`` uses at run time — and imports no YAML
+    library of its own, so the build-time gate and the run-time reader can
+    never disagree about what the file says.
+
+    Returns a list of problem strings, never raises and never prints —
+    ``main()`` owns all output, exactly as it does for ``check_d05``.
+    """
+    families_path = Path(families_path)
+
+    root_str = str(ROOT)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    from dsx.loader import load
+
+    try:
+        data = load(families_path)
+    except Exception as exc:  # noqa: BLE001 -- any failure to load becomes a reported problem, never a crash
+        return [f"{families_path}: {exc}"]
+
+    problems: list[str] = []
+    for block_name, key_field in (
+        ("families", "id"),
+        ("assumption_vocabulary", "token"),
+        ("ranking_rules", "id"),
+    ):
+        entries = data.get(block_name)
+        if not isinstance(entries, list):
+            problems.append(f"{families_path}: '{block_name}' is missing or not a list")
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue  # malformed list item — tolerated, not raised on (D-24)
+            ident = entry.get(key_field, "<unknown>")
+            citation = entry.get("citation")
+            if citation is None or (isinstance(citation, str) and not citation.strip()):
+                problems.append(
+                    f"{block_name} entry '{ident}' has a missing or blank citation"
+                )
+    return problems
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true")
@@ -303,6 +562,11 @@ def main() -> int:
         for problem in problems:
             print(f"D-05: {problem}", file=sys.stderr)
         if problems:
+            exit_code = 1
+        citation_problems = check_families_citations(ROOT / "references" / "families.yaml")
+        for problem in citation_problems:
+            print(f"D-24: {problem}", file=sys.stderr)
+        if citation_problems:
             exit_code = 1
         if exit_code == 0:
             print("finding catalogue is current")

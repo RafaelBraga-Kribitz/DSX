@@ -13,7 +13,12 @@ a suppression or a reference in a review stays valid across versions.
 **Gate thresholds.** `plan` and `execute` block at CRITICAL; `verify` and
 `ship` block at HIGH.
 
-**Total: 211 codes.**
+A code that fires at more than one severity lists every severity it can carry
+(`CRITICAL / HIGH`). A code emitted with more than one message lists its
+headline text first and the other texts after `also:`. `<…>` stands for a
+value filled in at run time.
+
+**Total: 279 codes.**
 
 ## Contract structure — `DSX-SPEC-*`
 
@@ -49,12 +54,13 @@ Shape and vocabulary of ANALYSIS-SPEC itself.
 | `DSX-SPEC-060` | HIGH | Claim has no text |
 | `DSX-SPEC-061` | HIGH | Claim <…> has no type |
 | `DSX-SPEC-062` | HIGH | Claim <…> has unrecognised type <…> |
-| `DSX-SPEC-070` | HIGH | suppression of <…> is missing authority |
+| `DSX-SPEC-070` | HIGH | suppression of <…> is missing authority (also: suppression entry is not a mapping; suppression is missing code; suppression of <…> is missing reason) |
 | `DSX-SPEC-071` | HIGH | suppression code <…> has invalid shape |
 | `DSX-SPEC-072` | CRITICAL | suppression references unknown code <…> |
 | `DSX-SPEC-080` | CRITICAL | validity_frame block is missing |
 | `DSX-SPEC-081` | CRITICAL | validity_frame.<…> is required and missing |
 | `DSX-SPEC-082` | HIGH | validity_frame.<…>.<…> <…> is not recognised |
+| `DSX-SPEC-083` | HIGH | unexpected key in the closed exclusions sub-block |
 | `DSX-SPEC-085` | HIGH | inference.<…> <…> is not recognised |
 | `DSX-SPEC-086` | HIGH | inference.<…> is not a field under inference: |
 
@@ -80,9 +86,11 @@ Power, allocation, units, duration, multiplicity, peeking.
 | `DSX-EXP-031` | LOW | Experiment duration of <…> days is not a whole number of weeks |
 | `DSX-EXP-040` | MEDIUM | No guardrail metrics declared for the experiment |
 | `DSX-EXP-050` | HIGH | <…> hypotheses tested with no multiplicity correction |
-| `DSX-EXP-051` | HIGH | comparisons_looked_at=<…> exceeds multiplicity family size <…> |
-| `DSX-EXP-052` | MEDIUM | Multiple tests with a declared family but comparisons_looked_at is missing |
+| `DSX-EXP-051` | HIGH | comparisons_looked_at=<…> exceeds the reported test count <…> |
+| `DSX-EXP-052` | MEDIUM | Multiple tests reported but comparisons_looked_at is missing |
+| `DSX-EXP-053` | HIGH | Multiplicity family declares <…> test(s) but <…> are reported |
 | `DSX-EXP-060` | CRITICAL | <…> interim looks were taken under a fixed-horizon design |
+| `DSX-EXP-070` | CRITICAL | CUPED declared with a covariate that is not pre-experiment |
 
 ## Causal identification — `DSX-CAU-*`
 
@@ -110,14 +118,30 @@ Test selection, assumptions, and the reporting contract.
 | `DSX-STA-007` | HIGH | '<…>' is not significant (p=<…>) but its CI excludes the null |
 | `DSX-STA-010` | HIGH | '<…>' is statistically significant but below the practical threshold |
 | `DSX-STA-011` | MEDIUM | '<…>' is significant with a negligible effect size (<…>=<…>) |
+| `DSX-STA-012` | MEDIUM | '<…>' declares an unrecognised effect_size_kind (<…>) |
 | `DSX-STA-020` | HIGH | '<…>' interprets p=<…> as evidence of no effect |
 | `DSX-STA-021` | HIGH | '<…>' declares equivalence_bound=<…> but CI/TOST do not prove it |
 | `DSX-STA-030` | MEDIUM | Multiplicity correction could not be applied |
 | `DSX-STA-031` | HIGH | <…> result(s) lose significance after <…> correction |
-| `DSX-STA-040` | MEDIUM | analysis.outcome_type <…> is not recognised |
+| `DSX-STA-040` | MEDIUM | analysis.<…> <…> is not recognised |
 | `DSX-STA-041` | HIGH | Declared test '<…>' does not match the data's shape |
 | `DSX-STA-042` | MEDIUM | Parametric test '<…>' with unassessed assumptions |
 | `DSX-STA-043` | CRITICAL | Independence assumption is declared violated |
+| `DSX-STA-050` | HIGH | Pearson correlation declared against a declared-ordinal operand |
+| `DSX-STA-051` | HIGH | Correlation coefficient '<…>' declared for a <…> estimand |
+| `DSX-STA-060` | HIGH | ICC declared without a complete (model, type, definition) triple |
+| `DSX-STA-061` | HIGH | Weighted kappa declared without recognised weights |
+| `DSX-STA-062` | HIGH | Kappa declared without its p_pos/p_neg companions |
+| `DSX-STA-070` | HIGH | Two-stage Mauchly-conditional sphericity correction declared |
+| `DSX-STA-080` | HIGH | Cochran-Armitage trend declared without dose scores |
+| `DSX-STA-081` | HIGH | Mann-Kendall / Sen's slope trend declared without an autocorrelation handling |
+| `DSX-STA-090` | HIGH | Resampling declared without a complete {method, seed, B, unit} quadruple |
+| `DSX-STA-100` | HIGH | Post-hoc '<…>' is not matched to the declared '<…>' omnibus family |
+| `DSX-STA-110` | HIGH | Variance test declared as a precondition to a location test |
+| `DSX-STA-111` | HIGH | Observed / post-hoc power reporting declared |
+| `DSX-STA-120` | HIGH | Wald proportion interval declared |
+| `DSX-STA-121` | HIGH | Exposure declared without an offset |
+| `DSX-STA-122` | HIGH | NNT declared without a confidence interval |
 
 ## ML integrity — `DSX-ML-*`
 
@@ -135,21 +159,30 @@ Leakage, splits, metric choice, baselines, evaluation hygiene.
 | `DSX-ML-020` | HIGH | model.preprocessing_fit_on is not declared |
 | `DSX-ML-021` | CRITICAL | Preprocessing fitted on '<…>' rather than training data only |
 | `DSX-ML-022` | CRITICAL | Class resampling applied before the train/test split |
+| `DSX-ML-023` | CRITICAL | Cleaning statistic for '<…>' was fitted outside the training rows |
+| `DSX-ML-024` | HIGH | Cleaning declaration contradicts the declared whole-pipeline boundary |
 | `DSX-ML-030` | MEDIUM | model.features is not declared |
 | `DSX-ML-031` | CRITICAL | Target '<…>' appears in the feature list |
 | `DSX-ML-032` | HIGH | <…> feature(s) match known leakage patterns |
 | `DSX-ML-033` | MEDIUM | model.prediction_time_definition is not declared |
+| `DSX-ML-034` | CRITICAL / HIGH | Feature '<…>' is declared available only after the prediction moment (also: Feature '<…>' <…> with no waiver) |
 | `DSX-ML-040` | HIGH | model.primary_metric is not declared |
 | `DSX-ML-041` | HIGH | '<…>' is the primary metric on data with a <…> minority class |
 | `DSX-ML-042` | MEDIUM | R² is the only regression metric declared |
+| `DSX-ML-043` | HIGH | '<…>' is imbalance-unsafe and the class balance it depends on is undeclared |
 | `DSX-ML-050` | HIGH | model.baseline is not declared |
 | `DSX-ML-051` | CRITICAL | Model does not beat its baseline (<…> vs <…>) |
+| `DSX-ML-052` | HIGH | Reported score's provenance is missing or disqualifying (declared: <…>) |
+| `DSX-ML-053` | MEDIUM | Margin over baseline (<…>) is inside the model's own fold-to-fold variation (<…>) |
 | `DSX-ML-060` | HIGH | Train/test gap of <…> indicates overfitting |
 | `DSX-ML-061` | HIGH | Test score exceeds train score by <…> |
 | `DSX-ML-070` | HIGH | Test set evaluated <…> times during development |
 | `DSX-ML-071` | CRITICAL | <…> rows appear in both train and test |
 | `DSX-ML-072` | CRITICAL | Decision threshold tuned on the test set |
 | `DSX-ML-080` | MEDIUM | Predicted probabilities are used for decisions without a calibration check |
+| `DSX-ML-090` | HIGH | Declared algorithm has no complete selection ledger |
+| `DSX-ML-091` | CRITICAL | Model was selected on the test set |
+| `DSX-ML-092` | HIGH | The selection and the reported score share their folds |
 
 ## Metric semantics — `DSX-MET-*`
 
@@ -163,6 +196,7 @@ Definitions, reconciliation, drift, Simpson's paradox.
 | `DSX-MET-011` | HIGH | Metric <…> differs <…> across sources |
 | `DSX-MET-012` | MEDIUM | Unknown reconciliation class <…> for <…> |
 | `DSX-MET-020` | HIGH | Denominator for <…> moved <…> between periods |
+| `DSX-MET-021` | HIGH | metric pooled across buckets sampled at different rates with no reweighting declared |
 | `DSX-MET-030` | CRITICAL | Simpson's paradox: every segment moves opposite to the aggregate |
 | `DSX-MET-031` | HIGH | <…> of <…> segments move against the aggregate |
 | `DSX-MET-040` | HIGH | Warehouse-like source <…> has no sql definition |
@@ -198,12 +232,13 @@ Causal language, evidence, generalisation, precision.
 | `DSX-CLM-001` | HIGH | No claims declared |
 | `DSX-CLM-010` | MEDIUM | Claim mixes causal verbs with hedging: <…> |
 | `DSX-CLM-011` | CRITICAL | Claim typed '<…>' uses causal language: <…> |
-| `DSX-CLM-020` | CRITICAL | Causal claim with no identification strategy behind it |
-| `DSX-CLM-021` | HIGH | Unhedged causal claim resting on a weak strategy ('<…>') |
+| `DSX-CLM-020` | CRITICAL | Causal claim with no identification strategy behind it (also: Prescriptive claim recommends an intervention with no identification strategy behind it) |
+| `DSX-CLM-021` | HIGH | Unhedged causal claim resting on a weak strategy ('<…>') (also: Prescriptive claim recommends an intervention on a weak strategy ('<…>')) |
 | `DSX-CLM-030` | HIGH | Claim has no evidence pointer |
 | `DSX-CLM-031` | HIGH | Evidence pointer does not resolve to an existing file |
 | `DSX-CLM-032` | HIGH | Evidence anchor #<…> not found in <…> |
 | `DSX-CLM-033` | CRITICAL | Claim numbers do not overlap results.tests |
+| `DSX-CLM-034` | HIGH | Claim magnitude does not trace to its cited test |
 | `DSX-CLM-040` | HIGH | Predictive claim with no model block |
 | `DSX-CLM-041` | HIGH | Predictive claim with no out-of-sample score reported |
 | `DSX-CLM-050` | MEDIUM | Claim generalises broadly (<…>) without naming its population |
@@ -234,6 +269,10 @@ Fit-before-split and leakage smells in the entrypoint.
 | `DSX-CODE-002` | HIGH | StandardScaler().fit_transform on full frame with no prior X_train |
 | `DSX-CODE-003` | HIGH | Resampler (SMOTE / RandomOverSampler / …) before split |
 | `DSX-CODE-010` | MEDIUM | model: block present but entrypoint has no declared split marker |
+| `DSX-CODE-020` | CRITICAL | Full-frame cleaning statistic computed before the split |
+| `DSX-CODE-021` | CRITICAL | Fit call after the split is not fitted on a recognised training frame |
+| `DSX-CODE-030` | CRITICAL | Statistical test references the declared target before the split |
+| `DSX-CODE-031` | HIGH | Statistical test references the declared target at or after the split |
 
 ## Decision replay — `DSX-DEC-*`
 
@@ -271,6 +310,7 @@ Encoding correctness, proportionality, uncertainty, access.
 | `DSX-VIZ-063` | HIGH | '<…>' takeaway is blank or identical to the chart name |
 | `DSX-VIZ-064` | MEDIUM | '<…>' takeaway has no magnitude or comparison |
 | `DSX-VIZ-070` | HIGH | '<…>' plots estimates without any uncertainty |
+| `DSX-VIZ-071` | MEDIUM | '<…>' declares an unrecognised uncertainty mark <…> |
 | `DSX-VIZ-080` | LOW | '<…>' orders categories <…> |
 
 ## Reproducibility — `DSX-REP-*`
@@ -290,6 +330,8 @@ Seeds, environment, data identity, entrypoint, repro_lock.
 | `DSX-REP-051` | MEDIUM | repro_lock is null (honest opt-out) |
 | `DSX-REP-052` | HIGH | repro_lock incomplete (schema_version / stochasticity_declaration) |
 | `DSX-REP-053` | MEDIUM | repro_lock.dsx_version missing or mismatched |
+| `DSX-REP-060` | HIGH | Reproduce report declared (`reproducibility.reproduce_report`) but `REPRO-REPORT.md` is missing — the reproduced verdict is unsubstantiated. |
+| `DSX-REP-061` | HIGH | `REPRO-REPORT.md` present but its declared re-run numbers do not overlap `results.tests` — the analysis does not reproduce. |
 
 ## Data quality — `DSX-DQ-*`
 
@@ -314,8 +356,10 @@ Question ↔ claim ↔ decision agreement.
 | `DSX-COH-001` | CRITICAL | Claim type <…> exceeds question_type <…> |
 | `DSX-COH-010` | CRITICAL | Decision rule uses causal language under question_type=<…> |
 | `DSX-COH-020` | CRITICAL | Experiment decision block incomplete (MPE or action_if_null) |
-| `DSX-COH-030` | HIGH | Causal/prescriptive question has an empty assumptions list |
+| `DSX-COH-030` | CRITICAL / HIGH | Causal/prescriptive question has an empty assumptions list |
 | `DSX-COH-031` | HIGH | Assumption[<…>] is neither checked nor waived |
+| `DSX-COH-040` | CRITICAL | decision.revisit_when is missing or not a usable re-visit trigger |
+| `DSX-COH-041` | CRITICAL / HIGH | decision.subgroup_harm[] accepts harm to <…> without a rationale (also: Opposing segment <…> above the disposition floor carries no decision.subgroup_harm[] row; decision.subgroup_harm[] row for <…> carries no valid disposition) |
 
 ## Figure seals — `DSX-FIG-*`
 
@@ -351,3 +395,67 @@ The declared inferential paradigm manifest and its symmetric peeking-monitoring 
 | Code | Severity | Finding |
 |---|---|---|
 | `DSX-PAR-001` | INFO | paradigm manifest — inference.paradigm: <…> |
+| `DSX-PAR-002` | HIGH | inference.paradigm is not declared under an uncontrolled continuous design (also: inference.paradigm (<…>) is declared with no paradigm_justification) |
+| `DSX-PAR-010` | CRITICAL | Uncontrolled continuous monitoring under a frequentist paradigm with no monitoring discipline declared |
+| `DSX-PAR-011` | CRITICAL | Uncontrolled continuous monitoring under a bayesian paradigm with no monitoring discipline declared |
+
+## Validity frame — `DSX-VAL-*`
+
+Estimand, unit triad, dependence, identification, sampling frame, missingness and measurement content — whether a validity_frame block that is present and structurally well-formed is also internally coherent.
+
+| Code | Severity | Finding |
+|---|---|---|
+| `DSX-VAL-010` | CRITICAL | estimand is missing required attribute(s) |
+| `DSX-VAL-011` | HIGH | estimand falsifier does not discriminate |
+| `DSX-VAL-020` | CRITICAL | observation unit finer than assignment unit with no method family declared |
+| `DSX-VAL-021` | HIGH | validity frame analysis unit disagrees with design analysis unit (also: validity frame assignment unit disagrees with design randomization unit) |
+| `DSX-VAL-030` | CRITICAL | dependence structure declared with no admissible method family |
+| `DSX-VAL-040` | CRITICAL | weak identification declared with no constraint |
+| `DSX-VAL-041` | HIGH | strong identification also carries a parameter-scale constraint |
+| `DSX-VAL-050` | HIGH | sampling frame is not internally consistent |
+| `DSX-VAL-060` | CRITICAL / HIGH | missingness mechanism paired with a method it does not license |
+| `DSX-VAL-070` | HIGH | measurement construct declared with no operationalisation |
+| `DSX-VAL-080` | HIGH | exclusion rule declared without a justification |
+
+## Interference, triggering and stability — `DSX-INT-*`
+
+Interference and SUTVA risk, triggered-versus-eligible dilution, and novelty or primacy over the declared stability window.
+
+| Code | Severity | Finding |
+|---|---|---|
+| `DSX-INT-010` | CRITICAL | interference risk <…> declared with no mitigation and no residual note |
+| `DSX-INT-011` | CRITICAL | mitigation <…> is not admissible for interference risk <…> |
+| `DSX-INT-030` | CRITICAL | additive metric analysed on the eligible population with no dilution adjustment declared |
+| `DSX-INT-040` | HIGH | novelty/primacy assessment <…> for the declared stability window |
+
+## Pre-registered inference plan — `DSX-PRE-*`
+
+The declared fallback rule resolved against the declared observed facts, the plan-time content lock, and reconciliation of the declared branch against the executed procedure.
+
+| Code | Severity | Finding |
+|---|---|---|
+| `DSX-PRE-010` | CRITICAL | Declared fallback rule does not resolve to a branch |
+| `DSX-PRE-020` | CRITICAL | Declared pre-data plan is not the plan recorded at gate plan |
+| `DSX-PRE-030` | CRITICAL | Executed procedure differs from the declared branch |
+| `DSX-PRE-040` | HIGH | Prescriptive/experiment spec declares no top-level spec_id |
+| `DSX-PRE-041` | HIGH | Uncleared amendment: more than one distinct frame content recorded for this spec with no clearing record |
+
+## Frequentist admissibility — `DSX-ADM-*`
+
+The ranked admissible set for a declared frequentist frame, naming the assumptions each family buys and charges, and the refusal when no procedure in the ontology is admissible.
+
+| Code | Severity | Finding |
+|---|---|---|
+| `DSX-ADM-010` | HIGH | Declared procedure is admissible but a cited ordering prefers another family |
+| `DSX-ADM-020` | CRITICAL | No admissible procedure for the declared frame |
+
+## Chart review conformance — `DSX-CRV-*`
+
+Structural conformance of CHART-REVIEW.md against its own schema — schema tag, the forbidden ten-point scale, the terminal sentinel, and finding-line traceability tokens — never the stochastic agent verdict content itself (scores, gates, final_assessment).
+
+| Code | Severity | Finding |
+|---|---|---|
+| `DSX-CRV-010` | HIGH | CHART-REVIEW.md frontmatter schema is <…>, not <…> |
+| `DSX-CRV-011` | MEDIUM | CHART-REVIEW.md contains the forbidden free-form 'X/10' scale |
+| `DSX-CRV-012` | HIGH | CHART-REVIEW.md does not end with the terminal '## CHART AUDIT COMPLETE' sentinel |
+| `DSX-CRV-013` | MEDIUM | CHART-REVIEW.md finding line carries neither a DSX- code nor UNMAPPED |

@@ -30,6 +30,7 @@ to verify the code matches the declaration — a spec saying
 ## Step 2 — Read the pipeline in this order
 
 **The split.** Find where train and test are separated. Confirm:
+
 - Temporal data uses a time-ordered split, and the boundary is a real timestamp.
 - Repeated entities are grouped, so no entity spans the boundary.
 - The split happens *before* anything else touches the data.
@@ -67,6 +68,13 @@ Signals that warrant a full trace, in rough order of reliability:
 4. AUC above 0.95 on a behavioural prediction task.
 5. Performance that degrades sharply on the most recent time slice.
 6. A model that beats a strong domain expert by a wide margin on first attempt.
+7. A reported statistic or p-value that came from a test run against the
+   outcome on the full, unsplit frame, and then informed which features were
+   kept.
+8. A wide candidate roster searched by grid or random search and then
+   combined into an ensemble, with no stated basis for the selection and no
+   nested protocol separating the tuning data from the data the reported
+   score came from.
 
 None of these prove leakage. All of them mean stop and trace the feature to its
 source table and its populated-at timestamp.

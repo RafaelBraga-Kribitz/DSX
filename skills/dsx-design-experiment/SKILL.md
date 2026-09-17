@@ -1,6 +1,6 @@
 ---
 name: dsx-design-experiment
-description: "Design an A/B test or quasi-experiment with the power arithmetic done first. Use before launching any experiment, and when reading out one that has finished."
+description: "Design an A/B test or quasi-experiment with the power arithmetic done first. Use before launching any experiment, and when reading out one that has finished. Triggers: 'design an A/B test', 'power calculation', 'read out the experiment' — routes intent without GSD phase names."
 argument-hint: "[--baseline <rate>] [--mde <effect>] [--readout] [--phase <N>]"
 allowed-tools:
   - Read
@@ -18,15 +18,47 @@ Design mode: a fully specified experiment whose sample size is derived, not
 guessed. Readout mode: an honest reading of one that has run.
 </objective>
 
+<inputs>
+**Read `EDA.md` front-matter first when it exists** in the phase directory — so the
+power arithmetic runs on the measured dependence, base rate and target, not on a
+guessed baseline.
+
+EDA front-matter keys read:
+
+- `dependence.icc`
+- `dependence.outcome_sd`
+- `dependence.weekly_cycle_amplitude`
+- `base_rate.overall`
+- `grain.implied_dependence.structure`
+- `grain.implied_dependence.cluster_var`
+
+DATA-PROFILE keys read (the fallback source when EDA is absent):
+
+- `target.overall`
+- `target.weekly_range`
+- `unit.rows_per_unit`
+- `unit.largest_unit_share`
+
+These set: the `dsx power` inputs, the `design.baseline_rate`, the
+`variance_adjustment` clustered from `cluster_var`, and the whole-week run
+duration the weekly cycle forces.
+When absent: no `EDA.md` → record `eda_artifact: none` and source dependence,
+base-rate and target facts from the DATA-PROFILE keys above; where the profile is
+also absent, declare each with `computed_by` honesty rather than guessing a power
+input.
+</inputs>
+
 <design_mode>
 
 1. **Get the smallest effect that would change the decision.** Not the effect you
    hope for — the one below which you would do nothing. Ask if it is not given.
 
 2. **Compute the sample.** This is arithmetic, not negotiation:
+
    ```bash
    dsx power --baseline 0.31 --mde 0.02 --alpha 0.05 --power 0.8
    ```
+
    If the required sample exceeds available traffic in the available window, that
    is the finding. Raise the MDE, extend the window, or do not run the test.
    Running underpowered produces an uninterpretable null and burns the window.
