@@ -20,6 +20,15 @@ fi
 echo "==> unit tests"
 python3 -m unittest discover -s tests -q
 
+echo "==> hook scripts parse and hooks.json is valid"
+for h in hooks/session-start hooks/stop-gate hooks/run-hook.cmd; do
+  bash -n "$h" || { echo "FAIL: $h does not parse"; exit 1; }
+done
+python3 -c "import json; json.load(open('hooks/hooks.json'))" \
+  || { echo "FAIL: hooks/hooks.json is not valid JSON"; exit 1; }
+python3 -c "import json; json.load(open('.claude-plugin/plugin.json')); json.load(open('.claude-plugin/marketplace.json'))" \
+  || { echo "FAIL: plugin manifest is not valid JSON"; exit 1; }
+
 echo "==> finding catalogue is current"
 python3 scripts/gen-finding-catalogue.py --check
 

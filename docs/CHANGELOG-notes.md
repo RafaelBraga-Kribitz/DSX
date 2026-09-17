@@ -3,7 +3,7 @@
 Migration and behaviour-change notes moved here from the README's
 [The contract](../README.md#the-contract) section, verbatim.
 
-### Migrating a pre-v2.0.0 spec
+## Migrating a pre-v2.0.0 spec
 
 From v2.0.0, `validity_frame:` is required starting at the `plan` gate, at
 CRITICAL severity — so a spec written against v1.x begins blocking the moment
@@ -22,7 +22,7 @@ named authority, not a way to make the finding go away. A suppression with no
 resolvable `authority` reference already produces `DSX-SPEC-070` — the
 grandfather path is deliberate, not silent.
 
-### The entrypoint leak scan now parses your code
+## The entrypoint leak scan now parses your code
 
 Phase 11.1.1 changed how `DSX-CODE-001` and `DSX-CODE-021` (fit-before-split
 and fit-after-split-on-the-wrong-frame) decide what a line of your entrypoint

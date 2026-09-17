@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * gsd-dsx installer.
+ * dsx installer — the GSD Core capability path.
  *
- * Installs the capability as a GSD overlay (~/.gsd/capabilities/dsx) and projects
- * its agents and skills into the host runtime's directories. No dependencies —
- * Node stdlib only, matching gsd-core's own toolchain.
+ * This is the optional, heaviest way to run DSX. It installs the engine as a
+ * GSD overlay (~/.gsd/capabilities/dsx) with blocking gates at the phase
+ * boundaries, and projects the agents and skills into the host runtime's
+ * directories. No dependencies — Node stdlib only, matching gsd-core's toolchain.
+ *
+ * The recommended path needs no installer: add the repository as a Claude Code
+ * plugin marketplace and install `dsx@dsx`. hooks/hooks.json then wires the
+ * SessionStart and Stop hooks, and the skills load on demand. See README.md.
  *
  *   node install.mjs                    # install for Claude Code (global)
  *   node install.mjs --runtime cursor   # another runtime
@@ -65,7 +70,7 @@ function parseArgs(argv) {
 }
 
 function die(message) {
-  console.error(`gsd-dsx: ${message}`);
+  console.error(`dsx: ${message}`);
   process.exit(1);
 }
 
@@ -142,7 +147,7 @@ function install(args) {
     fs.readFileSync(path.join(ROOT, 'capabilities', CAPABILITY_ID, 'capability.json'), 'utf8'),
   );
 
-  console.log(`\ngsd-dsx — data science, analytics and BI rigour for GSD\n`);
+  console.log(`\ndsx — data science, analytics and BI rigour for GSD\n`);
   log(`python:   ${python.command} (${python.version})`);
   log(`overlay:  ${overlayRoot}`);
   log(`runtime:  ${runtimeHome}\n`);
@@ -286,7 +291,7 @@ function check(args) {
   const manifest = JSON.parse(fs.readFileSync(path.join(overlayRoot, 'capability.json'), 'utf8'));
   const runtimeHome = resolveRuntimeHome(args.runtime, args.local);
 
-  console.log(`\ngsd-dsx ${manifest.version}\n`);
+  console.log(`\ndsx ${manifest.version}\n`);
   log(`overlay:  ${overlayRoot}`);
   log(`python:   ${python.command} (${python.version})`);
 
@@ -325,12 +330,12 @@ function uninstall(args) {
   removeIfPresent(path.join(os.homedir(), '.local', 'bin', 'dsx'));
   removeIfPresent(overlayRoot);
 
-  console.log('\ngsd-dsx removed. Your ANALYSIS-SPEC files are untouched.\n');
+  console.log('\ndsx removed. Your ANALYSIS-SPEC files are untouched.\n');
 }
 
 function help() {
   console.log(`
-gsd-dsx installer
+dsx installer
 
   node install.mjs [--runtime <name>] [--local] [--force]
   node install.mjs --check
