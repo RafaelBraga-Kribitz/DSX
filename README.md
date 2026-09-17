@@ -5,6 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
 
+**Status:** Maintained · Python 3.9+ · GSD Core ≥ 1.6 · MIT
+
+Analytical work shipped through a generic agent loop still leaks, underpowers,
+and overclaims. `gsd-dsx` is the overlay that makes those errors blocking —
+code that runs at the gate, not advice in a prompt.
 
 ```mermaid
 flowchart LR
@@ -14,12 +19,6 @@ flowchart LR
     verify -.-> GV["dsx gate verify"]
     ship -.-> GS["dsx gate ship"]
 ```
-
-**Status:** Maintained · Python 3.9+ · GSD Core ≥ 1.6 · MIT
-
-Analytical work shipped through a generic agent loop still leaks, underpowers,
-and overclaims. `gsd-dsx` is the overlay that makes those errors blocking —
-code that runs at the gate, not advice in a prompt.
 
 ---
 
@@ -422,6 +421,13 @@ MIT. Built on [GSD Core](https://github.com/open-gsd/gsd-core) by open-gsd.
 
 <table>
   <tr>
+    <td width="110">
+      <img
+        src="docs/assets/Author_MDS_Rafael_Braga-Kribitz_kroped.png"
+        alt="Rafael Braga-Kribitz"
+        width="96"
+      />
+    </td>
     <td>
       <strong>Rafael Braga-Kribitz</strong><br />
       Seiersberg-Pirka, Austria · Portfolio project, 2026<br />
