@@ -16,12 +16,18 @@ md_promoted=$(python3 scripts/lint-scope.py --markdown)
 echo "==> lint (ruff, per ruff.toml)"
 if command -v ruff >/dev/null 2>&1; then
   # Promoted names are lower-case kebab (scripts/intake.py enforces it), so the
-  # unquoted expansion below cannot split a path. `set --` carries the list into
+  # unquoted expansion below cannot split a path. `set -f` stops the shell from
+  # expanding it either: these words are arguments for the linter, and
+  # `skills/<name>/**` must reach markdownlint as a pattern, not as the list of
+  # files that pattern happened to match here. `set --` carries the list into
   # the command; check.sh takes no arguments of its own.
+  set -f
   set --
   for p in $ruff_promoted; do set -- "$@" "--extend-exclude=$p"; done
+  set +f
   ruff check . "$@"
   if [ -n "$ruff_promoted" ]; then
+    set -f
     set --
     for p in $ruff_promoted; do set -- "$@" "$p"; done
     # Broken beats untidy. E9 and F carry the rules that say the code cannot
@@ -29,6 +35,7 @@ if command -v ruff >/dev/null 2>&1; then
     # that does not parse. The five ignored here are tidiness in disguise (an
     # unused import or variable, a star import, an f-string with nothing in
     # it): real in our own code, not worth failing someone else's on.
+    set +f
     echo "    (promoted material: real errors only, not house style)"
     ruff check --select E9,F --ignore F401,F403,F405,F541,F841 "$@"
   fi
@@ -38,8 +45,10 @@ fi
 
 echo "==> markdown lint (markdownlint-cli2, per .markdownlint-cli2.jsonc)"
 if command -v markdownlint-cli2 >/dev/null 2>&1; then
+  set -f
   set -- "**/*.md"
   for g in $md_promoted; do set -- "$@" "!$g"; done
+  set +f
   markdownlint-cli2 "$@"
 else
   echo "markdownlint-cli2 not installed -- markdown lint SKIPPED (npm install -g markdownlint-cli2)"

@@ -196,5 +196,48 @@ class TestPolicyBehaviour(unittest.TestCase):
         self.assertNotEqual(self.run_promoted_pass("def f(:\n"), 0)
 
 
+
+@unittest.skipIf(shutil.which("sh") is None, "no POSIX shell")
+class TestGlobsReachTheLinter(unittest.TestCase):
+    """`skills/<name>/**` is a pattern for markdownlint, not one for the shell.
+
+    The words are built from an unquoted expansion, which the shell also subjects
+    to pathname expansion -- so without `set -f` the pattern is replaced by the
+    files it happens to match in this checkout, and a file added to a promoted
+    skill later is linted after all. Measured before the fix: one promoted skill
+    became six `!` arguments naming its own subfolders.
+    """
+
+    def markdown_block(self) -> str:
+        lines = CHECK_SH.read_text().splitlines()
+        start = next(i for i, line in enumerate(lines)
+                     if line.startswith('echo "==> markdown lint'))
+        end = next(i for i in range(start, len(lines)) if lines[i] == "fi")
+        return "\n".join(lines[start:end + 1])
+
+    def test_the_pattern_is_passed_through_unexpanded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "skills" / "postgres" / "references").mkdir(parents=True)
+            (root / "skills" / "postgres" / "SKILL.md").write_text("# s\n")
+            (root / "skills" / "postgres" / "references" / "notes.md").write_text("# n\n")
+            stub_dir = root / "stub"
+            stub_dir.mkdir()
+            stub = stub_dir / "markdownlint-cli2"
+            stub.write_text('#!/bin/sh\nfor a in "$@"; do echo "$a"; done\n')
+            stub.chmod(0o755)
+
+            script = f'set -eu\nmd_promoted="skills/postgres/**"\n{self.markdown_block()}\n'
+            result = subprocess.run(
+                ["sh", "-c", script], cwd=tmp, capture_output=True, text=True,
+                env={"PATH": f"{stub_dir}:/usr/bin:/bin", "HOME": tmp}, check=True,
+            )
+            args = result.stdout.split("\n")
+            self.assertIn("!skills/postgres/**", args)
+            self.assertNotIn("!skills/postgres/SKILL.md", args)
+            self.assertNotIn("!skills/postgres/references", args)
+            self.assertIn("**/*.md", args)
+
+
 if __name__ == "__main__":
     unittest.main()
