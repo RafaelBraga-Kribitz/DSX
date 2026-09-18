@@ -3,7 +3,7 @@
 The full text of each limit summarised under
 [Known limits](../README.md#known-limits) in the README, verbatim.
 
-### The verbless recommendation is not caught
+## The verbless recommendation is not caught
 
 The coherence and claim checks catch a recommendation two ways: by its
 **type** (a claim typed `prescriptive` under a `descriptive` question breaches
@@ -27,7 +27,7 @@ type or its verbs), which is a future phase. Until then, the honest statement is
 that a recommendation mis-typed as descriptive and phrased without a causal verb
 is a hole the gate does not close.
 
-### What the amendment counter does not enforce
+## What the amendment counter does not enforce
 
 `dsx explain` surfaces how many times a specification's `validity_frame:` or
 `inference:` blocks changed across recorded gate runs — an amendment counter
@@ -53,7 +53,7 @@ is **not** checked rather than as anything the gate enforces:
   accurate. A plausible-looking reason that misdescribes why the frame changed
   clears the same bar as an honest one.
 
-### Concurrent `dsx gate` invocations are not supported
+## Concurrent `dsx gate` invocations are not supported
 
 Run `dsx gate` points against one analysis directory sequentially, not in
 parallel. The per-invocation identifier in `DECISIONS.jsonl` is derived by
@@ -67,7 +67,7 @@ grouping guarantee the trail is supposed to provide for that one invocation.
 Serialising `dsx gate` runs against a given analysis directory is the
 operator's responsibility today.
 
-### What the declared-versus-executed reconciliation cannot see
+## What the declared-versus-executed reconciliation cannot see
 
 The pre-registered inference plan check (`DSX-PRE-*`) reconciles a declared
 inference plan against what actually ran. Four things about that
@@ -118,7 +118,7 @@ with no arrow is read as ordinary prose and left alone. `dsx vocab` emits the
 same three names under `prereg_facts`, so that command is the
 machine-readable source for this set rather than this paragraph.
 
-### Two tiers of evidentiary rigour
+## Two tiers of evidentiary rigour
 
 Not every finding code in the catalogue carries the same evidentiary bar.
 
@@ -150,7 +150,7 @@ nor the Bayesian half of its monitoring-discipline pair is cheaper to satisfy
 dishonestly than the other — is committed separately at
 [`references/paradigm-symmetry.md`](../references/paradigm-symmetry.md).
 
-### What the entrypoint scan does not catch
+## What the entrypoint scan does not catch
 
 A clean run of the entrypoint leak scan (`DSX-CODE-001`, `DSX-CODE-021` and
 their siblings) is evidence that these particular shapes were not found in

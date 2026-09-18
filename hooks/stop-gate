@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Stop hook for the dsx plugin.
+#
+# Refuses to let the session end while any ANALYSIS-SPEC under the working
+# directory fails `dsx audit`. This is the same gate GSD ran at ship:pre, moved
+# to the one point every harness has: the end of the turn.
+#
+#   exit 0  allow the stop
+#   exit 2  block it; stderr is handed back to the model as the reason
+#
+# Contract with dsx itself: audit exit 0 = pass, 1 = blocked, 2 = could not run.
+# Both 1 and 2 block here — a gate that could not run has verified nothing.
+#
+# Environment:
+#   DSX_STOP_GATE=off     disable for this shell (mirrors dsx.enforce on GSD)
+#   DSX_BLOCK_ON=HIGH     minimum severity that blocks (CRITICAL|HIGH|MEDIUM|LOW)
+#   DSX_SEARCH_DEPTH=4    how deep under cwd to look for specs
+#   DSX_PYTHON=python3    interpreter override
+
+set -uo pipefail
+
+case "${DSX_STOP_GATE:-on}" in
+  off|0|false|no) exit 0 ;;
+esac
+
+input="$(cat 2>/dev/null || true)"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+
+PY="${DSX_PYTHON:-}"
+if [ -z "$PY" ]; then
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then PY="$candidate"; break; fi
+  done
+fi
+if [ -z "$PY" ]; then
+  echo "dsx stop-gate: no python interpreter found; set DSX_PYTHON. Nothing was verified." >&2
+  exit 2
+fi
+
+# The payload carries cwd and stop_hook_active. When the hook has already
+# blocked this stop once, Claude Code sets stop_hook_active; blocking again
+# would loop forever, so let it through.
+parsed="$("$PY" -c '
+import json, sys
+try:
+    d = json.loads(sys.argv[1] or "{}")
+except Exception:
+    d = {}
+print("1" if d.get("stop_hook_active") else "0")
+print(d.get("cwd") or "")
+' "$input")"
+active="${parsed%%$'\n'*}"
+cwd="${parsed#*$'\n'}"
+if [ "$active" = "1" ]; then
+  exit 0
+fi
+if [ -z "$cwd" ] || [ ! -d "$cwd" ]; then
+  cwd="$PWD"
+fi
+
+run_dsx() {
+  if [ -f "$PLUGIN_ROOT/dsx/__main__.py" ]; then
+    PYTHONPATH="$PLUGIN_ROOT${PYTHONPATH:+:$PYTHONPATH}" "$PY" -m dsx "$@"
+  elif command -v dsx >/dev/null 2>&1; then
+    dsx "$@"
+  else
+    echo "dsx stop-gate: cannot find the dsx package (looked in $PLUGIN_ROOT and PATH)." >&2
+    return 2
+  fi
+}
+
+depth="${DSX_SEARCH_DEPTH:-4}"
+specs="$(find "$cwd" -maxdepth "$depth" \
+  \( -name .git -o -name node_modules -o -name .venv -o -name __pycache__ \) -prune -o \
+  \( -name 'ANALYSIS-SPEC.yaml' -o -name 'ANALYSIS-SPEC.yml' -o -name 'ANALYSIS-SPEC.json' \) -type f -print 2>/dev/null | sort)"
+
+# No spec, nothing to gate. Safe in a mixed repository.
+if [ -z "$specs" ]; then
+  exit 0
+fi
+
+block_on="${DSX_BLOCK_ON:-HIGH}"
+blocked=0
+broken=0
+passed=0
+report=""
+
+IFS=$'\n'
+for spec in $specs; do
+  out="$(run_dsx audit --spec "$spec" --block-on "$block_on" 2>&1)"
+  code=$?
+  case "$code" in
+    0) passed=$((passed + 1)) ;;
+    1) blocked=$((blocked + 1))
+       report="${report}"$'\n'"── BLOCKED: ${spec}"$'\n'"${out}"$'\n' ;;
+    *) broken=$((broken + 1))
+       report="${report}"$'\n'"── COULD NOT RUN (exit ${code}): ${spec}"$'\n'"${out}"$'\n' ;;
+  esac
+done
+unset IFS
+
+if [ "$blocked" -gt 0 ] || [ "$broken" -gt 0 ]; then
+  {
+    echo "dsx stop-gate: ${blocked} spec(s) blocked, ${broken} could not be checked, ${passed} passed (block_on=${block_on})."
+    echo "Fix the spec or the analysis, then finish again. Do not reword the claim around a finding."
+    echo "${report}"
+  } >&2
+  exit 2
+fi
+
+echo "dsx stop-gate: ${passed} ANALYSIS-SPEC(s) pass at ${block_on}."
+exit 0

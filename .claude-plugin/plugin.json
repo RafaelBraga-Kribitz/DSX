@@ -1,8 +1,8 @@
 {
   "name": "dsx",
   "displayName": "DSX — Data Science, eXamined",
-  "version": "2.0.0",
-  "description": "Declare. Substantiate. eXplain. Specialises the GSD phase loop for data science, analytics and BI: an ANALYSIS-SPEC contract written before the data is touched, six specialist agents that fill it, and deterministic Python gates that block the loop when the statistics, causal claims, ML splits, metric definitions, data-quality profiles, chart seals, narrative wording, entrypoint fit order, decision replay, repro_lock or unauthorised findings do not hold up. Includes scored CHART-REVIEW.md via dsx-chart-audit.",
+  "version": "2.6.1",
+  "description": "Declare. Substantiate. eXplain. Deterministic guardrails for data science, analytics and BI work, for any coding agent. An ANALYSIS-SPEC contract written before the data is touched, a stdlib-only Python checker with a three-way exit code, fourteen on-demand skills and six adversarial agents. One always-on rule at session start; a Stop hook that refuses to end the session on a failing audit. Also installable as a GSD Core capability.",
   "author": {
     "name": "Rafael Braga"
   },
@@ -17,7 +17,7 @@
     "causal-inference",
     "machine-learning",
     "data-visualization",
-    "gsd",
+    "guardrails",
     "spec-driven-development"
   ],
   "skills": "./skills/",

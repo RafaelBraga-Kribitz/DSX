@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /**
- * DSX installer.
+ * DSX installer — the GSD Core capability path.
  *
- * Installs the capability as a GSD overlay (~/.gsd/capabilities/dsx) and projects
- * its agents and skills into the host runtime's directories. No dependencies —
- * Node stdlib only, matching gsd-core's own toolchain.
+ * This is the optional, heaviest way to run DSX. It installs the engine as a
+ * GSD overlay (~/.gsd/capabilities/dsx) with blocking gates at the phase
+ * boundaries, and projects the agents and skills into the host runtime's
+ * directories. No dependencies — Node stdlib only, matching gsd-core's toolchain.
+ *
+ * The recommended path needs no installer: add the repository as a Claude Code
+ * plugin marketplace and install `dsx@dsx`. hooks/hooks.json then wires the
+ * SessionStart and Stop hooks, and the skills load on demand. See README.md.
  *
  *   node install.mjs                    # install for Claude Code (global)
  *   node install.mjs --runtime cursor   # another runtime

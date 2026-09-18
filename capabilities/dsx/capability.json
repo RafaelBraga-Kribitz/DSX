@@ -47,7 +47,8 @@
     "dsx-funnel",
     "dsx-root-cause",
     "dsx-segment",
-    "dsx-reproduce"
+    "dsx-reproduce",
+    "using-dsx"
   ],
   "agents": [
     "dsx-analysis-architect",

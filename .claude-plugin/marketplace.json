@@ -1,14 +1,14 @@
 {
   "name": "dsx",
-  "description": "DSX — Data Science, eXamined. Deterministic gates for data science, analytics and BI work.",
+  "description": "DSX — Data Science, eXamined. Deterministic guardrails for data science, analytics and BI work.",
   "owner": {
     "name": "Rafael Braga"
   },
   "plugins": [
     {
       "name": "dsx",
-      "description": "Declare. Substantiate. eXplain. Deterministic guardrails for data science, analytics and BI work inside the GSD phase loop.",
-      "version": "2.0.0",
+      "description": "Declare. Substantiate. eXplain. ANALYSIS-SPEC contract, stdlib-only audit with a three-way exit code, fourteen on-demand skills, six adversarial agents, one always-on rule and a Stop hook that will not end the session on a failing audit.",
+      "version": "2.6.1",
       "source": "./",
       "author": {
         "name": "Rafael Braga"

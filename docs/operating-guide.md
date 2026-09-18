@@ -1,5 +1,11 @@
 # Operating guide
 
+> **Scope.** This guide covers the GSD Core capability path — `node install.mjs`,
+> the `~/.gsd/capabilities/dsx` overlay, phase-boundary gates and ceremony tiers.
+> It is the optional, heaviest way to run DSX. The recommended path is the Claude
+> Code plugin (`/plugin install dsx@dsx`), which needs none of this: one
+> SessionStart hook, one Stop hook, skills on demand. See the README.
+
 How DSX and the house-style skills reach a project, how to choose a ceremony
 tier, and how to run several phases at once without losing track of them.
 
