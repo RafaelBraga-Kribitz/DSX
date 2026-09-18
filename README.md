@@ -1,6 +1,6 @@
 # DSX
 
-![DSX: Data Science, eXamined. Deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
+![DSX: Data Science, eXamined: a spec-driven workflow with deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)

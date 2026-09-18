@@ -47,9 +47,9 @@
     "title": {
       "bbox": [
         72,
-        152,
+        128,
         300,
-        266
+        242
       ],
       "lines": [
         "DSX"
@@ -59,9 +59,9 @@
     "tagline": {
       "bbox": [
         72,
-        286,
+        262,
         630,
-        319
+        295
       ],
       "lines": [
         "DECLARE. SUBSTANTIATE. EXPLAIN."
@@ -71,13 +71,14 @@
     "descriptor": {
       "bbox": [
         72,
-        351,
-        1093,
-        447
+        327,
+        1141,
+        471
       ],
       "lines": [
-        "Data Science, eXamined: deterministic gates that block leakage,",
-        "underpowered designs, and overclaimed results."
+        "Data Science, eXamined: a spec-driven workflow with deterministic",
+        "gates that block leakage, underpowered designs, and overclaimed",
+        "results."
       ],
       "font": "Sohne-Buch.otf"
     }
