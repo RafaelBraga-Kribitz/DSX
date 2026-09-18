@@ -1,0 +1,290 @@
+# Tableau Dashboard Creator Skill
+
+An agentic AI skill that transforms a human-language dashboard request into an implementable Tableau specification, complete with interactive HTML mock, technical implementation blueprint, and an experimental `.twbx` workbook — all through a guided, approval-gated workflow.
+
+Works with **Claude Code**, **Cursor**, and any other agentic AI coding tool that supports skills.
+
+## Preview
+
+> The skill generates an interactive HTML mock (Step C) that previews your dashboard before building it in Tableau.
+
+![Dashboard Mock Preview](assets/mock_screenshot.jpeg)
+
+*Open `demo/output/mock-version/v_1/mock.html` in a browser to try the interactive version.*
+
+## Prerequisites
+
+| Requirement | Details |
+|-------------|---------|
+| **Agentic AI tool** | [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Cursor](https://www.cursor.com/), or any tool that supports skill files (`SKILL.md`) |
+| **Python 3.8+** | Required only if using SQL database queries (Step A) |
+| **Tableau Desktop** | Required only for opening `.twbx` workbooks (Step E) |
+
+## What This Skill Does
+
+The skill guides you through **6 steps**, each requiring your approval before proceeding:
+
+```
+Step 0: Brand Setup         → Asks for target Tableau version, extracts design tokens from your branding/template
+Step A: Data Exploration    → Analyzes your data sources, builds a data dictionary
+Step B: Dashboard Planning  → Plans KPIs, charts, filters, and layout
+Step C: HTML Mock           → Generates an interactive HTML prototype (Chart.js)
+Step D: Implementation Spec → Creates a detailed Tableau build blueprint
+Step E: TWB Generation      → Produces a version-aware .twbx workbook, validated against the official Tableau XSD (experimental)
+```
+
+Each step outputs a versioned artifact. You review, request changes, or approve — then move on.
+
+---
+
+## Repository Structure
+
+```
+tableau-dashboard-creator-skill/
+├── README.md                                    ← You are here
+├── LICENSE                                      # MIT License
+├── CONTRIBUTING.md                              # Contribution guidelines
+├── requirements.txt                             # Python dependencies
+├── skill/
+│   └── tableau-dashboard-creator/               ← The skill itself (copy this)
+│       ├── SKILL.md                             # Skill definition & workflow
+│       ├── assets/
+│       │   └── fallback-design-tokens.md        # Pointer to the canonical fallback token reference
+│       ├── examples/
+│       │   └── top-level-workbook-example.twb   # Supplemental TWB reference
+│       ├── references/
+│       │   ├── step-0-brand-setup.md            # Brand extraction instructions
+│       │   ├── step-a-data-exploration.md       # Data analysis instructions
+│       │   ├── step-b-dashboard-planning.md     # KPI/chart planning instructions
+│       │   ├── step-c-mock-creation.md          # HTML mock generation instructions
+│       │   ├── step-d-implementation-spec.md    # Tableau spec instructions
+│       │   ├── step-e-twb-generation.md         # TWB XML generation instructions
+│       │   ├── tableau-design-tokens.md         # Canonical fallback design token reference
+│       │   ├── snippets/                        # TWB XML snippet library (scaffold, data-model, worksheets, dashboard, features)
+│       │   └── xsd/                             # Official Tableau 2026.1 XSD + namespace stubs (used by Step E validator)
+│       ├── skeleton/                            # Project scaffolding files copied into analyst projects
+│       └── scripts/
+│           ├── query_postgresql.py              # PostgreSQL SQL executor
+│           ├── validate_twb.py                  # TWB structural validator (covers processContents="skip" regions)
+│           └── validate_twb_xsd.py              # lxml-based XSD validator against the vendored 2026.1 schema
+└── demo/
+    ├── input/                                   ← What YOU provide (example files)
+    │   ├── SalesPerformance-PRD.md              # Completed dashboard request
+    │   ├── EXAMPLE-PRD.md                       # Blank template for your own PRD
+    │   ├── QUERIES.md                           # SQL query template
+    │   ├── .env.example                         # Database credentials template
+    │   ├── branding/
+    │   │   └── branding.md                      # Branding spec example
+    │   └── sample-data/
+    │       ├── sales_orders.csv                 # 40 sales transactions
+    │       ├── customer_segments.csv            # 7 customer records
+    │       └── monthly_targets.csv              # 12 monthly targets
+    └── output/                                  ← What the SKILL generates
+        ├── design-tokens.md                     # Step 0 output
+        ├── DS-ARCHITECTURE.md                   # Step A output
+        ├── DASHBOARD-PLAN.md                    # Step B output
+        ├── mock-version/v_1/
+        │   ├── mock.html                        # Step C output (open in browser)
+        │   ├── TABLEAU-IMPLEMENTATION.md         # Step D output
+        │   ├── dashboard.twb                    # Step E output (raw XML)
+        │   └── dashboard.twbx                   # Step E output (packaged workbook)
+        └── mock-version/v_2/
+            ├── dashboard.twb                    # Step E re-run (raw XML)
+            └── dashboard.twbx                   # Step E re-run (packaged workbook)
+```
+
+---
+
+## Installation — Adding the Skill to Your Environment
+
+### Claude Code
+
+Copy the skill directory into your Claude Code skills location:
+
+```bash
+git clone https://github.com/laviDrori0702/tableau-dashboard-creator-skill.git
+cp -r tableau-dashboard-creator-skill/skill/tableau-dashboard-creator ~/.claude/skills/
+```
+
+Verify by running `/tableau-dashboard-creator` in Claude Code.
+
+### Cursor
+
+Copy the skill directory into your Cursor rules or skills location:
+
+```bash
+git clone https://github.com/laviDrori0702/tableau-dashboard-creator-skill.git
+cp -r tableau-dashboard-creator-skill/skill/tableau-dashboard-creator /path/to/your/cursor/skills/
+```
+
+### Other Agentic AI Tools
+
+The skill is defined in `skill/tableau-dashboard-creator/SKILL.md`. Copy the entire `skill/tableau-dashboard-creator/` directory to wherever your tool discovers skill files.
+
+> The skill directory **must** contain `SKILL.md` at its root — this is what agentic AI tools use to discover and invoke the skill.
+
+### Python Dependencies (optional)
+
+Needed if you use SQL database queries in Step A, **or** if you want Step E to run the official Tableau XSD validator against generated `.twb` files (recommended):
+
+```bash
+pip install -r requirements.txt
+```
+
+`requirements.txt` includes `pandas`, `python-dotenv`, `psycopg2-binary` (Step A — PostgreSQL) and `lxml` (Step E — XSD validation).
+
+---
+
+## Quick Start — Creating Your First Dashboard
+
+### 1. Set up your project directory
+
+Create a new working directory for your dashboard project:
+
+```bash
+mkdir my-dashboard && cd my-dashboard
+```
+
+### 2. Provide your data (choose one)
+
+**Option A — Local CSV files (easiest):**
+```bash
+mkdir sample-data
+# Place your CSV files in sample-data/
+```
+
+**Option B — SQL queries:**
+Create a `QUERIES.md` file with queries grouped by database type:
+
+```markdown
+## PostgreSQL
+SELECT * FROM public.my_table
+```
+
+Then create a `.env` file with your database credentials (see `demo/input/.env.example` for the template).
+
+### 3. Provide your branding (choose one)
+
+**Option A — Branding spec (preferred):**
+```bash
+mkdir branding
+# Place branding.md in branding/
+# Optionally add logo.svg/logo.jpg and branding/icons/*.svg
+```
+
+**Option B — Tableau template:**
+Place your organization's `template.twb` file in the project root.
+
+**Option C — No branding:**
+The skill will use default Tableau styling (Open Sans, standard colors).
+
+### 4. Write your dashboard request
+
+Create a `<YOUR-NAME>-PRD.md` file describing what you want. Use `demo/input/EXAMPLE-PRD.md` as a template, or look at `demo/input/SalesPerformance-PRD.md` for a completed example.
+
+A good PRD includes:
+- **Overview** — Purpose, audience, update frequency
+- **KPIs** — Metrics to track (with formulas if specific)
+- **Visualizations** — Chart types and what they show
+- **Filters** — What filtering options users need
+- **Additional notes** — Colors, sorting, conditional formatting, etc.
+
+### 5. Run the skill
+
+```
+/tableau-dashboard-creator
+```
+
+The skill will walk you through each step, presenting results for your approval.
+
+---
+
+## Understanding the Demo
+
+The `demo/` directory contains a **complete worked example** — a Sales Performance dashboard — so you can see exactly what the skill produces at every step.
+
+### Input files (`demo/input/`)
+
+These are the files a user provides before running the skill:
+
+| File | Purpose |
+|------|---------|
+| `SalesPerformance-PRD.md` | Dashboard request: 4 KPIs, 4 charts, 3 filters |
+| `sample-data/*.csv` | Three CSV files with sales, customer, and target data |
+| `branding/branding.md` | Corporate colors, typography, spacing, and sizing |
+| `EXAMPLE-PRD.md` | Blank template you can copy for your own project |
+| `QUERIES.md` | SQL query template (not used in this demo — uses CSVs) |
+| `.env.example` | DB credentials template (not used in this demo) |
+
+### Output files (`demo/output/`)
+
+These are the artifacts the skill generated from the inputs above:
+
+| File | Step | What it contains |
+|------|------|------------------|
+| `design-tokens.md` | Step 0 | Typography, colors, spacing, layout templates |
+| `DS-ARCHITECTURE.md` | Step A | Data dictionary, field types, join keys, quality notes |
+| `DASHBOARD-PLAN.md` | Step B | KPI specs, chart types, filter strategy, layout choice |
+| `mock-version/v_1/mock.html` | Step C | Interactive HTML prototype (open in browser!) |
+| `mock-version/v_1/TABLEAU-IMPLEMENTATION.md` | Step D | Container tree, sheet specs, calculated fields, actions |
+| `mock-version/v_1/dashboard.twbx` | Step E | Packaged Tableau workbook (open in Tableau Desktop) |
+
+> Open `demo/output/mock-version/v_1/mock.html` in a browser to see the interactive mock prototype.
+
+---
+
+## Database Support
+
+The skill ships with a PostgreSQL query script. The agent reads `QUERIES.md` from your project and runs the connector from the installed skill path. Additional database connectors can be added to `skill/tableau-dashboard-creator/scripts/` to match your environment.
+
+| Database | Packages | Key `.env` Variables |
+|----------|----------|---------------------|
+| PostgreSQL | `psycopg2-binary`, `pandas`, `python-dotenv` | `PG_HOST`, `PG_PORT`, `PG_DATABASE`, `PG_USER`, `PG_PASSWORD` |
+
+> **Need another database?** You can add your own query script (e.g., Databricks, Snowflake, MySQL, BigQuery) following the same pattern as `query_postgresql.py`. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+All query scripts enforce a **LIMIT 500** safety cap on results.
+
+---
+
+## Project Output Structure
+
+When you run the skill on your own project, it generates files in this structure:
+
+```
+your-project/
+├── <YOUR-NAME>-PRD.md          # (you provide)
+├── sample-data/ or QUERIES.md  # (you provide)
+├── branding/ or template.twb   # (you provide)
+├── design-tokens.md            # Generated — Step 0
+├── DS-ARCHITECTURE.md          # Generated — Step A
+├── DASHBOARD-PLAN.md           # Generated — Step B
+└── mock-version/
+    └── v_1/
+        ├── mock.html                    # Generated — Step C
+        ├── TABLEAU-IMPLEMENTATION.md    # Generated — Step D
+        ├── dashboard.twb                # Generated — Step E
+        └── dashboard.twbx               # Generated — Step E (primary deliverable)
+```
+
+Revisions increment the version: `v_2/`, `v_3/`, etc. Each version is a complete standalone copy.
+
+---
+
+## Key Constraints
+
+- **No rounded corners below Tableau 2026.1** — `border-radius` only renders in Tableau 2026.1+; for older target versions, keep the mock Tableau-faithful with square corners unless the user explicitly accepts the divergence
+- **No box shadows** — Not natively supported in Tableau
+- **Container hierarchy** must follow Tableau's zone model (layout-basic → layout-flow → sheets)
+- **Fallback-driven design choices must be disclosed** — when the skill uses Tableau defaults for missing branding input, it should say so
+- **Step E (TWB generation) is experimental** — Always review the generated workbook in Tableau Desktop before publishing
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on reporting issues, suggesting features, and submitting pull requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
