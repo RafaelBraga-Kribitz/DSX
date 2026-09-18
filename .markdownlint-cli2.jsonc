@@ -18,6 +18,9 @@
     // Tool configuration and session state.
     ".claude/**",
     "node_modules/**",
+    // Staging area for material written elsewhere. Not this project's prose,
+    // never installed from, and routed or deleted rather than edited in place.
+    "intake/**",
     // Test data: the byte shape of these files IS the test (chart-review
     // fixtures, the Phase-12 catalogue snapshot).
     "tests/fixtures/**",

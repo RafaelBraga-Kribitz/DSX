@@ -8,7 +8,12 @@ line-length = 120
 # Corpus fixtures under examples/ are deliberately defective analysis code read as
 # text by the entrypoint scan -- style rules would fight their purpose. .planning/
 # holds archived measurement spikes, not shipped code.
-extend-exclude = ["examples", ".planning", "graphify-out", ".claude"]
+# intake/ is a staging area for material written elsewhere — a personal library,
+# another plugin, a colleague's repository. It is not this project's code and is
+# never installed from; holding someone else's draft to DSX's house style would
+# make `./scripts/check.sh` fail for a reason the operator cannot act on.
+# Measured: a real drop put 550 findings in intake/ and 15 everywhere else.
+extend-exclude = ["examples", ".planning", "graphify-out", ".claude", "intake"]
 
 [lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "RUF", "PLW", "ISC", "PIE", "PERF", "FURB", "BLE"]
