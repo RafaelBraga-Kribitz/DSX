@@ -2,7 +2,7 @@
 
 Seed brief for `/gsd-new-project --auto @brief.md`.
 
-This is an **extension to [DSX](https://github.com/RafaelBraga-Kribitz/GSD-DSX)**, not a
+This is an **extension to [DSX](https://github.com/RafaelBraga-Kribitz/DSX)**, not a
 new capability overlay. It adds five check families, one contract block and one non-blocking
 renderer to an existing, installed, tested codebase.
 

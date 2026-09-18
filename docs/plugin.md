@@ -8,12 +8,12 @@ moves.
 ## What the plugin installs
 
 ```text
-/plugin marketplace add RafaelBraga-Kribitz/GSD-DSX
+/plugin marketplace add RafaelBraga-Kribitz/DSX
 /plugin install dsx@dsx
 ```
 
-The repository is being renamed to `DSX`; GitHub redirects the old path, so the
-first line keeps working before and after.
+The repository was renamed from `gsd-dsx` to `DSX`. GitHub redirects the old
+path, so a command that still names `GSD-DSX` keeps working.
 
 Three things, and nothing else:
 

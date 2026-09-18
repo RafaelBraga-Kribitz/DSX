@@ -1,14 +1,18 @@
 {
   "name": "dsx",
-  "description": "Deterministic guardrails for data science, analytics and BI work.",
-  "owner": { "name": "Rafael Braga" },
+  "description": "DSX — Data Science, eXamined. Deterministic guardrails for data science, analytics and BI work.",
+  "owner": {
+    "name": "Rafael Braga"
+  },
   "plugins": [
     {
       "name": "dsx",
-      "description": "ANALYSIS-SPEC contract, stdlib-only audit with a three-way exit code, fourteen on-demand skills, six adversarial agents, one always-on rule and a Stop hook that will not end the session on a failing audit.",
+      "description": "Declare. Substantiate. eXplain. ANALYSIS-SPEC contract, stdlib-only audit with a three-way exit code, fourteen on-demand skills, six adversarial agents, one always-on rule and a Stop hook that will not end the session on a failing audit.",
       "version": "2.6.1",
       "source": "./",
-      "author": { "name": "Rafael Braga" }
+      "author": {
+        "name": "Rafael Braga"
+      }
     }
   ]
 }

@@ -1,4 +1,4 @@
-# gsd-dsx
+# DSX
 
 **Data science, analytics and BI rigour for GSD Core.**
 

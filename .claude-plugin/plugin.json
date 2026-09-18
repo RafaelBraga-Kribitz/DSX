@@ -1,14 +1,24 @@
 {
   "name": "dsx",
-  "displayName": "DSX — Data Science Rigour",
+  "displayName": "DSX — Data Science, eXamined",
   "version": "2.6.1",
-  "description": "Deterministic guardrails for data science, analytics and BI work, for any coding agent. An ANALYSIS-SPEC contract written before the data is touched, a stdlib-only Python checker with a three-way exit code, fourteen on-demand skills and six adversarial agents. One always-on rule at session start; a Stop hook that refuses to end the session on a failing audit. Also installable as a GSD Core capability.",
-  "author": { "name": "Rafael Braga" },
+  "description": "Declare. Substantiate. eXplain. Deterministic guardrails for data science, analytics and BI work, for any coding agent. An ANALYSIS-SPEC contract written before the data is touched, a stdlib-only Python checker with a three-way exit code, fourteen on-demand skills and six adversarial agents. One always-on rule at session start; a Stop hook that refuses to end the session on a failing audit. Also installable as a GSD Core capability.",
+  "author": {
+    "name": "Rafael Braga"
+  },
   "license": "MIT",
   "keywords": [
-    "data-science", "analytics", "business-intelligence", "statistics",
-    "experimentation", "ab-testing", "causal-inference", "machine-learning",
-    "data-visualization", "guardrails", "spec-driven-development"
+    "data-science",
+    "analytics",
+    "business-intelligence",
+    "statistics",
+    "experimentation",
+    "ab-testing",
+    "causal-inference",
+    "machine-learning",
+    "data-visualization",
+    "guardrails",
+    "spec-driven-development"
   ],
   "skills": "./skills/",
   "agents": "./agents/"

@@ -48,8 +48,10 @@ try:
     d = json.loads(sys.argv[1] or "{}")
 except Exception:
     d = {}
-print("1" if d.get("stop_hook_active") else "0")
-print(d.get("cwd") or "")
+# Write bytes: text-mode stdout turns every \n into \r\n on Windows, and the
+# shell below would then compare "1\r" against "1" and never take the early exit.
+sys.stdout.buffer.write((("1" if d.get("stop_hook_active") else "0")
+                         + "\n" + (d.get("cwd") or "") + "\n").encode())
 ' "$input")"
 active="${parsed%%$'\n'*}"
 cwd="${parsed#*$'\n'}"

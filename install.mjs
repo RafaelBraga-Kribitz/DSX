@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * dsx installer — the GSD Core capability path.
+ * DSX installer — the GSD Core capability path.
  *
  * This is the optional, heaviest way to run DSX. It installs the engine as a
  * GSD overlay (~/.gsd/capabilities/dsx) with blocking gates at the phase
@@ -147,7 +147,7 @@ function install(args) {
     fs.readFileSync(path.join(ROOT, 'capabilities', CAPABILITY_ID, 'capability.json'), 'utf8'),
   );
 
-  console.log(`\ndsx — data science, analytics and BI rigour for GSD\n`);
+  console.log(`\nDSX — Data Science, eXamined. Declare. Substantiate. eXplain.\n`);
   log(`python:   ${python.command} (${python.version})`);
   log(`overlay:  ${overlayRoot}`);
   log(`runtime:  ${runtimeHome}\n`);
@@ -245,7 +245,7 @@ function selfTest(overlayRoot, python) {
   //     than one frame digest, so the two specs are gated in separate scratch
   //     copies of the installed examples/ tree and never share a trail.
   const points = ['plan', 'execute', 'verify', 'ship'];
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-dsx-selftest-'));
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'dsx-selftest-'));
   const run = (spec, point) => {
     try {
       execFileSync(python, ['-m', 'dsx', 'gate', point, '--spec', spec], {
@@ -291,7 +291,7 @@ function check(args) {
   const manifest = JSON.parse(fs.readFileSync(path.join(overlayRoot, 'capability.json'), 'utf8'));
   const runtimeHome = resolveRuntimeHome(args.runtime, args.local);
 
-  console.log(`\ndsx ${manifest.version}\n`);
+  console.log(`\nDSX ${manifest.version}\n`);
   log(`overlay:  ${overlayRoot}`);
   log(`python:   ${python.command} (${python.version})`);
 
@@ -330,12 +330,12 @@ function uninstall(args) {
   removeIfPresent(path.join(os.homedir(), '.local', 'bin', 'dsx'));
   removeIfPresent(overlayRoot);
 
-  console.log('\ndsx removed. Your ANALYSIS-SPEC files are untouched.\n');
+  console.log('\nDSX removed. Your ANALYSIS-SPEC files are untouched.\n');
 }
 
 function help() {
   console.log(`
-dsx installer
+DSX installer
 
   node install.mjs [--runtime <name>] [--local] [--force]
   node install.mjs --check
