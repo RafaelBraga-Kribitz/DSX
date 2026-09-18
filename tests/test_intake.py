@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -302,6 +303,95 @@ class TestBatchPromote(unittest.TestCase):
             # Non-zero because one name failed, but the valid one still moved.
             self.assertEqual(code, 1)
             self.assertTrue((root / "prompts" / "good.md").exists())
+
+
+class TestNameContract(unittest.TestCase):
+    """intake must never admit a name the manifest gate would reject."""
+
+    def test_intake_name_pattern_is_the_manifest_gate_pattern(self):
+        # The standing guarantee. scripts/validate-capability.py applies KEBAB to
+        # every declared skill and agent; a promoted item is declared. If intake's
+        # pattern is looser by even one character class, promote can write a
+        # manifest that ./scripts/check.sh then rejects — which is what happened
+        # before these were tied together ("Good9", "global--code-reviewer").
+        src = (Path(__file__).resolve().parent.parent
+               / "scripts" / "validate-capability.py").read_text(encoding="utf-8")
+        gate = re.search(r'^KEBAB\s*=\s*re\.compile\(r"([^"]+)"\)', src, re.MULTILINE)
+        self.assertIsNotNone(gate, "validate-capability.py no longer defines KEBAB")
+        self.assertEqual(
+            intake.NAME_RE.pattern, gate.group(1),
+            "intake.NAME_RE and validate-capability.py's KEBAB have drifted apart",
+        )
+
+    def test_names_the_manifest_rejects_are_invalid_with_a_fix_hint(self):
+        for bad, fixed in (("Good9", "good9"),
+                           ("global--code-reviewer", "global-code-reviewer"),
+                           ("data-analytics-skills--forecasting",
+                            "data-analytics-skills-forecasting")):
+            with self.subTest(bad=bad):
+                self.assertFalse(intake.NAME_RE.match(bad))
+                self.assertEqual(intake.kebab(bad), fixed)
+                self.assertTrue(intake.NAME_RE.match(fixed))
+
+    def test_a_rejected_name_never_reaches_the_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "skills" / "Good9").mkdir()
+            (root / "intake" / "skills" / "Good9" / "SKILL.md").write_text(
+                GOOD_SKILL.format(name="Good9", desc="Rejected by the manifest gate."))
+            [item] = intake.scan(root)
+            self.assertEqual(item.status, "invalid")
+            self.assertTrue(any("good9" in n for n in item.notes), item.notes)
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "Good9"]), 1)
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertNotIn("Good9", manifest["skills"])
+
+
+class TestIntakeInternalCollision(unittest.TestCase):
+    """Two items under intake/ claiming one name must not silently shadow."""
+
+    def _two_named(self, root, name):
+        (root / "intake" / "skills" / name).mkdir()
+        (root / "intake" / "skills" / name / "SKILL.md").write_text(
+            GOOD_SKILL.format(name=name, desc="The skill one."))
+        (root / "intake" / "agents" / f"{name}.md").write_text(
+            GOOD_AGENT.format(name=name, desc="The agent one."))
+
+    def test_both_are_reported_as_collisions_naming_each_other(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            items = intake.scan(root)
+        self.assertEqual(len(items), 2)
+        self.assertEqual({i.status for i in items}, {"collision"})
+        self.assertTrue(any("intake/agents/review.md" in n for n in items[1].notes), items[1].notes)
+        self.assertTrue(
+            any("intake/skills/review/SKILL.md" in n for n in items[0].notes), items[0].notes)
+
+    def test_promote_refuses_the_ambiguous_name_and_moves_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "review"]), 1)
+            # Before the fix, promote's {name: item} lookup kept whichever sorted
+            # last, moved it, left the other behind, and exited 0.
+            self.assertTrue((root / "intake" / "skills" / "review" / "SKILL.md").exists())
+            self.assertTrue((root / "intake" / "agents" / "review.md").exists())
+            self.assertFalse((root / "skills" / "review").exists())
+            self.assertFalse((root / "agents" / "review.md").exists())
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertNotIn("review", manifest["skills"])
+        self.assertNotIn("review", manifest["agents"])
+
+    def test_a_unique_name_alongside_a_collision_still_promotes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            (root / "intake" / "prompts" / "opener.md").write_text("# Opener\n")
+            self.assertEqual(
+                quiet_main(["--root", str(root), "--promote", "review", "opener"]), 1)
+            self.assertTrue((root / "prompts" / "opener.md").exists())
+            self.assertTrue((root / "intake" / "skills" / "review" / "SKILL.md").exists())
 
 
 if __name__ == "__main__":

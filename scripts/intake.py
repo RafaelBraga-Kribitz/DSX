@@ -31,7 +31,13 @@ import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*$")
+# The SAME pattern scripts/validate-capability.py enforces on every declared
+# name (its KEBAB, line 45). It must not be looser: a promoted skill or agent is
+# written into capabilities/dsx/capability.json, so a name intake admits but the
+# manifest gate rejects turns ./scripts/check.sh red on the operator's next run.
+# Measured before this was tied together: intake admitted "Good9" and
+# "global--code-reviewer"; the manifest gate rejects both.
+NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
 STOPWORDS = {
@@ -117,6 +123,12 @@ def first_heading(text: str) -> str:
     """
     match = HEADING_RE.search(text)
     return match.group(1).strip() if match else ""
+
+
+def kebab(name: str) -> str:
+    """The nearest name that satisfies NAME_RE, for the report's fix hint."""
+    out = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return out or "unnamed"
 
 
 def content_words(text: str) -> set[str]:
@@ -287,7 +299,10 @@ def scan(root: Path) -> list[Item]:
             item.description = desc or first_heading(text)
             if name and not NAME_RE.match(name):
                 item.status = "invalid"
-                item.notes.append(f"name {name!r} must be letters, digits and hyphens")
+                item.notes.append(
+                    f"name {name!r} is not lower-case kebab, which the manifest gate "
+                    f"requires — use {kebab(name)!r}"
+                )
             elif name and name != expected_name:
                 item.status = "invalid"
                 item.notes.append(f"frontmatter name {name!r} does not match path")
@@ -301,7 +316,8 @@ def scan(root: Path) -> list[Item]:
         if not NAME_RE.match(expected_name):
             item.status = "invalid"
             item.notes.append(
-                f"file name {expected_name!r} must be letters, digits and hyphens"
+                f"path name {expected_name!r} is not lower-case kebab, which the "
+                f"manifest gate requires — rename it to {kebab(expected_name)!r}"
             )
 
         if item.status == "ok" and expected_name in taken:
@@ -319,6 +335,26 @@ def scan(root: Path) -> list[Item]:
         items.append(item)
 
     items.extend(_unrecognised(intake, root))
+
+    # Names must be unique ACROSS intake, not just against what is already
+    # shipped. promote() looks an item up by name; two items sharing one name
+    # meant the lookup silently kept whichever sorted last, moved it, and left
+    # the other behind reporting `ok` — measured, with exit 0 and no warning.
+    by_name: dict[str, list[Item]] = {}
+    for item in items:
+        by_name.setdefault(item.name, []).append(item)
+    for name, group in by_name.items():
+        if len(group) < 2:
+            continue
+        for item in group:
+            others = [o.path for o in group if o is not item]
+            if item.status == "ok":
+                item.status = "collision"
+            item.notes.append(
+                f"name {name!r} is claimed by {len(group)} items under intake/: "
+                + ", ".join(sorted(others))
+            )
+
     items.sort(key=lambda i: (i.kind, i.name))
     return items
 
@@ -351,8 +387,14 @@ def declare_in_manifest(manifest_path: Path, key: str, name: str) -> None:
     manifest_path.write_text(new_text, encoding="utf-8")
 
 
-def promote_one(root: Path, name: str, items: dict[str, Item]) -> int:
-    item = items.get(name)
+def promote_one(root: Path, name: str, items: dict[str, list[Item]]) -> int:
+    group = items.get(name) or []
+    if len(group) > 1:
+        print(f"intake: {name!r} is ambiguous — {len(group)} items claim it: "
+              + ", ".join(sorted(i.path for i in group))
+              + ". Rename one before promoting.", file=sys.stderr)
+        return 1
+    item = group[0] if group else None
     if item is None:
         print(f"intake: no item named {name!r} under intake/", file=sys.stderr)
         return 1
@@ -392,9 +434,15 @@ def promote_one(root: Path, name: str, items: dict[str, Item]) -> int:
 def promote(root: Path, names: list[str]) -> int:
     # One scan for the whole batch, re-scanning between moves so a later name
     # still resolves after an earlier promotion changed the tree.
+    def index(root: Path) -> dict[str, list[Item]]:
+        out: dict[str, list[Item]] = {}
+        for i in scan(root):
+            out.setdefault(i.name, []).append(i)
+        return out
+
     failures = 0
     for name in names:
-        failures += promote_one(root, name, {i.name: i for i in scan(root)})
+        failures += promote_one(root, name, index(root))
     print("next: python3 scripts/validate-capability.py && ./scripts/check.sh")
     return 1 if failures else 0
 
