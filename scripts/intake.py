@@ -254,8 +254,8 @@ def _unrecognised(intake: Path, root: Path) -> list[Item]:
                 out.append(Item(
                     name=path.name, kind=kind, path=str(path.relative_to(root)),
                     status="unrecognised",
-                    notes=[f"not a .md file; {kind}s are read as intake/"
-                           f"{spec['intake_dir']}/{spec['layout']}"],
+                    notes=[(f"not a .md file; {kind}s are read as "
+                            f"intake/{spec['intake_dir']}/{spec['layout']}")],
                 ))
     return out
 

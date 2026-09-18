@@ -23,9 +23,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      # Pinned on purpose. check.sh skips a linter that is absent, so CI installs
+      # them — but an unpinned install makes the lint gate non-reproducible: a new
+      # ruff release can turn this job red with no change to the code, which is
+      # exactly what happened on 2026-09-18 when 0.16.x added ISC004. Bumping
+      # these is a deliberate commit that may surface new findings.
       - name: Install the linters check.sh runs when present
         run: |
-          pip install -q ruff
-          npm install -g --silent markdownlint-cli2
+          pip install -q ruff==0.16.8
+          npm install -g --silent markdownlint-cli2@0.23.2
       - name: Full check
         run: ./scripts/check.sh
