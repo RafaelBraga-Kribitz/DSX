@@ -128,6 +128,25 @@ A prompt that turns out to be the first kind is worth converting: give it
 frontmatter whose `description` says *when to use it*, move it into `skills/`,
 declare it, and route to it. See [`prompts/README.md`](../prompts/README.md).
 
+## House style stops at the border
+
+A promoted skill is loaded exactly as its author wrote it, so it is not held to
+this repository's line length, heading style or import order. `./scripts/check.sh`
+excludes every promoted skill, agent and prompt from both linters and then runs
+ruff back over them with the rules that mean the code cannot work — an undefined
+name, a redefinition, a bad format string, a file that does not parse. Tidiness
+rules (an unused import, an f-string with nothing in it) are not applied to
+someone else's draft.
+
+The border is the name, not a list anyone has to maintain: everything written
+here is `dsx-*`, plus `using-dsx` and each folder's `README`. `scripts/lint-scope.py`
+is where that rule lives, and `python3 scripts/lint-scope.py` prints what it
+currently treats as promoted.
+
+One consequence worth knowing: a bare `ruff check .` or `markdownlint-cli2
+"**/*.md"` will report house-style findings on promoted material that the gate
+does not. Run `./scripts/check.sh` — that is what CI runs.
+
 ## Conventions worth matching
 
 The shipped `dsx-*` skills share a shape the checks rely on. A skill you

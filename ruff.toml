@@ -13,6 +13,14 @@ line-length = 120
 # never installed from; holding someone else's draft to DSX's house style would
 # make `./scripts/check.sh` fail for a reason the operator cannot act on.
 # Measured: a real drop put 550 findings in intake/ and 15 everywhere else.
+#
+# Skills, agents and prompts PROMOTED out of intake/ are excluded too, but not
+# here: this list cannot say "every promoted item, whatever it is called", so
+# scripts/check.sh derives them from scripts/lint-scope.py and passes them as
+# --extend-exclude, then re-runs ruff over them with the rules that catch a
+# real error. Running bare `ruff check .` therefore reports house-style
+# findings on promoted material that the project's gate does not; the gate is
+# ./scripts/check.sh.
 extend-exclude = ["examples", ".planning", "graphify-out", ".claude", "intake"]
 
 [lint]
