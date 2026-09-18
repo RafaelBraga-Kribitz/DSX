@@ -11,6 +11,18 @@ If you were dispatched as a subagent to execute one specific task, ignore this s
 If the work touches data — a number someone will act on, a metric, an A/B test, a model, a chart, a dashboard, a report — it runs under DSX. This is not negotiable. You cannot rationalise your way out of it.
 </EXTREMELY-IMPORTANT>
 
+DSX is **Data Science, eXamined**, and the name is the order of work:
+
+| | | |
+|---|---|---|
+| **Declare** | before the data is touched | `ANALYSIS-SPEC.yaml` — the decision, the question type, the design, the metric, the claim |
+| **Substantiate** | with code, not with wording | `dsx audit` — every check runs against the spec and the artifacts it named |
+| **eXplain** | only what the evidence supports | the readout carries the magnitude, the interval and the limitation |
+
+A spec written after the analysis is a rationalisation, a claim made before the
+audit is a guess, and a readout that outruns its interval is the error the other
+two exist to prevent.
+
 ## The two rules
 
 **1. No data is touched before `ANALYSIS-SPEC.yaml` exists.** The spec is the contract every later check reads: the decision it serves, the question type, the design, the metric definitions, the claims. Writing it after the analysis turns a decision rule into a rationalisation. Run `dsx init`, then invoke `dsx-scope-analysis`.
@@ -59,12 +71,11 @@ On a fresh question, `dsx-scope-analysis` comes first. Then the domain skill.
 | "Three metrics moved" | At α = 0.05 with no correction, one of them was expected to. |
 | "The split is random, that's fine" | On time-ordered data a random split leaks the future. |
 | "The chart makes the point" | Check the baseline, the axis, the encoding. `dsx check viz`. |
-| "The audit is being pedantic" | The audit is deterministic. Argue with the spec, not the gate. |
-| "I'll run the audit at the end" | The Stop hook will. Better you than it. |
+| "The audit is being pedantic" | It is deterministic. Argue with the spec, not the gate — and run it before the Stop hook does. |
 
 ## What DSX does not do
 
-It checks declarations against declarations. A spec that lies passes. Your job is to make the spec true, and to say what you could not verify.
+It checks declarations against declarations. A spec that lies passes. Your job is to make the spec true, and to say what you could not verify. That is the eXplain step, and no gate can do it for you.
 
 ## User instructions
 

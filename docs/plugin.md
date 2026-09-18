@@ -1,9 +1,14 @@
 # Plugin, hooks and continuous integration
 
-How DSX runs without GSD: the Claude Code plugin, the two hooks it wires, the
-continuous-integration gate, and the environment variables that tune them. The
-engine is the same `dsx` command in every path; only the point of enforcement
-moves.
+How DSX — Data Science, eXamined — runs without GSD: the Claude Code plugin, the
+two hooks it wires, the continuous-integration gate, and the environment
+variables that tune them. The engine is the same `dsx` command in every path;
+only the point of enforcement moves.
+
+The plugin carries all three steps of **Declare, Substantiate, eXplain**. The
+SessionStart hook declares the rule; the Stop hook and the CI job substantiate
+it; the eXplain step stays where no gate can reach it, in the readout a person
+writes and signs.
 
 ## What the plugin installs
 
