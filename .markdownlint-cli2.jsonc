@@ -20,6 +20,11 @@
     "node_modules/**",
     // Staging area for material written elsewhere. Not this project's prose,
     // never installed from, and routed or deleted rather than edited in place.
+    // Once promoted, such an item is still not this project's prose -- but its
+    // path is whatever its author named it, which this list cannot anticipate.
+    // scripts/check.sh derives those paths from scripts/lint-scope.py and
+    // passes them as `!` negation arguments, so run the gate rather than a
+    // bare markdownlint-cli2 to see what CI sees.
     "intake/**",
     // Test data: the byte shape of these files IS the test (chart-review
     // fixtures, the Phase-12 catalogue snapshot).
