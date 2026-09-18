@@ -1,14 +1,18 @@
 {
-  "name": "gsd-dsx",
-  "description": "Data science, analytics and BI rigour as a GSD capability overlay.",
-  "owner": { "name": "Rafael Braga" },
+  "name": "dsx",
+  "description": "DSX — Data Science, eXamined. Deterministic gates for data science, analytics and BI work.",
+  "owner": {
+    "name": "Rafael Braga"
+  },
   "plugins": [
     {
-      "name": "gsd-dsx",
-      "description": "Deterministic guardrails for data science, analytics and BI work inside the GSD phase loop.",
+      "name": "dsx",
+      "description": "Declare. Substantiate. eXplain. Deterministic guardrails for data science, analytics and BI work inside the GSD phase loop.",
       "version": "2.0.0",
       "source": "./",
-      "author": { "name": "Rafael Braga" }
+      "author": {
+        "name": "Rafael Braga"
+      }
     }
   ]
 }

@@ -2,7 +2,7 @@
   "id": "dsx",
   "role": "feature",
   "version": "2.6.1",
-  "title": "Data science, analytics and BI rigour",
+  "title": "DSX — Data Science, eXamined",
   "description": "Turns the GSD phase loop into an expert analytics workflow: an ANALYSIS-SPEC contract written before the data is touched, specialist agents that fill it, and deterministic Python gates that block the loop when the statistics, the causal claims, the ML splits, the metric definitions, the data-quality profile, the chart seals, the narrative wording, the entrypoint fit order, decision replay, repro_lock or unauthorised findings do not hold up. v1.5 adds ADR/SPEC finding suppressions and scored CHART-REVIEW.md via dsx-chart-audit. v2.0 restores the IT001-IT040 data-input-type inventory as a deterministic chart lookup (`dsx charts`), so chart choice is consulted rather than asked, and DSX-VIZ-013 blocks a mark the declared data shape does not admit.",
   "tier": "full",
   "requires": [],
@@ -10,7 +10,9 @@
     "gsd": ">=1.6.0"
   },
   "runtimeCompat": {
-    "supported": ["*"],
+    "supported": [
+      "*"
+    ],
     "unsupported": [],
     "notes": {
       "*": "Gates shell out to the bundled `dsx` Python CLI. Requires python3 on PATH (stdlib only — no third-party packages needed)."
@@ -31,7 +33,6 @@
     "machine-learning",
     "data-visualization"
   ],
-
   "skills": [
     "dsx-scope-analysis",
     "dsx-explore-data",
@@ -57,7 +58,6 @@
     "dsx-data-storyteller"
   ],
   "hooks": [],
-
   "config": {
     "dsx.enforce": {
       "type": "boolean",
@@ -116,7 +116,14 @@
     },
     "dsx.domain": {
       "type": "enum",
-      "values": ["auto", "experimentation", "machine_learning", "business_intelligence", "marketing_science", "research"],
+      "values": [
+        "auto",
+        "experimentation",
+        "machine_learning",
+        "business_intelligence",
+        "marketing_science",
+        "research"
+      ],
       "default": "auto",
       "description": "Biases which specialist agents and reference tables the planner loads. 'auto' infers from the phase goal."
     },
@@ -126,76 +133,109 @@
       "description": "Interpreter used to run the dsx CLI. Override when python3 is not on PATH."
     }
   },
-
   "steps": [
     {
       "point": "plan:pre",
-      "ref": { "skill": "dsx-scope-analysis" },
-      "fragment": { "path": "fragments/scope-analysis.md" },
-      "produces": ["ANALYSIS-SPEC.yaml"],
-      "consumes": ["CONTEXT.md"],
+      "ref": {
+        "skill": "dsx-scope-analysis"
+      },
+      "fragment": {
+        "path": "fragments/scope-analysis.md"
+      },
+      "produces": [
+        "ANALYSIS-SPEC.yaml"
+      ],
+      "consumes": [
+        "CONTEXT.md"
+      ],
       "when": "dsx.enforce",
       "onError": "halt"
     },
     {
       "point": "verify:pre",
-      "ref": { "agent": "dsx-statistician" },
-      "fragment": { "path": "fragments/verify-pre.md" },
-      "produces": ["STATS-REVIEW.md"],
-      "consumes": ["SUMMARY.md"],
+      "ref": {
+        "agent": "dsx-statistician"
+      },
+      "fragment": {
+        "path": "fragments/verify-pre.md"
+      },
+      "produces": [
+        "STATS-REVIEW.md"
+      ],
+      "consumes": [
+        "SUMMARY.md"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     }
   ],
-
   "contributions": [
     {
       "point": "plan:pre",
       "into": "planner",
-      "fragment": { "path": "fragments/planner.md" },
+      "fragment": {
+        "path": "fragments/planner.md"
+      },
       "produces": [],
-      "consumes": ["ANALYSIS-SPEC.yaml"],
+      "consumes": [
+        "ANALYSIS-SPEC.yaml"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     },
     {
       "point": "plan:pre",
       "into": "researcher",
-      "fragment": { "path": "fragments/researcher.md" },
+      "fragment": {
+        "path": "fragments/researcher.md"
+      },
       "produces": [],
-      "consumes": ["CONTEXT.md"],
+      "consumes": [
+        "CONTEXT.md"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     },
     {
       "point": "plan:post",
       "into": "checker",
-      "fragment": { "path": "fragments/plan-checker.md" },
+      "fragment": {
+        "path": "fragments/plan-checker.md"
+      },
       "produces": [],
-      "consumes": ["ANALYSIS-SPEC.yaml"],
+      "consumes": [
+        "ANALYSIS-SPEC.yaml"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     },
     {
       "point": "execute:pre",
       "into": "executor",
-      "fragment": { "path": "fragments/executor.md" },
+      "fragment": {
+        "path": "fragments/executor.md"
+      },
       "produces": [],
-      "consumes": ["ANALYSIS-SPEC.yaml"],
+      "consumes": [
+        "ANALYSIS-SPEC.yaml"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     },
     {
       "point": "execute:post",
       "into": "verifier",
-      "fragment": { "path": "fragments/verifier.md" },
+      "fragment": {
+        "path": "fragments/verifier.md"
+      },
       "produces": [],
-      "consumes": ["ANALYSIS-SPEC.yaml"],
+      "consumes": [
+        "ANALYSIS-SPEC.yaml"
+      ],
       "when": "dsx.enforce",
       "onError": "skip"
     }
   ],
-
   "gates": [
     {
       "point": "plan:post",

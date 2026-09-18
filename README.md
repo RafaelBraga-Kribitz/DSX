@@ -1,15 +1,20 @@
-# gsd-dsx
+# DSX
 
-![gsd-dsx — Data-science rigour for the GSD agent loop: deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
+![DSX: Data Science, eXamined. Deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
 
-**Status:** Maintained · Python 3.9+ · GSD Core ≥ 1.6 · MIT
+**Status:** Maintained · **DSX — Data Science, eXamined** · Python 3.9+ · MIT
 
-Analytical work shipped through a generic agent loop still leaks, underpowers,
-and overclaims. `gsd-dsx` is the overlay that makes those errors blocking —
-code that runs at the gate, not advice in a prompt.
+Analytical work shipped through a generic agent loop still leaks, underpowers and
+overclaims. DSX makes those errors blocking: code that runs at the gate, not
+advice in a prompt. It runs standalone as a command-line tool, and installs as a
+capability into [GSD Core](https://github.com/open-gsd/gsd-core) ≥ 1.6 to gate
+that framework's phase loop.
+
+> **Declare. Substantiate. eXplain.** Declare the analysis before the data is
+> touched, substantiate it with code, publish only what the evidence supports.
 
 ```mermaid
 flowchart LR
@@ -30,7 +35,7 @@ random train/test split on time-ordered data invalidates the model, that three
 metrics tested at α = 0.05 carry a 14% family-wise error rate, or that a bar chart
 starting at 40 exaggerates whatever it shows.
 
-`gsd-dsx` supplies that knowledge — and, critically, supplies it as **code that
+DSX supplies that knowledge — and, critically, supplies it as **code that
 runs in blocking gates** rather than as advice in a prompt.
 
 ### Where the determinism goes
@@ -60,8 +65,8 @@ concrete fix.
 ## Install
 
 ```bash
-git clone https://github.com/RafaelBraga-Kribitz/GSD-DSX.git
-cd gsd-dsx
+git clone https://github.com/RafaelBraga-Kribitz/DSX.git
+cd DSX
 node install.mjs                 # --runtime cursor|codex|opencode|... , --local
 ```
 
@@ -99,7 +104,7 @@ against an older ruleset. Five starting points, and the path for each:
 | **Already being built**, but never used GSD or DSX. | Same as above, except use `/gsd-onboard` in place of `/gsd-new-project` — it maps the existing codebase and ingests any existing docs before anything is wired in. DSX gates apply from the next phase you plan onward; it does not retroactively judge code already written. |
 | **Already runs GSD**, no DSX yet. | Skip the GSD bootstrap entirely. Install DSX globally if this machine doesn't have it yet, then `pwsh scripts/gsd-stamp.ps1 -Project .` to wire this project's skills, pick a tier (§3 of the [operating guide](docs/operating-guide.md)), and set `dsx.require_spec` if wanted. The next phase you plan picks up the gates; phases already shipped are untouched. |
 | **Already built and shipped.** No active GSD phase running on it any more. | There is no phase loop left to gate. If you plan to keep evolving the project, treat it as "has GSD, no DSX" or "no GSD, no DSX" above, depending on what it already runs, and the gates cover future work only. If you instead want a trust check on the *finished* piece before calling it portfolio-grade, skip GSD entirely: write an `ANALYSIS-SPEC.yaml` describing what was actually done, then run `dsx audit --spec ANALYSIS-SPEC.yaml --verbose --report DATA-REVIEW.md` by hand (see [Standalone CLI](#standalone-cli)) and fix whatever it finds. |
-| **Already on gsd-dsx, on an older version.** | Re-run `node install.mjs` — it overwrites the one global install and self-tests before committing, so there's nothing to do per project for the tool itself. What can lag is a project's *spec*: an `ANALYSIS-SPEC.yaml` written against an older ruleset can start failing gates it used to pass. Run `dsx audit` against every existing spec in that project; a newly-blocking finding is a version-delta, not a new bug in your work. Only one jump so far has been schema-breaking rather than additive — see [Migrating a pre-v2.0.0 spec](#migrating-a-pre-v200-spec) — and `suppressions[]` with a named authority is the documented interim path when a real fix needs more time. |
+| **Already on DSX, on an older version.** | Re-run `node install.mjs` — it overwrites the one global install and self-tests before committing, so there's nothing to do per project for the tool itself. What can lag is a project's *spec*: an `ANALYSIS-SPEC.yaml` written against an older ruleset can start failing gates it used to pass. Run `dsx audit` against every existing spec in that project; a newly-blocking finding is a version-delta, not a new bug in your work. Only one jump so far has been schema-breaking rather than additive — see [Migrating a pre-v2.0.0 spec](#migrating-a-pre-v200-spec) — and `suppressions[]` with a named authority is the documented interim path when a real fix needs more time. |
 
 `gsd-stamp.ps1` requires `.planning/` to already exist, which is exactly the
 marker that GSD has been bootstrapped on that project — it is the check that
@@ -406,8 +411,13 @@ findings until Phase 11.1 shipped the four codes that now block it.
 
 ## Status
 
-**Status:** Maintained (v2.6.1). The overlay is released and in use; new check
-families still land behind the same fixture contract.
+**Status:** Maintained (v2.6.1). Released and in use; new check families still
+land behind the same fixture contract.
+
+Previously published as `gsd-dsx`; the old repository address redirects here.
+The rename is a naming change, not a code change: `capability.json` still
+declares `engines.gsd >= 1.6.0` and `install.mjs` still writes into
+`~/.gsd/capabilities/dsx`. The `dsx` CLI is the part that runs without GSD Core.
 
 ---
 

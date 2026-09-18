@@ -1,5 +1,5 @@
 {
-  "output": "C:\\Users\\Benutzer1\\Dev\\portfolio-readme-work\\GSD-DSX\\docs\\assets\\hero.png",
+  "output": "C:\\Users\\Benutzer1\\Dev\\portfolio-readme-work\\DSX\\docs\\assets\\hero.png",
   "width": 1600,
   "height": 640,
   "mode": "light",
@@ -36,36 +36,48 @@
       "bbox": [
         72,
         542,
-        1278,
+        1226,
         570
       ],
       "lines": [
-        "LICENSE  MIT  ·  RUNTIME  Python 3.9+ · Node  ·  REPO  github.com/RafaelBraga-Kribitz/GSD-DSX"
+        "LICENSE  MIT  ·  RUNTIME  Python 3.9+ · Node  ·  REPO  github.com/RafaelBraga-Kribitz/DSX"
       ],
       "font": "SohneMono-Buch.otf"
     },
     "title": {
       "bbox": [
         72,
-        184,
-        503,
-        298
+        152,
+        300,
+        266
       ],
       "lines": [
-        "gsd-dsx"
+        "DSX"
       ],
       "font": "Sohne-Fett.otf"
+    },
+    "tagline": {
+      "bbox": [
+        72,
+        286,
+        630,
+        319
+      ],
+      "lines": [
+        "DECLARE. SUBSTANTIATE. EXPLAIN."
+      ],
+      "font": "SohneMono-Buch.otf"
     },
     "descriptor": {
       "bbox": [
         72,
-        326,
-        1153,
-        422
+        351,
+        1093,
+        447
       ],
       "lines": [
-        "Data-science rigour for the GSD agent loop: deterministic gates that",
-        "block leakage, underpowered designs, and overclaimed results."
+        "Data Science, eXamined: deterministic gates that block leakage,",
+        "underpowered designs, and overclaimed results."
       ],
       "font": "Sohne-Buch.otf"
     }
