@@ -9,30 +9,42 @@
 **Status:** Maintained · **DSX — Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
 
 Analytical work shipped through a coding agent still leaks, underpowers, and overclaims.
-`dsx` makes those errors blocking — code that runs at a gate, not advice in a prompt: at the end of every session, on every push, or at each phase of the GSD loop.
+`dsx` makes those errors blocking — code that runs at a gate, not advice in a prompt.
 
-> **Declare. Substantiate. eXplain.** Declare the analysis before the data is
-> touched, substantiate it with code, publish only what the evidence supports.
+**Declare. Substantiate. eXplain.** The name is the order of work, and each step
+has one artifact and one check:
+
+| Step | Artifact | Checked by |
+|---|---|---|
+| **Declare** the analysis before the data is touched | `ANALYSIS-SPEC.yaml` — decision, question type, design, metric, claim | the contract, coherence and validity-frame families |
+| **Substantiate** it with code, not with wording | the pipeline, the figures, the results the spec named | experiment, stats, ML, metric, SQL, data-quality, reproducibility families |
+| **eXplain** only what the evidence supports | the readout, with magnitude, interval and limitation | claims, narrative and decision-replay families |
 
 ```mermaid
 flowchart LR
-    discuss --> plan --> execute --> verify --> ship
-    plan -.->|"ANALYSIS-SPEC.yaml"| GP["dsx gate plan"]
-    execute -.-> GE["dsx gate execute"]
-    verify -.-> GV["dsx gate verify"]
-    ship -.-> GS["dsx gate ship"]
+    D["Declare<br/>ANALYSIS-SPEC.yaml"] --> S["Substantiate<br/>dsx audit"] --> X["eXplain<br/>the readout"]
+    S -.->|"exit 1 blocks"| H["Stop hook<br/>end of session"]
+    S -.->|"exit 1 blocks"| C["CI<br/>every push"]
+    S -.->|"exit 1 blocks"| G["GSD gates<br/>every phase"]
 ```
+
+A spec written after the analysis is a rationalisation, a claim made before the
+audit is a guess, and a readout that outruns its interval is the error the other
+two exist to prevent. The three steps are enforced at whichever point your setup
+reaches first — the end of a session, a push, or a phase boundary.
 
 ## The idea
 
-GSD solves context rot by running heavy work in fresh subagents against structured
-artifacts. That machinery is domain-agnostic. What it does not know is that a
-random train/test split on time-ordered data invalidates the model, that three
-metrics tested at α = 0.05 carry a 14% family-wise error rate, or that a bar chart
-starting at 40 exaggerates whatever it shows.
+A coding agent is competent at software and indifferent to statistics. It does not
+know that a random train/test split on time-ordered data invalidates the model,
+that three metrics tested at α = 0.05 carry a 14% family-wise error rate, or that
+a bar chart starting at 40 exaggerates whatever it shows. Neither does the harness
+around it: DSX began as an overlay for [GSD Core](https://github.com/open-gsd/gsd-core),
+whose fresh-context machinery is deliberately domain-agnostic.
 
 DSX supplies that knowledge — and, critically, supplies it as **code that
-runs in blocking gates** rather than as advice in a prompt.
+runs in blocking gates** rather than as advice in a prompt. Advice is negotiable
+at 2am; an exit code is not.
 
 ### Where the determinism goes
 
@@ -114,12 +126,19 @@ are in the [operating guide](docs/operating-guide.md).
 
 ## Architecture
 
-The overlay does not fork [GSD Core](https://github.com/open-gsd/gsd-core). It
-installs a capability whose gates are `command-exit-zero` predicates running
-`dsx gate <point>`: exit 0 passes, exit 1 blocks the loop with the findings in
-the gate message, exit 2 routes to the gate's `onError`. A spec judged bad
-stops the loop; a spec that could not be read is an operational error — the
-distinction matters, and the exit codes preserve it.
+One engine, four places to run it. `dsx audit` and `dsx gate <point>` return the
+same three-way exit code everywhere: **0** passes, **1** blocks with the findings
+attached, **2** means the gate could not run. A spec judged bad stops the work; a
+spec that could not be read is an operational error — the distinction matters, and
+the exit codes preserve it. A gate that could not run has verified nothing, so
+both 1 and 2 block.
+
+Without GSD, the Substantiate step is enforced by
+[`hooks/stop-gate`](hooks/stop-gate) at the end of the turn and by the
+[CI template](templates/github-workflow-dsx-gate.yml) on every push. With GSD it
+is enforced at the phase boundaries instead, by a capability that does not fork
+GSD Core: its gates are `command-exit-zero` predicates, and exit 2 routes to the
+gate's `onError`.
 
 ```text
   discuss ──▶ plan ──────▶ execute ──────▶ verify ──────▶ ship
@@ -154,7 +173,8 @@ kernel, and the YAML spec are shaped this way is under [Design notes](#design-no
 | `examples/` | Known-good and known-bad fixtures (the install self-test) |
 | `tests/` | `unittest` suite for every check family |
 | `hooks/` | SessionStart and Stop hooks for the plugin path; polyglot Windows wrapper |
-| `intake/` | Landing zone for skills and agents brought in from elsewhere |
+| `intake/` | Landing zone for skills, agents and prompts brought in from elsewhere |
+| `prompts/` | Reference prompts — read by a person, never loaded automatically |
 | `scripts/` | Installer helpers, catalogue generator, project stamp, intake checker |
 | `docs/` | Operating guide, tiers, literature notes |
 | `references/` | Finding-code catalogue generated from source |
@@ -283,7 +303,7 @@ that owns it. Then six specialists, each with a narrow adversarial brief:
 the existing gates instead of restating them), and `dsx-reproduce` (off-gate-path
 re-run verification).
 
-Skills and agents from elsewhere enter through [`intake/`](intake/README.md) — `scripts/intake.py --promote`.
+Skills, agents and prompts from elsewhere enter through [`intake/`](intake/README.md) — `scripts/intake.py --promote`. Prompts land in [`prompts/`](prompts/README.md) and load nothing.
 
 `dsx-chart-audit` is the standalone retroactive path: run `dsx check viz smells
 figures`, spawn `dsx-viz-critic`, write scored `CHART-REVIEW.md`

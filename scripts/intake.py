@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
-"""Intake for skills and agents brought in from elsewhere.
+"""Intake for skills, agents and prompts brought in from elsewhere.
 
-Drop folders into intake/skills/<name>/SKILL.md and files into
-intake/agents/<name>.md, then:
+Drop them under intake/, one kind per folder:
 
-    python3 scripts/intake.py                    # report
-    python3 scripts/intake.py --json             # report, machine-readable
-    python3 scripts/intake.py --promote <name>   # move into skills/ or agents/
-                                                 # and declare it in the manifest
+    intake/skills/<name>/SKILL.md     -> skills/<name>/       (declared in the manifest)
+    intake/agents/<name>.md           -> agents/<name>.md     (declared in the manifest)
+    intake/prompts/<name>.md          -> prompts/<name>.md    (reference material)
+
+Then:
+
+    python3 scripts/intake.py                       # report
+    python3 scripts/intake.py --json                # report, machine-readable
+    python3 scripts/intake.py --promote <name>...   # move one or more out of intake/
+
+Anything under intake/ that is not one of the three folders above is reported
+as `unrecognised`, never skipped in silence: a folder this script cannot place
+is the operator's to route, and a checker that ignores what it does not
+understand is the same defect class as a gate that passes what it cannot read.
 
 Stdlib only, like everything else here.
 """
@@ -24,6 +33,7 @@ from pathlib import Path
 
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9-]*$")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
 STOPWORDS = {
     "a", "an", "and", "any", "are", "as", "at", "be", "before", "by", "for",
     "from", "in", "into", "is", "it", "its", "of", "on", "or", "that", "the",
@@ -32,13 +42,41 @@ STOPWORDS = {
 }
 OVERLAP_MIN_SHARED = 4
 
+# One row per kind. `manifest_key` is None for a kind the capability manifest
+# does not declare; `frontmatter` is False for a kind whose files are often
+# written without any, which is normal for a prompt.
+KINDS: dict[str, dict] = {
+    "skill": {
+        "intake_dir": "skills",
+        "destination": "skills",
+        "manifest_key": "skills",
+        "frontmatter": True,
+        "layout": "<name>/SKILL.md",
+    },
+    "agent": {
+        "intake_dir": "agents",
+        "destination": "agents",
+        "manifest_key": "agents",
+        "frontmatter": True,
+        "layout": "<name>.md",
+    },
+    "prompt": {
+        "intake_dir": "prompts",
+        "destination": "prompts",
+        "manifest_key": None,
+        "frontmatter": False,
+        "layout": "<name>.md",
+    },
+}
+INTAKE_FILES_OK = {"README.md"}
+
 
 @dataclass
 class Item:
     name: str
-    kind: str            # "skill" | "agent"
+    kind: str            # "skill" | "agent" | "prompt" | "unknown"
     path: str
-    status: str          # "ok" | "collision" | "invalid"
+    status: str          # "ok" | "collision" | "invalid" | "unrecognised"
     words: int = 0
     description: str = ""
     notes: list[str] = field(default_factory=list)
@@ -71,6 +109,16 @@ def parse_frontmatter(text: str) -> dict[str, str] | None:
     return result
 
 
+def first_heading(text: str) -> str:
+    """The first markdown heading, used as a stand-in description.
+
+    A prompt usually carries no frontmatter, so its heading is the only
+    self-description available for the report and the overlap hint.
+    """
+    match = HEADING_RE.search(text)
+    return match.group(1).strip() if match else ""
+
+
 def content_words(text: str) -> set[str]:
     return {
         w for w in re.findall(r"[a-z][a-z0-9-]{2,}", text.lower())
@@ -97,6 +145,11 @@ def existing_names(root: Path) -> dict[str, list[str]]:
     if agents_dir.is_dir():
         for path in sorted(agents_dir.glob("*.md")):
             add(path.stem, f"agents/{path.name}")
+    prompts_dir = root / "prompts"
+    if prompts_dir.is_dir():
+        for path in sorted(prompts_dir.glob("*.md")):
+            if path.name not in INTAKE_FILES_OK:
+                add(path.stem, f"prompts/{path.name}")
     manifest = root / "capabilities" / "dsx" / "capability.json"
     if manifest.exists():
         try:
@@ -124,46 +177,137 @@ def existing_descriptions(root: Path) -> list[tuple[str, set[str]]]:
     return out
 
 
+def _candidates(intake: Path) -> list[tuple[str, str, Path]]:
+    """(name, kind, path) for every file a known kind claims."""
+    out: list[tuple[str, str, Path]] = []
+    for kind, spec in KINDS.items():
+        base = intake / spec["intake_dir"]
+        if not base.is_dir():
+            continue
+        if kind == "skill":
+            for path in sorted(base.glob("*/SKILL.md")):
+                out.append((path.parent.name, kind, path))
+        else:
+            for path in sorted(base.glob("*.md")):
+                if path.name in INTAKE_FILES_OK:
+                    continue
+                out.append((path.stem, kind, path))
+    return out
+
+
+def _unrecognised(intake: Path, root: Path) -> list[Item]:
+    """Everything under intake/ that no kind claims.
+
+    Reported rather than skipped: a folder this script cannot place needs a
+    decision, and silence would hide it.
+    """
+    out: list[Item] = []
+    if not intake.is_dir():
+        return out
+    known_dirs = {spec["intake_dir"] for spec in KINDS.values()}
+
+    for path in sorted(intake.iterdir()):
+        if path.name.startswith("."):
+            continue
+        if path.is_dir():
+            if path.name in known_dirs:
+                continue
+            files = [p for p in sorted(path.rglob("*")) if p.is_file()
+                     and not p.name.startswith(".")]
+            out.append(Item(
+                name=path.name, kind="unknown", path=str(path.relative_to(root)) + "/",
+                status="unrecognised", words=0,
+                notes=[
+                    f"{len(files)} file(s) in a folder no kind claims — intake reads only "
+                    + ", ".join(sorted(f"intake/{d}/" for d in known_dirs)),
+                    "move each file into one of those, or route it by hand",
+                ],
+            ))
+        elif path.name not in INTAKE_FILES_OK:
+            out.append(Item(
+                name=path.name, kind="unknown", path=str(path.relative_to(root)),
+                status="unrecognised", words=len(
+                    path.read_text(encoding="utf-8", errors="replace").split()),
+                notes=["a loose file directly under intake/; move it into a kind folder"],
+            ))
+
+    # A folder under intake/skills/ with no SKILL.md is claimed by no candidate
+    # and would otherwise vanish from the report entirely.
+    skills = intake / "skills"
+    if skills.is_dir():
+        for path in sorted(p for p in skills.iterdir() if p.is_dir()):
+            if not (path / "SKILL.md").exists():
+                out.append(Item(
+                    name=path.name, kind="skill", path=str(path.relative_to(root)) + "/",
+                    status="invalid", notes=["no SKILL.md in the folder"],
+                ))
+
+    # A non-markdown file sitting in a flat-file kind folder.
+    for kind, spec in KINDS.items():
+        if kind == "skill":
+            continue
+        base = intake / spec["intake_dir"]
+        if not base.is_dir():
+            continue
+        for path in sorted(p for p in base.iterdir() if p.is_file()):
+            if path.suffix.lower() != ".md" and not path.name.startswith("."):
+                out.append(Item(
+                    name=path.name, kind=kind, path=str(path.relative_to(root)),
+                    status="unrecognised",
+                    notes=[f"not a .md file; {kind}s are read as intake/"
+                           f"{spec['intake_dir']}/{spec['layout']}"],
+                ))
+    return out
+
+
 def scan(root: Path) -> list[Item]:
     intake = root / "intake"
     taken = existing_names(root)
     shipped = existing_descriptions(root)
     items: list[Item] = []
 
-    candidates: list[tuple[str, str, Path]] = []
-    for path in sorted((intake / "skills").glob("*/SKILL.md")):
-        candidates.append((path.parent.name, "skill", path))
-    for path in sorted((intake / "agents").glob("*.md")):
-        candidates.append((path.stem, "agent", path))
-
-    for expected_name, kind, path in candidates:
+    for expected_name, kind, path in _candidates(intake):
+        spec = KINDS[kind]
         text = path.read_text(encoding="utf-8", errors="replace")
         rel = str(path.relative_to(root))
         item = Item(name=expected_name, kind=kind, path=rel, status="ok",
                     words=len(text.split()))
         fm = parse_frontmatter(text)
+
         if fm is None:
-            item.status = "invalid"
-            item.notes.append("no YAML frontmatter block")
+            if spec["frontmatter"]:
+                item.status = "invalid"
+                item.notes.append("no YAML frontmatter block")
+            else:
+                item.description = first_heading(text)
+                item.notes.append("no frontmatter — described by its first heading")
         else:
             name = fm.get("name", "")
             desc = fm.get("description", "")
-            item.description = desc
-            if not name:
-                item.status = "invalid"
-                item.notes.append("frontmatter has no name")
-            elif not NAME_RE.match(name):
+            item.description = desc or first_heading(text)
+            if name and not NAME_RE.match(name):
                 item.status = "invalid"
                 item.notes.append(f"name {name!r} must be letters, digits and hyphens")
-            elif name != expected_name:
+            elif name and name != expected_name:
                 item.status = "invalid"
                 item.notes.append(f"frontmatter name {name!r} does not match path")
-            if not desc:
+            elif not name and spec["frontmatter"]:
+                item.status = "invalid"
+                item.notes.append("frontmatter has no name")
+            if not desc and spec["frontmatter"]:
                 item.status = "invalid"
                 item.notes.append("frontmatter has no description")
+
+        if not NAME_RE.match(expected_name):
+            item.status = "invalid"
+            item.notes.append(
+                f"file name {expected_name!r} must be letters, digits and hyphens"
+            )
+
         if item.status == "ok" and expected_name in taken:
             item.status = "collision"
             item.notes.append("name already used by " + ", ".join(taken[expected_name]))
+
         if item.description:
             mine = content_words(item.description)
             for other, theirs in shipped:
@@ -173,6 +317,9 @@ def scan(root: Path) -> list[Item]:
                         f"possible overlap with {other} ({', '.join(sorted(shared)[:5])})"
                     )
         items.append(item)
+
+    items.extend(_unrecognised(intake, root))
+    items.sort(key=lambda i: (i.kind, i.name))
     return items
 
 
@@ -204,8 +351,7 @@ def declare_in_manifest(manifest_path: Path, key: str, name: str) -> None:
     manifest_path.write_text(new_text, encoding="utf-8")
 
 
-def promote(root: Path, name: str) -> int:
-    items = {i.name: i for i in scan(root)}
+def promote_one(root: Path, name: str, items: dict[str, Item]) -> int:
     item = items.get(name)
     if item is None:
         print(f"intake: no item named {name!r} under intake/", file=sys.stderr)
@@ -213,26 +359,44 @@ def promote(root: Path, name: str) -> int:
     if item.status != "ok":
         print(f"intake: {name} is {item.status}: {'; '.join(item.notes)}", file=sys.stderr)
         return 1
+
+    spec = KINDS[item.kind]
     src = root / item.path
+    dst_dir = root / spec["destination"]
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
     if item.kind == "skill":
-        dst = root / "skills" / name
+        dst = dst_dir / name
         shutil.move(str(src.parent), str(dst))
-        key = "skills"
     else:
-        dst = root / "agents" / f"{name}.md"
+        dst = dst_dir / f"{name}.md"
         shutil.move(str(src), str(dst))
-        key = "agents"
-    manifest = root / "capabilities" / "dsx" / "capability.json"
-    if manifest.exists():
-        declare_in_manifest(manifest, key, name)
-        declared = f" and declared in {manifest.relative_to(root)}"
-    else:
-        declared = ""
+
+    declared = ""
+    key = spec["manifest_key"]
+    if key:
+        manifest = root / "capabilities" / "dsx" / "capability.json"
+        if manifest.exists():
+            declare_in_manifest(manifest, key, name)
+            declared = f" and declared in {manifest.relative_to(root)}"
+
     print(f"promoted {item.kind} {name} -> {dst.relative_to(root)}{declared}")
-    print("next: python3 scripts/validate-capability.py && ./scripts/check.sh")
     if item.kind == "skill":
         print("      add a row to skills/using-dsx/SKILL.md if it should be routed to by name")
+    elif item.kind == "prompt":
+        print("      prompts are reference material: nothing loads them automatically.")
+        print("      A prompt that encodes a repeatable workflow belongs in skills/ instead.")
     return 0
+
+
+def promote(root: Path, names: list[str]) -> int:
+    # One scan for the whole batch, re-scanning between moves so a later name
+    # still resolves after an earlier promotion changed the tree.
+    failures = 0
+    for name in names:
+        failures += promote_one(root, name, {i.name: i for i in scan(root)})
+    print("next: python3 scripts/validate-capability.py && ./scripts/check.sh")
+    return 1 if failures else 0
 
 
 # ── report ───────────────────────────────────────────────────────────────────
@@ -243,17 +407,24 @@ def report(items: list[Item], as_json: bool) -> int:
         print(json.dumps([asdict(i) for i in items], indent=2))
         return 0
     if not items:
-        print("intake/ is empty. Drop skills into intake/skills/<name>/SKILL.md "
-              "and agents into intake/agents/<name>.md.")
+        layouts = "  ".join(
+            f"intake/{spec['intake_dir']}/{spec['layout']}" for spec in KINDS.values()
+        )
+        print(f"intake/ is empty. Drop files in:\n  {layouts}")
         return 0
-    width = max(len(i.name) for i in items)
-    print(f"{'name':<{width}}  kind   status     words  notes")
+    width = max(*(len(i.name) for i in items), len("name"))
+    print(f"{'name':<{width}}  kind    status        words  notes")
     for i in items:
         notes = "; ".join(i.notes) if i.notes else "-"
-        print(f"{i.name:<{width}}  {i.kind:<6} {i.status:<10} {i.words:>5}  {notes}")
-    ok = sum(1 for i in items if i.status == "ok")
-    print(f"\n{ok}/{len(items)} promotable. "
-          "python3 scripts/intake.py --promote <name>")
+        print(f"{i.name:<{width}}  {i.kind:<7} {i.status:<13} {i.words:>5}  {notes}")
+
+    ok = [i for i in items if i.status == "ok"]
+    unrecognised = [i for i in items if i.status == "unrecognised"]
+    print(f"\n{len(ok)}/{len(items)} promotable.")
+    if ok:
+        print("  python3 scripts/intake.py --promote " + " ".join(i.name for i in ok))
+    if unrecognised:
+        print(f"  {len(unrecognised)} unrecognised — route by hand, nothing was skipped silently.")
     return 0
 
 
@@ -262,7 +433,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=None,
                         help="project root (default: parent of scripts/)")
     parser.add_argument("--json", action="store_true", help="machine-readable report")
-    parser.add_argument("--promote", metavar="NAME", help="move NAME out of intake/")
+    parser.add_argument("--promote", metavar="NAME", nargs="+",
+                        help="move one or more items out of intake/")
     args = parser.parse_args(argv)
     root = Path(args.root).resolve() if args.root else Path(__file__).resolve().parent.parent
     if args.promote:

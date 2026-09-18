@@ -11,9 +11,9 @@ on:
   push:
   pull_request:
 env:
-  # GitHub redirects the old URL after a repository rename, so this keeps
-  # working when GSD-DSX becomes DSX. Pin DSX_REF to a tag for reproducibility.
-  DSX_REPO: https://github.com/RafaelBraga-Kribitz/GSD-DSX
+  # Pin DSX_REF to a tag for a reproducible ruleset: on `main`, a new check
+  # family can start blocking a spec that passed yesterday.
+  DSX_REPO: https://github.com/RafaelBraga-Kribitz/DSX
   DSX_REF: main
   DSX_BLOCK_ON: HIGH
 jobs:
