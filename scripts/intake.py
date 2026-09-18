@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """Intake for skills, agents and prompts brought in from elsewhere.
 
-Drop them under intake/, one kind per folder:
+Drop them under intake/, one kind per folder. Namespace subfolders are fine:
 
-    intake/skills/<name>/SKILL.md     -> skills/<name>/       (declared in the manifest)
-    intake/agents/<name>.md           -> agents/<name>.md     (declared in the manifest)
-    intake/prompts/<name>.md          -> prompts/<name>.md    (reference material)
+    intake/skills/[ns/]<name>/SKILL.md  -> skills/<name>/        (declared in the manifest)
+    intake/agents/[ns/]<name>.md        -> agents/<ns-name>.md   (declared in the manifest)
+    intake/prompts/[ns/]<name>.md       -> prompts/<ns-name>.md  (reference material)
+
+A skill keeps only its folder basename, because that basename is its name in
+every library measured (gsd-core 71/71, superpowers 14/14, public skills 41/41,
+ECC 888/898) and install.mjs copies `skills/<name>/` recursively, payload and
+all. Agents and prompts flatten, joining their namespace segments with hyphens,
+because install.mjs reads `agents/` with one non-recursive readdir and skips any
+entry that does not end in `.md` — a subfolder there would never be installed.
 
 Then:
 
@@ -125,6 +132,43 @@ def first_heading(text: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+# One trailing sub-extension, stripped so `build-fix.prompt.md` yields
+# `build-fix` and not `build-fix.prompt` — the dot fails NAME_RE. Measured in
+# ECC's .github/prompts/, which names every file <name>.prompt.md.
+SUB_EXTENSIONS = {"prompt", "agent", "command", "skill"}
+
+
+def stem_of(path: Path) -> str:
+    stem = path.stem
+    head, dot, tail = stem.rpartition(".")
+    return head if dot and tail.lower() in SUB_EXTENSIONS and head else stem
+
+
+def rewrite_frontmatter_name(path: Path, new_name: str) -> str | None:
+    """Set the frontmatter `name:` to ``new_name``. Returns the old value.
+
+    The folder or file name is what install.mjs projects and what the harness
+    loads the item under, so a frontmatter name that disagrees with it is a
+    discrepancy, not a second opinion. Returns None when there is no frontmatter
+    or no name line to change — a prompt usually has neither.
+    """
+    text = path.read_text(encoding="utf-8")
+    match = FRONTMATTER_RE.match(text)
+    if not match:
+        return None
+    block = match.group(1)
+    line_re = re.compile(r"^(name[ \t]*:[ \t]*)(.*)$", re.MULTILINE)
+    found = line_re.search(block)
+    if not found:
+        return None
+    old = found.group(2).strip().strip("\"'")
+    if old == new_name:
+        return None
+    new_block = line_re.sub(lambda m: m.group(1) + new_name, block, count=1)
+    path.write_text(text[:match.start(1)] + new_block + text[match.end(1):], encoding="utf-8")
+    return old
+
+
 def kebab(name: str) -> str:
     """The nearest name that satisfies NAME_RE, for the report's fix hint."""
     out = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
@@ -189,21 +233,48 @@ def existing_descriptions(root: Path) -> list[tuple[str, set[str]]]:
     return out
 
 
+def _skill_roots(base: Path) -> list[Path]:
+    """Every SKILL.md under ``base``, never one nested inside another skill.
+
+    Pruning below a found SKILL.md is what keeps a skill's own payload out of
+    the candidate list: ECC ships skills/lead-intelligence/agents/ (4 files),
+    skills/skill-comply/prompts/ (3 files) and public skills ships
+    examples/skill-creator/agents/ (4 files). Those belong to the skill that
+    contains them; hoisting them would strip them out of it.
+    """
+    found: list[Path] = []
+    for path in sorted(base.rglob("SKILL.md")):
+        if any(path.parent != owner and owner in path.parents for owner in
+               (f.parent for f in found)):
+            continue
+        found.append(path)
+    return found
+
+
 def _candidates(intake: Path) -> list[tuple[str, str, Path]]:
-    """(name, kind, path) for every file a known kind claims."""
+    """(name, kind, path) for every file a known kind claims.
+
+    A namespace subfolder is allowed for every kind. A skill takes its folder
+    basename; a flat kind joins its namespace segments into the name, because
+    its destination is flat.
+    """
     out: list[tuple[str, str, Path]] = []
     for kind, spec in KINDS.items():
         base = intake / spec["intake_dir"]
         if not base.is_dir():
             continue
         if kind == "skill":
-            for path in sorted(base.glob("*/SKILL.md")):
+            for path in _skill_roots(base):
                 out.append((path.parent.name, kind, path))
-        else:
-            for path in sorted(base.glob("*.md")):
-                if path.name in INTAKE_FILES_OK:
-                    continue
-                out.append((path.stem, kind, path))
+            continue
+        skill_dirs = [p.parent for p in base.rglob("SKILL.md")]
+        for path in sorted(base.rglob("*.md")):
+            if path.name in INTAKE_FILES_OK or path.name == "SKILL.md":
+                continue
+            if any(d == path.parent or d in path.parents for d in skill_dirs):
+                continue  # payload of a skill that was dropped in the wrong folder
+            rel = path.relative_to(base)
+            out.append(("-".join([*rel.parts[:-1], stem_of(path)]), kind, path))
     return out
 
 
@@ -243,25 +314,32 @@ def _unrecognised(intake: Path, root: Path) -> list[Item]:
                 notes=["a loose file directly under intake/; move it into a kind folder"],
             ))
 
-    # A folder under intake/skills/ with no SKILL.md is claimed by no candidate
-    # and would otherwise vanish from the report entirely.
+    # A directory under intake/skills/ with no SKILL.md anywhere below it is
+    # claimed by no candidate and would otherwise vanish from the report. A
+    # directory that only holds other skill folders is a namespace, not a
+    # half-written skill, so it is not reported.
     skills = intake / "skills"
     if skills.is_dir():
         for path in sorted(p for p in skills.iterdir() if p.is_dir()):
-            if not (path / "SKILL.md").exists():
+            if not any(path.rglob("SKILL.md")):
+                files = [f for f in path.rglob("*") if f.is_file()
+                         and not f.name.startswith(".")]
                 out.append(Item(
                     name=path.name, kind="skill", path=str(path.relative_to(root)) + "/",
-                    status="invalid", notes=["no SKILL.md in the folder"],
+                    status="invalid",
+                    notes=[f"no SKILL.md anywhere below it ({len(files)} file(s) inside)"],
                 ))
 
-    # A non-markdown file sitting in a flat-file kind folder.
+    # A non-markdown file anywhere inside a flat-file kind folder. Recursive now
+    # that namespace subfolders are allowed, so a stray .txt two levels down is
+    # still reported rather than quietly ignored.
     for kind, spec in KINDS.items():
         if kind == "skill":
             continue
         base = intake / spec["intake_dir"]
         if not base.is_dir():
             continue
-        for path in sorted(p for p in base.iterdir() if p.is_file()):
+        for path in sorted(p for p in base.rglob("*") if p.is_file()):
             if path.suffix.lower() != ".md" and not path.name.startswith("."):
                 out.append(Item(
                     name=path.name, kind=kind, path=str(path.relative_to(root)),
@@ -297,15 +375,18 @@ def scan(root: Path) -> list[Item]:
             name = fm.get("name", "")
             desc = fm.get("description", "")
             item.description = desc or first_heading(text)
-            if name and not NAME_RE.match(name):
-                item.status = "invalid"
+            if name and name != expected_name:
+                # Not invalid, whatever the declared name looks like. The
+                # destination folder or file name is what install.mjs projects,
+                # what capability.json declares and what the harness loads the
+                # item under; the frontmatter is the side that disagrees, and
+                # promote rewrites it. Only the DERIVED name is held to the
+                # manifest gate's pattern, below — validating a string that is
+                # about to be overwritten would block items for no reason.
                 item.notes.append(
-                    f"name {name!r} is not lower-case kebab, which the manifest gate "
-                    f"requires — use {kebab(name)!r}"
+                    f"frontmatter name {name!r} will be rewritten to "
+                    f"{expected_name!r} on promote"
                 )
-            elif name and name != expected_name:
-                item.status = "invalid"
-                item.notes.append(f"frontmatter name {name!r} does not match path")
             elif not name and spec["frontmatter"]:
                 item.status = "invalid"
                 item.notes.append("frontmatter has no name")
@@ -410,9 +491,14 @@ def promote_one(root: Path, name: str, items: dict[str, list[Item]]) -> int:
     if item.kind == "skill":
         dst = dst_dir / name
         shutil.move(str(src.parent), str(dst))
+        entry = dst / "SKILL.md"
     else:
         dst = dst_dir / f"{name}.md"
         shutil.move(str(src), str(dst))
+        entry = dst
+
+    # The destination name is the identity; make the frontmatter agree with it.
+    was = rewrite_frontmatter_name(entry, name)
 
     declared = ""
     key = spec["manifest_key"]
@@ -423,6 +509,8 @@ def promote_one(root: Path, name: str, items: dict[str, list[Item]]) -> int:
             declared = f" and declared in {manifest.relative_to(root)}"
 
     print(f"promoted {item.kind} {name} -> {dst.relative_to(root)}{declared}")
+    if was is not None:
+        print(f"      frontmatter name: {was!r} -> {name!r}")
     if item.kind == "skill":
         print("      add a row to skills/using-dsx/SKILL.md if it should be routed to by name")
     elif item.kind == "prompt":

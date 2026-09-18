@@ -6,21 +6,40 @@ loaded. It is a staging area with a checker.
 
 ## Drop things in
 
-One kind per folder. The layout is what the checker reads:
+One kind per folder. Namespace subfolders are fine — organise however your
+library already is:
 
 ```text
 intake/
-  skills/<name>/SKILL.md     ->  skills/<name>/      declared in the manifest
-  agents/<name>.md           ->  agents/<name>.md    declared in the manifest
-  prompts/<name>.md          ->  prompts/<name>.md   reference material
+  skills/[ns/]<name>/SKILL.md  ->  skills/<name>/         declared in the manifest
+  agents/[ns/]<name>.md        ->  agents/<ns-name>.md    declared in the manifest
+  prompts/[ns/]<name>.md       ->  prompts/<ns-name>.md   reference material
 ```
 
-Skills and agents need YAML frontmatter with at least `name` and `description`,
-and the `name` must match the folder or file name. **A prompt needs neither** —
-prompts are usually written without frontmatter, so the checker falls back to
-the file's first heading as its description.
+**A skill keeps only its folder basename.** That basename is the skill's name in
+every library measured — gsd-core 71/71, superpowers 14/14, the public skills
+41/41, ECC 888/898 — and `install.mjs` copies `skills/<name>/` recursively, so a
+skill's own `references/`, `scripts/` and `agents/` subfolders travel with it.
 
-`<name>` uses letters, digits and hyphens only, in every kind.
+**Agents and prompts flatten**, joining their namespace segments with hyphens:
+`agents/global/code-reviewer.md` becomes `global-code-reviewer`. This is forced,
+not stylistic — `install.mjs` reads `agents/` with one non-recursive listing and
+skips any entry that does not end in `.md`, so an agent in a subfolder would
+never be installed.
+
+A trailing `.prompt`, `.agent`, `.command` or `.skill` sub-extension is stripped,
+so `brief.prompt.md` yields `brief`, not `brief.prompt` — the dot would fail the
+name pattern.
+
+Skills and agents need YAML frontmatter with at least `name` and `description`.
+**A prompt needs neither** — prompts are usually written without frontmatter, so
+the checker falls back to the file's first heading as its description.
+
+The **derived** name must be lower-case kebab: `^[a-z0-9]+(-[a-z0-9]+)*$`. That
+is the same pattern `scripts/validate-capability.py` enforces on every declared
+name, and a test reads it out of that file so the two cannot drift apart. A
+declared `name` in the frontmatter is held to no such rule, because promote
+rewrites it — see below.
 
 ## Check what you dropped
 
@@ -35,7 +54,7 @@ Status is one of:
 |---|---|
 | `ok` | Valid, no name collision. Can be promoted. |
 | `collision` | That name is already used by a shipped skill, agent, prompt or a manifest entry. Rename it. |
-| `invalid` | Malformed frontmatter, a `name` that does not match the path, or a skill folder with no `SKILL.md`. |
+| `invalid` | Missing frontmatter where it is required, a derived name that is not lower-case kebab, or a folder under `skills/` with no `SKILL.md` anywhere below it. |
 | `unrecognised` | Nothing claims this file or folder. See below. |
 
 The notes column flags **possible overlap**: an item whose description shares
@@ -61,6 +80,22 @@ same defect class as a gate that passes what it cannot read — and an
 ```bash
 python3 scripts/intake.py --promote <name> [<name>...]
 ```
+
+### The frontmatter name follows the destination
+
+The folder or file name is what `install.mjs` projects, what `capability.json`
+declares and what the harness loads the item under. So when a frontmatter `name`
+disagrees with it, the frontmatter is the side that is wrong: the item still
+reports `ok`, and promote rewrites that one line, printing the before and after.
+
+```text
+promoted skill forecasting -> skills/forecasting and declared in capabilities/dsx/capability.json
+      frontmatter name: 'data-analytics-skills--forecasting' -> 'forecasting'
+```
+
+Nothing else in the file is touched — other frontmatter keys, the body, and a
+literal `name:` inside the body all survive unchanged. A prompt with no
+frontmatter is promoted byte-for-byte.
 
 Each name moves to its destination; skills and agents are also declared in
 `capabilities/dsx/capability.json`, so both install paths — the Claude Code
