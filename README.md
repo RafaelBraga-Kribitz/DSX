@@ -15,7 +15,7 @@ Analytical work shipped through a coding agent still leaks, underpowers, and ove
 > touched, substantiate it with code, publish only what the evidence supports.
 
 ```mermaid
-flowchart LR
+flowchart TD
     discuss --> plan --> execute --> verify --> ship
     plan -.->|"ANALYSIS-SPEC.yaml"| GP["dsx gate plan"]
     execute -.-> GE["dsx gate execute"]
