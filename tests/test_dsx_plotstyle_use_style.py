@@ -93,5 +93,31 @@ class TestUseStyle(unittest.TestCase):
         self.assertIn("Lato-Bold.ttf", names)
 
 
+@unittest.skipIf(not _MPL_AVAILABLE, "matplotlib not installed — analyst-side only")
+class TestVendoredLatoWins(unittest.TestCase):
+    """A system-installed Lato (Ubuntu's ``fonts-lato``) must not shadow the
+    vendored files: its metrics differ, which moves text and breaks the
+    ``svg_sha256`` seals on committed figures (CI on ubuntu-latest, 2026-09-30).
+    """
+
+    def test_findfont_resolves_lato_to_the_vendored_files(self):
+        from matplotlib import font_manager
+        from matplotlib.font_manager import FontProperties
+
+        _load_helper()
+        font_dir = (STYLE_DIR / "fonts").resolve()
+        for weight in ("normal", "bold"):
+            with self.subTest(weight=weight):
+                found = font_manager.findfont(
+                    FontProperties(family="Lato", weight=weight), fallback_to_default=False
+                )
+                self.assertEqual(Path(found).resolve().parent, font_dir)
+        foreign = [
+            e.fname for e in font_manager.fontManager.ttflist
+            if e.name == "Lato" and Path(e.fname).resolve().parent != font_dir
+        ]
+        self.assertEqual(foreign, [], "a non-vendored Lato is still registered")
+
+
 if __name__ == "__main__":
     unittest.main()

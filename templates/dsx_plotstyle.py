@@ -72,9 +72,33 @@ def register_fonts() -> None:
     Called once at import time so Lato resolves before any caller's
     ``plt.style.use`` / draw call (Pitfall 1). Idempotent: re-registering an
     already-known font is harmless.
+
+    The vendored files must win over any system-installed font of the same
+    family (Ubuntu's ``fonts-lato`` package ships a different Lato release with
+    different metrics, which moves text and breaks the ``svg_sha256`` seals).
+    ``findfont`` breaks score ties by list order and system fonts are listed
+    first, so every same-family entry that is not a vendored file is dropped
+    and the lookup caches are cleared.
     """
-    for ttf in sorted(_FONT_DIR.glob("Lato-*.ttf")):
-        font_manager.fontManager.addfont(str(ttf))
+    manager = font_manager.fontManager
+    vendored = sorted(_FONT_DIR.glob("Lato-*.ttf"))
+    for ttf in vendored:
+        manager.addfont(str(ttf))
+    vendored_paths = {str(ttf.resolve()) for ttf in vendored}
+    families = {
+        entry.name for entry in manager.ttflist
+        if str(Path(entry.fname).resolve()) in vendored_paths
+    }
+    manager.ttflist = [
+        entry for entry in manager.ttflist
+        if entry.name not in families or str(Path(entry.fname).resolve()) in vendored_paths
+    ]
+    # Private but long-standing (matplotlib >= 3.5) lru caches; guarded so a
+    # release that renames them degrades to the old ordering, not a crash.
+    for cache in (getattr(manager, "_findfont_cached", None),
+                  getattr(font_manager, "_get_font", None)):
+        if hasattr(cache, "cache_clear"):
+            cache.cache_clear()
 
 
 # Register at import time — before any style/draw resolves font.family to Lato.
