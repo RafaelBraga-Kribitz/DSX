@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v2.6
 milestone_name: Exploration Depth and Backlog Evidence
-status: shipped — v2.6 closed 2026-09-10 (tag `v2.6.0`); v2.6.1 patch (the post-ship liabilities pass) shipped 2026-09-11 (tag `v2.6.1`); no milestone open; the ceremony loop is PAUSED (`.planning/loop-logs/.paused`) until v2.7 opens
-stopped_at: "v2.6.1 shipped 2026-09-11: chore/v2.6.1-liabilities merged into main by explicit branch name (--no-ff, rehearsed on a throwaway branch), verified on main and in a fresh clone, tagged v2.6.1 on the merge commit, branch deleted. Nothing open; loop paused; next is opening v2.7 interactively."
-last_updated: "2026-09-11T14:09:00.000Z"
-last_activity: 2026-09-11
-last_activity_desc: "v2.6.1 shipped: ruff + markdownlint adopted and clean, timing pins redesigned on verification evidence, catalogue rows complete, version 2.6.1 everywhere with a test, records backfilled, branch hygiene done, cloud job stopped. Suite 1633 OK on main and in a fresh clone."
+status: shipped — v2.6 closed 2026-09-10 (tag `v2.6.0`); v2.6.1 patch (the post-ship liabilities pass) shipped 2026-09-11 (tag `v2.6.1`); no milestone open; the headless ceremony loop was RETIRED 2026-09-30 (`scripts/run-ceremony-firing.ps1` deleted)
+stopped_at: "v2.6.1 shipped 2026-09-11: chore/v2.6.1-liabilities merged into main by explicit branch name (--no-ff, rehearsed on a throwaway branch), verified on main and in a fresh clone, tagged v2.6.1 on the merge commit, branch deleted. Nothing open; headless loop retired 2026-09-30; next is opening v2.7 interactively."
+last_updated: "2026-09-30T00:00:00.000Z"
+last_activity: 2026-09-30
+last_activity_desc: "2026-09-30 project audit bookkeeping: headless ceremony loop retired (wrapper script deleted), v2.6 archive roadmap ticked, SEED-005 planted, §6.5 entry conditions stated. Earlier, v2.6.1 shipped: ruff + markdownlint adopted and clean, timing pins redesigned on verification evidence, catalogue rows complete, version 2.6.1 everywhere with a test, records backfilled, branch hygiene done, cloud job stopped. Suite 1633 OK on main and in a fresh clone."
 progress:
   total_phases: 6
   completed_phases: 6
@@ -33,18 +33,19 @@ v2.0.0 DSX Validity Frame SHIPPED 2026-08-28 (`v2.1.0`). Archives under
 `v2.6-MILESTONE-AUDIT.md`, `v2.6-LOOP-LEDGER.md`, `v2.6-LOOP-LEDGER-ARCHIVE.md`,
 `v2.6-HUMAN-QUEUE.md` and `v2.6-phases/`.
 
-**Loop control:** the autonomous ceremony is **PAUSED** (`.planning/loop-logs/.paused`,
-set 2026-09-10 for the interactive close-out). It has nothing to do until a new milestone
-exists. `scripts/run-ceremony-firing.ps1` `$Branch` still names
-`gsd/v2.6.0-exploration-depth`; its branch guard would abort safely on `main` even if
-un-paused. `.planning/LOOP-BRIEF.md` is the v2.6 contract and is rewritten at the next
-open; the v2.6 ledger and queue are archived (see above) — there is no active
+**Loop control:** the headless ceremony loop is **RETIRED (2026-09-30)**. It had been
+paused since 2026-09-10 (`.planning/loop-logs/.paused`), and its Windows Scheduled Task
+wrapper `scripts/run-ceremony-firing.ps1` still pinned the deleted
+`gsd/v2.6.0-exploration-depth` branch and read ledger files that no longer exist; the
+2026-09-30 project audit (H3) found it dead, and it was deleted that day rather than
+repointed. Future milestones run interactively. `.planning/LOOP-BRIEF.md` is the v2.6
+contract and is rewritten at the next open; the v2.6 ledger and queue are archived (see above) — there is no active
 `LOOP-LEDGER.md` / `HUMAN-QUEUE.md` until v2.7 writes its own.
 
-**Usage-limit posture (proven 2026-08-30 through 2026-09-10):** the firing wrapper
-detects limit hits, backs off gracefully, and re-probes every 30 minutes during any
-hold to catch an early release. Firings must not retry in a loop — log one line and
-stop; the wrapper owns the pacing.
+**Usage-limit posture (historical, 2026-08-30 through 2026-09-10):** the firing wrapper
+detected limit hits, backed off, and re-probed every 30 minutes during a hold. It was
+deleted with the loop on 2026-09-30; the rule that a firing never retries in a loop
+stands for any future automation.
 
 ## Project Reference
 
@@ -56,13 +57,14 @@ decision log, v2.6-01 … v2.6-06 added at this close)
 under D-13 (`.planning/ROADMAP.md` `## Next`): `SEED-003` (analyst conduct, notebook
 execution integrity, share-vs-risk quantity kinds; medium question settled 2026-09-10),
 `SEED-001` E-27 … E-31, `SEED-002`'s producer-side residue, growing the good-control
-corpus past 15, brief §6.5 items 1–6.
+corpus past 15, brief §6.5 items 1–6, the §6.5 survivorship-bias half, `SEED-005`
+(narrative-shape gate) and `SEED-004` (concurrent trail writers).
 
 ## Current Position
 
 Phase: none — v2.6 shipped, v2.7 not opened
 Plan: —
-Status: Between milestones; loop paused by operator switch
+Status: Between milestones; headless ceremony loop retired 2026-09-30
 Last activity: 2026-09-10 — v2.6 close-out (sign-offs, archive, merge, tag)
 
 ## Performance Metrics
@@ -151,10 +153,10 @@ the operator's go.
 
 - **Open v2.7 (interactive):** `/gsd-new-milestone` with scope from `SEED-003` and
   ROADMAP `## Next`; write the new `LOOP-BRIEF.md` / `LOOP-LEDGER.md` /
-  `HUMAN-QUEUE.md`; cut `gsd/v2.7.0-<slug>` from `main`; repoint `$Branch` in
-  `scripts/run-ceremony-firing.ps1` **before** removing `.planning/loop-logs/.paused`
-  — the v2.6 branch it still names was deleted on 2026-09-11 (merged; branch
-  hygiene), so an un-paused firing would abort at the wrapper's branch guard.
+  `HUMAN-QUEUE.md`; cut `gsd/v2.7.0-<slug>` from `main`. ~~Repoint `$Branch` in
+  `scripts/run-ceremony-firing.ps1` before removing `.planning/loop-logs/.paused`~~ —
+  **retired 2026-09-30:** the headless ceremony loop and its wrapper script were
+  deleted (project audit H3), so there is nothing to repoint or unpause.
 - **Two kinds of local file stay untracked:** `references/The AI Data Scientist.md`
   (a full-text clipping of an arXiv paper — do not commit) and the `.claude/`,
   `.vscode/`, `graphify-out/` operator files.
