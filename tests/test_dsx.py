@@ -5,7 +5,6 @@ Run:  python3 -m unittest discover -s tests -v
 
 from __future__ import annotations
 
-import ast
 import gc
 import io
 import json
@@ -779,6 +778,8 @@ class TestSpecStructure(unittest.TestCase):
         # commit that promotes it. It declares validity_frame.estimand.type
         # difference_in_proportions (a prescriptive retention-rollout recommendation), so
         # it satisfies the same estimand assertion.
+        # 2026-09-30 (project audit L38): exclusion-rule-without-justification is the
+        # forty-sixth (45 -> 46), a clone of a good-corpus control's validity_frame.
         from dsx.loader import load
         from dsx.spec import ESTIMAND_TYPES
 
@@ -788,7 +789,7 @@ class TestSpecStructure(unittest.TestCase):
             + sorted((root / "examples" / "known-bad").glob("*-ANALYSIS-SPEC.yaml"))
             + sorted((root / "templates").glob("ANALYSIS-SPEC.yaml"))
         )
-        self.assertEqual(len(paths), 45, [str(p) for p in paths])
+        self.assertEqual(len(paths), 46, [str(p) for p in paths])
         bad = []
         for p in paths:
             estimand_type = load(str(p)).get("validity_frame", {}).get("estimand", {}).get("type")
@@ -2770,7 +2771,7 @@ class TestCLI(unittest.TestCase):
         from dsx.cli import CHECKS, GATE_PROFILES
         from dsx.frame import paradigm
 
-        self.assertIs(CHECKS["paradigm"], paradigm.check)
+        self.assertIs(CHECKS["paradigm"].check, paradigm.check)
         for point, checks in GATE_PROFILES.items():
             with self.subTest(point=point):
                 self.assertIn("paradigm", checks)
@@ -6639,43 +6640,29 @@ class TestPhase11_1Code(unittest.TestCase):
             )
 
     def test_recursion_error_during_parse_reaches_fallback_not_a_traceback(self):
-        # Do NOT pin a chain length -- measured this session, 3.12.10 raises
-        # well before a chain of 70,000 and 3.14.6 needs a far deeper chain
-        # than its own default recursion limit would suggest (its C parser
-        # does not honour sys.setrecursionlimit until very large depths).
-        # A temporarily lowered recursion limit combined with a chain long
-        # enough to exceed it on both interpreters is the portable trigger.
+        # The property under test is "a RecursionError out of ast.parse reaches the
+        # text fallback, not a traceback". Whether a real deep expression makes
+        # ast.parse recurse depends on the interpreter (3.9 parses a 70,000-term
+        # chain without raising; 3.11+ raise; 3.14 needs far deeper input), so the
+        # parse step used by dsx/checks/code.py is mocked to raise RecursionError
+        # deterministically (project audit 2026-09-30, L92) instead of skipping on
+        # interpreters that never recurse.
+        from unittest import mock
+
         with tempfile.TemporaryDirectory() as tmp:
-            chain_expr = "x = 1" + " + 1" * 70000
             entry = self._entrypoint(
                 tmp,
-                chain_expr + "\n"
+                "x = 1 + 1\n"
                 "model.fit(df)\n"
                 "from sklearn.model_selection import train_test_split\n"
                 "train_test_split(df)\n",
             )
-            original_limit = sys.getrecursionlimit()
-            sys.setrecursionlimit(150)
-            try:
-                # Precondition, not assumption: the property under test is
-                # "a RecursionError out of ast.parse reaches the text fallback,
-                # not a traceback". CPython 3.9 parses this chain without
-                # raising at all (measured: 3.9.23 returns a tree; 3.11+ raise),
-                # so on such an interpreter the property is vacuous and the ast
-                # path is the correct outcome. Skip rather than assert a
-                # fallback the interpreter never needed.
-                try:
-                    ast.parse(chain_expr)
-                except RecursionError:
-                    pass
-                else:
-                    self.skipTest(
-                        f"ast.parse does not raise RecursionError on this interpreter "
-                        f"({sys.version.split()[0]}); the fallback is never reached"
-                    )
+            with mock.patch(
+                "dsx.checks.code.ast.parse",
+                side_effect=RecursionError("maximum recursion depth exceeded"),
+            ) as parse:
                 report = self._check(tmp, entry)
-            finally:
-                sys.setrecursionlimit(original_limit)
+            self.assertTrue(parse.called, "code.check never reached ast.parse")
             found = [f for f in report.findings if f.code == "DSX-CODE-001"]
             self.assertEqual(len(found), 1)
             self.assertEqual(found[0].data.get("scan"), "text-fallback")
@@ -7910,7 +7897,7 @@ class TestAdmissibilityGateRegistration(unittest.TestCase):
         from dsx.cli import CHECKS
         from dsx.frame import admissibility
 
-        self.assertIs(CHECKS["admissibility"], admissibility.check)
+        self.assertIs(CHECKS["admissibility"].check, admissibility.check)
 
     def test_admissibility_registered_at_plan_verify_ship_not_execute(self):
         from dsx.cli import GATE_PROFILES
@@ -7963,11 +7950,11 @@ class TestAdmissibilityGateRegistration(unittest.TestCase):
                 .setdefault("estimand", {})
                 .update({"type": ""}),
             )
-            code, _out, err = self._run(["gate", "plan", "--spec", str(spec_path), "--json"])
+            code, out, err = self._run(["gate", "plan", "--spec", str(spec_path), "--json"])
             self.assertEqual(code, 1, err)
-            # Blocking output goes to stderr (dsx.findings.emit); passing
-            # output goes to stdout. code == 1 here means stderr carries it.
-            payload = json.loads(err)
+            # --json output always goes to stdout (dsx.findings.emit); the
+            # exit code, not the stream, carries the verdict.
+            payload = json.loads(out)
             findings = [f for f in payload["findings"] if f["code"] == "DSX-ADM-020"]
             self.assertEqual(len(findings), 1)
             self.assertEqual(findings[0]["severity"], "CRITICAL")
@@ -8240,8 +8227,8 @@ class TestAdmissibilityCorpusRegression(unittest.TestCase):
         )
         for point in ("plan", "execute", "verify", "ship"):
             with self.subTest(point=point):
-                code, out, err = self._run(["gate", point, "--spec", str(fixture), "--json"])
-                payload = json.loads(out if code == 0 else err)
+                _code, out, _err = self._run(["gate", point, "--spec", str(fixture), "--json"])
+                payload = json.loads(out)
                 adm = [f for f in payload["findings"] if f["code"].startswith("DSX-ADM-")]
                 self.assertEqual(adm, [], f"{point}: {adm}")
 
@@ -8267,9 +8254,9 @@ class TestAdmissibilityCorpusRegression(unittest.TestCase):
             spec["validity_frame"]["estimand"]["type"] = ""
             spec_path.write_text(json_mod.dumps(spec), encoding="utf-8")
 
-            code, _, err = self._run(["gate", "plan", "--spec", str(spec_path), "--json"])
+            code, out, _ = self._run(["gate", "plan", "--spec", str(spec_path), "--json"])
             self.assertEqual(code, 1)
-            payload = json_mod.loads(err)
+            payload = json_mod.loads(out)
             self.assertIn(
                 "DSX-ADM-020", {f["code"] for f in payload["findings"]}
             )

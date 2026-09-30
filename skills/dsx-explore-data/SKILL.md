@@ -827,6 +827,12 @@ from 5E; `results.observed_n` and `interim_looks` from 5C;
 `dependence.method_family_required` is an analyst declaration owed whenever the
 implied structure is not `none` — not a measured fill.
 
+Write `data[].assertions` (row count, primary key, null-rate caps, time column
+and gaps, banned sentinels) in the shapes shown in
+`references/data-quality-assertions.md`, pointing `profile_path` at the
+`DATA-PROFILE.yaml` from 0b; the data-quality gate compares those assertions to
+the profile, never to the warehouse.
+
 Then run `dsx validate --phase-dir <phase-dir>` and record its exit status in
 `EDA.md`. An out-of-vocabulary fill — a misspelled mechanism, a malformed
 segments row — is otherwise discovered at the next gate, far from the write and

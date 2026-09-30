@@ -71,7 +71,7 @@ redo it, and nothing else.
 Charts, README files, case study pages — anything published but not executed by
 other people.
 
-Plan check and verifier on, research off, code review at `light` depth, security
+Plan check and verifier on, research off, code review at `quick` depth, security
 enforcement off. The data-science gates stay **on**: this tier is exactly where a
 misleading chart does damage, because someone reads it and believes it.
 

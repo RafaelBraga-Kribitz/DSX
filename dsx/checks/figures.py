@@ -13,6 +13,7 @@ from pathlib import Path
 from ..findings import Report
 from ..loader import SpecParseError, load
 from ..spec import is_blank, items, normalize
+from ._paths import find_file, resolve_roots
 
 MANIFEST_NAMES = (
     "FIGURE-MANIFEST.yaml",
@@ -49,7 +50,7 @@ def check(
         report.ok("no visuals declared")
         return report
 
-    roots = _resolve_roots(phase_dir)
+    roots = resolve_roots(phase_dir)
     seen_ids: dict[str, int] = {}
 
     for index, visual in enumerate(visuals):
@@ -90,7 +91,7 @@ def check(
         if is_blank(artifact):
             continue
 
-        path = _find_file(str(artifact), roots)
+        path = find_file(str(artifact), roots)
         if path is None:
             report.add(
                 "DSX-FIG-001",
@@ -134,27 +135,6 @@ def check(
     return report
 
 
-def _resolve_roots(phase_dir: str | None) -> list[Path]:
-    roots: list[Path] = []
-    if phase_dir:
-        roots.append(Path(phase_dir))
-    roots.append(Path.cwd())
-    return roots
-
-
-def _find_file(relative: str, roots: list[Path]) -> Path | None:
-    candidate = Path(relative)
-    if candidate.is_absolute() and candidate.exists():
-        return candidate
-    for root in roots:
-        path = root / relative
-        if path.exists():
-            return path
-    if candidate.exists():
-        return candidate
-    return None
-
-
 def _check_manifest(
     spec: dict, visuals: list[dict], roots: list[Path], report: Report
 ) -> None:
@@ -164,7 +144,7 @@ def _check_manifest(
         manifest_rel = figures_cfg.get("manifest_path")
     manifest_path = None
     if not is_blank(manifest_rel):
-        manifest_path = _find_file(str(manifest_rel), roots)
+        manifest_path = find_file(str(manifest_rel), roots)
     else:
         for root in roots:
             for name in MANIFEST_NAMES:
@@ -204,7 +184,7 @@ def _check_manifest(
             entry_ids.add(str(cid).strip())
         generator = entry.get("generator")
         if not is_blank(generator):
-            gen_path = _find_file(str(generator), roots)
+            gen_path = find_file(str(generator), roots)
             if gen_path is None:
                 report.add(
                     "DSX-FIG-040",

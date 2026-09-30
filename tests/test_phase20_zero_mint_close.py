@@ -41,12 +41,17 @@ regex over raw bytes).
 import importlib.util
 import pathlib
 import re
+import sys
 import unittest
 
 from dsx.checks import stats
 from dsx.loader import load
 
 _ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(_ROOT / "tests"))
+
+from _counts import EXPECTED_CATALOGUE_TOTAL, SNAPSHOT_TOTAL  # noqa: E402
+
 _CATALOGUE = _ROOT / "references" / "finding-codes.md"
 _PHASE12_SNAPSHOT = _ROOT / "tests" / "fixtures" / "finding-codes-phase12.md"
 _GENERATOR = _ROOT / "scripts" / "gen-finding-catalogue.py"
@@ -95,12 +100,14 @@ class TestPhase20ZeroMintClose(unittest.TestCase):
         DSX-VIZ-071, Phase 27 additively minted DSX-ML-034, Phase 28 additively
         minted DSX-CLM-034, and Phase 29 additively minted DSX-COH-041, moving the
         live total to 279. This leg stays in lockstep
-        with tests/test_finding_catalogue_invariant.py::_EXPECTED_TOTAL; Phase 20's
+        with tests/_counts.py::EXPECTED_CATALOGUE_TOTAL (also read by
+        tests/test_finding_catalogue_invariant.py); Phase 20's
         zero-mint tell is carried by the reserve-band-absent and snapshot-subset
         checks below, not by this absolute total."""
         self.assertEqual(
-            _declared_total(_CATALOGUE), 279,
-            "references/finding-codes.md must declare 279 codes (275 at the Phase-20 "
+            _declared_total(_CATALOGUE), EXPECTED_CATALOGUE_TOTAL,
+            f"references/finding-codes.md must declare {EXPECTED_CATALOGUE_TOTAL} codes "
+            "(tests/_counts.py; 275 at the Phase-20 "
             "zero-mint close, +1 for Phase 22's additive DSX-VIZ-071 mint, +1 for "
             "Phase 27's additive DSX-ML-034 feature-provenance mint, +1 for Phase 28's "
             "additive DSX-CLM-034 supported_by-traceability mint, +1 for Phase 29's "
@@ -110,7 +117,7 @@ class TestPhase20ZeroMintClose(unittest.TestCase):
     def test_phase12_snapshot_frozen_at_256_and_subset(self) -> None:
         """The frozen Phase-12 snapshot declares 256 and is a subset of the catalogue."""
         self.assertEqual(
-            _declared_total(_PHASE12_SNAPSHOT), 256,
+            _declared_total(_PHASE12_SNAPSHOT), SNAPSHOT_TOTAL,
             "tests/fixtures/finding-codes-phase12.md must declare 256 (byte-frozen)",
         )
         snapshot_codes = _codes_in(_PHASE12_SNAPSHOT)

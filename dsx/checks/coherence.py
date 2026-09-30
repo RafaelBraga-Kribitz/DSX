@@ -19,6 +19,10 @@ from ..spec import (
     section,
 )
 
+# One sign convention: harmed(S) here means exactly what an opposing segment
+# means to metrics._check_simpsons_paradox, so _sign is imported, never copied.
+from .metrics import _sign
+
 # Strength ladder: a claim may not exceed the question's strength.
 # diagnostic and association sit at the same rung (within-sample attribution).
 QUESTION_STRENGTH = {
@@ -193,13 +197,6 @@ def _check_revisit_completeness(spec: dict, qtype: str, report: Report) -> None:
         ),
         where="spec.decision.revisit_when",
     )
-
-
-def _sign(value: float) -> int:
-    """Sign convention reused verbatim from metrics.py:352-353 — never recomputed
-    or diverged, so ``harmed(S)`` here means exactly what an opposing segment means
-    to ``_check_simpsons_paradox``."""
-    return (value > 0) - (value < 0)
 
 
 def _ci_excludes_zero(ci: object) -> bool:

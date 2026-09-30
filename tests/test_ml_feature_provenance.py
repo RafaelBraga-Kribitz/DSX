@@ -13,7 +13,8 @@ ACM Transactions on Knowledge Discovery from Data 6(4), Article 15 — was
 read first-hand from the ACM PDF on 2026-09-10 (operator-supplied copy; locators
 recorded in the check docstring: Sec. 3.1 p. 15:8 and Sec. 3.2 eq. (3) p. 15:9).
 From 2026-09-07 until that read it had been secondary-corroborated only, the PDF
-paywalled (27-CONTEXT.md §S3-1-CLOSE; HUMAN-QUEUE HQ-40 row 40b, dated update).
+paywalled (27-CONTEXT.md §S3-1-CLOSE; HQ-40 row 40b, dated update, in the human
+queue since archived as .planning/milestones/v2.6-HUMAN-QUEUE.md).
 These tests assert the check's behaviour; the read is recorded, not re-performed,
 here.
 """

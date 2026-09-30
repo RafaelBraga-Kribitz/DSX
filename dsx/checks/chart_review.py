@@ -20,6 +20,7 @@ from pathlib import Path
 from ..findings import Report
 from ..loader import SpecParseError
 from ..loader import loads as load_yaml
+from ._paths import resolve_roots
 
 CHART_REVIEW_NAMES = ("CHART-REVIEW.md", "good-CHART-REVIEW.md")
 REQUIRED_SCHEMA = "dsx-chart-review-v1"
@@ -40,14 +41,21 @@ def check(
     (``figures.check(spec, phase_dir, *, strict=...)``) takes it for
     ``run_checks()`` calling-convention uniformity even when the artifact being
     read carries no spec-derived fields of its own (RESEARCH Open Question 2).
-    ``strict`` is likewise accepted for the same uniformity and currently
-    unused: every DSX-CRV-* rule already blocks identically at verify and ship
-    (T-11.3-11/D-01): a missing, truncated or undecodable CHART-REVIEW.md
-    degrades to an ok/empty report rather than raising, mirroring
-    ``figures.check`` and ``dsx/frame/val.py::check``.
+    ``strict`` is accepted only so ``run_checks()`` can dispatch every
+    artifact reader with the same keyword arguments; it deliberately changes
+    nothing here. ``figures.check`` uses ``strict`` to switch on an extra rule
+    (DSX-FIG-011, unsealed artifact) that is too early to demand at
+    plan/execute. No DSX-CRV-* rule has such a stage dependency: a
+    CHART-REVIEW.md only exists once the chart audit has run, and its
+    structural contract (schema tag, no ten-point scale, terminal sentinel,
+    mapped finding tokens) is the same whenever it is read, so every DSX-CRV-*
+    rule fires at one fixed severity at every gate point (T-11.3-11/D-01).
+    A missing, truncated or undecodable CHART-REVIEW.md degrades to an
+    ok/empty report rather than raising, mirroring ``figures.check`` and
+    ``dsx/frame/val.py::check``.
     """
     report = Report(check="chart_review")
-    roots = _resolve_roots(phase_dir)
+    roots = resolve_roots(phase_dir)
     path = _find_chart_review(roots)
     if path is None:
         report.ok("no CHART-REVIEW.md found")
@@ -67,14 +75,6 @@ def check(
     _check_finding_tokens(body, report, path)
 
     return report
-
-
-def _resolve_roots(phase_dir: str | None) -> list[Path]:
-    roots: list[Path] = []
-    if phase_dir:
-        roots.append(Path(phase_dir))
-    roots.append(Path.cwd())
-    return roots
 
 
 def _find_chart_review(roots: list[Path]) -> Path | None:

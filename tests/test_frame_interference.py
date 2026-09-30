@@ -319,7 +319,7 @@ class TestGateRegistration(unittest.TestCase):
     def test_interference_registered_in_plan_verify_ship_absent_from_execute(self):
         from dsx.cli import CHECKS, GATE_PROFILES
 
-        self.assertIs(CHECKS["interference"], interference.check)
+        self.assertIs(CHECKS["interference"].check, interference.check)
         for point in ("plan", "verify", "ship"):
             with self.subTest(point=point):
                 self.assertIn("interference", GATE_PROFILES[point])

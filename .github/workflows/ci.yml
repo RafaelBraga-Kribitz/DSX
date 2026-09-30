@@ -1,9 +1,9 @@
 # Project CI for dsx itself: ruff, markdownlint, unit tests, catalogue
 # freshness, manifest conformance, the good/bad fixture contract, determinism,
 # and hook syntax. All of it is scripts/check.sh — the same command a
-# contributor runs locally. check.sh skips a linter that is not installed, so
-# the linters are installed here explicitly; a gate that silently skips is not
-# a gate.
+# contributor runs locally. Locally check.sh skips (with a warning) a linter
+# that is not installed; here DSX_CHECK_STRICT=1 turns a missing linter into a
+# failure, because a gate that silently skips is not a gate.
 name: ci
 on:
   push:
@@ -14,7 +14,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.12"]
+        # README promises Python 3.9+: the floor, two middle releases and the
+        # newest the dependencies below ship wheels for.
+        python-version: ["3.9", "3.11", "3.12", "3.13"]
+    env:
+      DSX_CHECK_STRICT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,14 +27,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      # Pinned on purpose. check.sh skips a linter that is absent, so CI installs
-      # them — but an unpinned install makes the lint gate non-reproducible: a new
-      # ruff release can turn this job red with no change to the code, which is
-      # exactly what happened on 2026-09-18 when 0.16.x added ISC004. Bumping
-      # these is a deliberate commit that may surface new findings.
-      - name: Install the linters check.sh runs when present
+      # Pinned on purpose. An unpinned install makes the lint gate
+      # non-reproducible: a new ruff release can turn this job red with no
+      # change to the code, which is exactly what happened on 2026-09-18 when
+      # 0.16.x added ISC004. Bumping these is a deliberate commit that may
+      # surface new findings.
+      - name: Install the linters check.sh runs
         run: |
           pip install -q ruff==0.16.8
           npm install -g --silent markdownlint-cli2@0.23.2
+      # dsx itself is stdlib-only, but some suites skip wholesale without these:
+      # PyYAML for the dual-loader comparison in test_families_yaml and the YAML
+      # cases in test_dsx; matplotlib for the plotstyle API and SVG determinism
+      # suites. Installed so a green run means they ran. Pinned for the same
+      # reason as the linters; matplotlib 3.11 needs Python >= 3.11, so 3.9
+      # takes the last release line that supports it (3.9.4, verified against
+      # both plotstyle suites).
+      - name: Install the optional test dependencies
+        run: |
+          pip install -q "PyYAML==6.0.2" \
+            "matplotlib==3.9.4; python_version < '3.11'" \
+            "matplotlib==3.11.2; python_version >= '3.11'"
       - name: Full check
         run: ./scripts/check.sh

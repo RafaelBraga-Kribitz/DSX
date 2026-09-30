@@ -2,6 +2,8 @@
 
 Paired spec: `operator-known-answer-selective-exclusion-ANALYSIS-SPEC.yaml`
 
+> **Known MISS.** No shipped check fires on the defect this fixture encodes, so the gate does not catch it; see `README.md` in this directory.
+
 Coverage class (REQ-P12-01): an analysis whose answer is now known — a
 known-answer positive control the operator holds the corrected result for.
 

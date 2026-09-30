@@ -16,7 +16,10 @@ Narrating an unverified result is how a leak becomes a strategy.
 
 <core_principle>
 **Every sentence must survive the audit.** Before writing, read
-`ANALYSIS-SPEC.yaml`'s `claims` block and `DATA-REVIEW.md`. A claim typed
+`ANALYSIS-SPEC.yaml`'s `claims` block, `DATA-REVIEW.md`, and `STATS-REVIEW.md`
+when the phase has one (the `dsx-statistician` writes it at `verify:pre`). A
+claim the statistician marked overstated or unsupported is narrated at the
+strength it proposed instead, or not at all. A claim typed
 `association` gets associational verbs in the narrative — no exceptions for
 readability. If the plain-language version needs a causal verb to land, the
 answer is to run the study that licenses it, not to write the sentence anyway.
@@ -27,6 +30,18 @@ into a caveat. Every `claims[].text` must appear in `narrative.path`; relative
 `%` needs `base_n` or from/to; limitations must be non-empty before ship for
 causal/prescriptive/predictive questions.
 </core_principle>
+
+<house_style>
+If the project provides the `plain-language` and `decision-format` skills, load
+them with the Skill tool before writing. They live in a project's
+`.claude/skills/` folder and do not ship with the DSX plugin, so they may be
+absent. Either way, the essentials are: write plain sentences for a reader who
+is senior in the business and junior in engineering, expand every acronym the
+first time it appears, and put a summary of five lines or fewer before any
+detail. When the reader must choose, offer at most three options, say for each
+what it does in practice and what it costs later, recommend one, and state the
+default you will take if they do not answer.
+</house_style>
 
 <structure>
 Lead with the decision, not the method. Analysts write chronologically —

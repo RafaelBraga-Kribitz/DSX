@@ -33,10 +33,13 @@ from dsx.spec import DEPENDENCE_STRUCTURES, ESTIMAND_TYPES, normalize  # noqa: E
 
 FAMILIES_PATH = ROOT / "references" / "families.yaml"
 
-# Source of the literal 14 below: .planning/REQUIREMENTS.md REQ-P11-01, as
-# amended by plan 11-01 (D-02) from the original "25-35" to the real,
-# fixture-traced count this phase ships. If that requirement text changes,
-# this literal must change with it.
+# Source of the literal 14 below: REQ-P11-01, as amended by plan 11-01 (D-02)
+# from the original "25-35" to the real, fixture-traced count this phase ships.
+# .planning/REQUIREMENTS.md was archived when v2.0.0 closed; the requirement now
+# reads, unchanged, at .planning/milestones/v2.0.0-REQUIREMENTS.md (REQ-P11-01).
+# Citing .planning/ here is deliberate (project audit 2026-09-30, L93): .planning/
+# stays tracked as the project's record. If that requirement text changes, this
+# literal must change with it.
 EXPECTED_FAMILY_COUNT = 14
 
 _FAMILY_KEYS = {

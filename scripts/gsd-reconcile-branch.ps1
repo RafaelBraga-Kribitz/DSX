@@ -4,12 +4,12 @@
   a stray branch instead of the canonical branch, and folds them back in.
 
 .DESCRIPTION
-  Known gsd-core defect, documented in HUMAN-QUEUE.md's "Standing framework
-  notes": a `gsd-*` subagent committing via `gsd-tools query commit` can create
+  Known gsd-core defect, documented as row 5 of docs/gsd-core-known-defects.md
+  (`query commit`): a `gsd-*` subagent committing via `gsd-tools query commit` can create
   and switch to a stray branch mid-run and land the commit there instead of the
   canonical branch, while its own return value confidently misreports success on
   the canonical branch. Confirmed three times in v2.4 alone. This script is the
-  standing note's documented manual-reconciliation rule, automated:
+  documented manual-reconciliation rule, automated:
 
     1. Find every local branch whose tip descends from BaselineRef (the
        canonical branch's own tip before the run that may have gone wrong) and
@@ -28,8 +28,8 @@
        canonical cannot be safely checked out: stop and report that one --
        never guess, never force.
 
-  Safe to run at any time, by hand or from the ceremony wrapper. Running it
-  when nothing went wrong is a silent no-op (exit 0, "nothing to do").
+  Run it by hand; nothing calls it automatically. Safe to run at any time.
+  Running it when nothing went wrong is a silent no-op (exit 0, "nothing to do").
 
 .PARAMETER Branch
   The canonical branch. Required.
@@ -41,14 +41,14 @@
   which is the right default for a standalone, by-hand invocation.
 
 .PARAMETER NoPush
-  Reconcile and merge locally but do not push. Default is to push, matching
-  the ceremony wrapper's own push-after-every-step discipline.
+  Reconcile and merge locally but do not push. Default is to push, so the
+  reconciled branch is never left only on this machine.
 
 .PARAMETER Repo
   Working directory. Defaults to the current directory.
 
 .EXAMPLE
-  pwsh scripts/gsd-reconcile-branch.ps1 -Branch gsd/v2.6.0-exploration-depth
+  pwsh scripts/gsd-reconcile-branch.ps1 -Branch gsd/<milestone>
   # by hand, after any interactive /gsd-execute-phase or /gsd-plan-phase run
   # that spawned subagents -- checks against the last pushed state.
 #>

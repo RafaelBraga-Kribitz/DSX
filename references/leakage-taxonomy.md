@@ -57,8 +57,11 @@ hypothesis test computed over the full, unsplit frame found a relationship, the
 choice compounds a target-adjacent feature decision (type 1, target leakage)
 with a preprocessing leak (type 3, preprocessing leakage) in a single step — the
 test that decided the resolution touched the frame the split exists to protect.
-`references/The AI Data Scientist.md` (Akimov, Nwadike, Iklassov & Takáč,
-arXiv:2508.18113v1, §2.3) states this directly: a continuous age column was
+*The AI Data Scientist* (Akimov, Nwadike, Iklassov & Takáč, 2025,
+[arXiv:2508.18113v1](https://arxiv.org/abs/2508.18113v1), §2.3; this project's
+reading notes are in
+[docs/literature/the-ai-data-scientist.md](../docs/literature/the-ai-data-scientist.md))
+states this directly: a continuous age column was
 kept continuous rather than bucketed because the paper's own hypothesis-testing
 stage found a strong numeric relationship, and the same section's Table 2 shows
 the binning idiom (`bucketed_Age` via `pd.cut`) in active use elsewhere in the

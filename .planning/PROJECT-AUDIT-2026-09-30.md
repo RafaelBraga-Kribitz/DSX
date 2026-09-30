@@ -2,7 +2,7 @@
 
 **Purpose.** A time-boxed (19-minute) whole-project sweep for mistakes, incompleteness,
 started-but-unfinished work, disconnected and abandoned code, and stale documentation.
-Nothing was fixed. Every item below is an action candidate with evidence, to be triaged later.
+Nothing was fixed during the sweep; see the resolution log at the end for what was done with each item.
 
 **How it was produced.** Fourteen parallel auditors, one per project dimension (core CLI,
 check modules, frame/decisions, tests, skills and commands, agents and capability manifest,
@@ -493,3 +493,148 @@ ruff `--select F,E9` clean; no `NotImplementedError`, no bare `except:`, no `mat
 - **tests** (12 findings): Hard 6-minute window. Did NOT: run coverage to find untested functions inside referenced modules; inspect each of the 81 test files for weak/tautological assertions (AST scan found only two assertion-free test methods, both delegating to an asserting shared body at test\_known\_bad\_corpus.py:2330/2336 — not a real gap); verify the chart-review fixtures' content against dsx/chart\_review; check tests against skills/agents/hooks docs beyond counts; examine the 'only 1 reference' fixtures for whether the single reference actually loads them at runtime versus mentions them in a comment.
 - **checks** (15 findings): Covered: cli.py (command bodies for validate/check/audit/gate/profile/stats/init/seal/charts partially, parser, main), findings.py exit codes, profiler.py sentinel loop, decisions.py/suppressions.py/loader.py def inventory, mathx.py/pct\_base.py/input\_types.py reference scans, version strings (dsx/\_\_init\_\_.py, .claude-plugin/plugin.json, .claude-plugin/marketplace.json all agree at 2.6.1; there is no versioned CHANGELOG, only docs/CHANGELOG-notes.md, so no changelog mismatch check was possible). A repo-wide AST scan found no top-level def/class in the dimension that is unreferenced outside its file; the only disconnected code is the three mathx helpers referenced solely by tests. NOT covered due to the time limit: spec.py (1663 lines: vocabularies, validate\_structure internals, \_pct parsing at line 822 which returns None on ValueError), loader.py's hand-written YAML-subset parser correctness (block scalars, flow sequences, quoting edge cases), decisions.py record semantics (AmendmentRecord usage, next\_invocation\_id uniqueness), suppressions.py matching logic, cmd\_recommend/cmd\_power/\_markdown\_report/\_write\_decision\_trail bodies, input\_types.json vs references/input-type-inventory.md drift (scripts/gen-input-types.py exists but was not run/compared), and README flag-level accuracy for documented commands.
 - **core-python** (10 findings): Time-boxed to ~9 minutes (12:45-12:49). VERIFIED CLEAN (no finding): (1) every one of the 216 DSX-\* codes string-emitted in dsx/checks/\*.py is documented in references/finding-codes.md; (2) every code in finding-codes.md (279) is emitted somewhere in dsx/ (checks + frame); (3) a naive doc-vs-code severity comparison found 0 mismatches over 275 catalogue rows; (4) no TODO/FIXME/NotImplemented/pass-only bodies in dsx/checks; (5) ruff reports 'All checks passed' on dsx/checks; (6) no private `_helper` or module constant is defined-but-unreferenced; (7) references/viz-smells.md documents exactly the 6 DSX-SMELL codes smells.py emits; (8) test\_finding\_catalogue\_invariant, test\_doc\_code\_agreement, test\_chart\_review pass (26 tests). families.yaml carries no finding codes (it is the estimator ontology read only by dsx/frame/admissibility.py), so no code cross-check against it was possible. NOT COVERED: line-by-line logic review of the large modules (code.py 1502 lines, stats.py 1370, ml.py 1324, design.py 667, claims.py 704) for wrong-but-plausible behaviour; whether spec keys read by checks all exist in dsx/spec.py vocabulary; whether the viz-smells taxonomy letters A,C,D,E,F,H,L (skipped in the doc table) are intentionally unimplemented; whether each individual finding code has a positive AND negative unit test (only checked that every code string appears somewhere in tests/); runtime behaviour of `strict`/`gate_point` branches in design/coherence/decision; the dsx/frame/\* checks (outside dimension); dynamic code construction beyond the two ml.py f-strings.
+
+## Resolution log — 2026-09-30
+
+Every item above was worked the same day, on branch `claude/gracious-planck-u3gbwk`.
+After the work, `DSX_CHECK_STRICT=1 ./scripts/check.sh` passes: ruff 0.16.8,
+markdownlint, 1869 unit tests on Python 3.11, plus the full suite on 3.9 and 3.13.
+Items are named by section and number (H = high, M = medium, L = low, O = orchestrator
+spot check). "Documented" means the audit's own alternative action was taken
+(disclose the gap) rather than building a new check. Items left open on purpose are
+listed separately at the end.
+
+### Fixed in code
+
+- **H1, L8, L13** — `dsx/profiler.py` `_sentinel_matches`: exact string match first,
+  numeric comparison only as a fallback, so each cell counts once per key. Keys are
+  the raw `--sentinel` strings the user typed. Tests: `tests/test_profiler_sentinels.py`.
+- **H2, L51** — `hooks/stop-gate` checks `stop_hook_active` without Python, exits 0
+  when no spec exists, and blocks for a missing interpreter only when a spec exists.
+  `bin/dsx` and the hook both require Python 3.9 or newer. Tests: `TestStopGateWithoutPython`.
+- **H4** — `DSX-REP-040` now opens the declared `.ipynb` entrypoint and checks that
+  execution counts are present and strictly increasing, with no new finding code.
+  Its remaining blind spots are in `docs/known-limits.md`. Tests: `tests/test_repro_notebook.py`.
+- **M6** — `dsx stats` dispatches through a selector table. `--paradigm` is the
+  explicit default.
+- **M8, M10** — `dsx charts` usage errors exit 2. New `tests/test_cli_charts_init.py`.
+- **M11, M12** — `DSX_DEBUG=1` or `--verbose` prints tracebacks. `explain` and `stats`
+  always report the underlying error on stderr, and their JSON separates
+  "unreadable" from "empty".
+- **M17** — `--json` output always goes to stdout (`dsx/findings.py` `emit`).
+- **M20** — An unknown or malformed suppression code now surfaces as `DSX-SPEC-072` or
+  `DSX-SPEC-071` and fails the gate. It aborts with exit 2 only when the `spec` check is
+  not in the run. Findings for those two codes cannot themselves be suppressed.
+- **M30** — Advisory lock on `DECISIONS.jsonl.lock` around invocation numbering and
+  append (SEED-004 CL-01). Tests: `tests/test_decisions_lock.py`.
+- **M23** — `install.mjs` ships `styles/`, and `--check` verifies the fonts. **L48** —
+  `--force` is removed from the help text (still accepted, and does nothing).
+- **M24, L85** — `plugin.json` ships both slash commands. The "watched folder"
+  clauses are removed. `claude plugin validate` rejected the old `agents` directory
+  key, so it was removed; the default `agents/` folder still ships all six agents.
+- **M5** — `scripts/validate-capability.py` parses frontmatter properly, warns about
+  orphan fragments, and checks gate commands against `dsx.cli`.
+- **L7, L9, L10, L12, L14–L16, L39** — Gate guard kept and tested. Lowercase spec names
+  added. Seal help text clarified. `CHECKS` in `dsx/cli.py` is now the single registry
+  (with repro), with the `elif` chain removed. `dsx/checks/__init__.py` docstring rewritten.
+- **L17, L19** — `dsx/checks/_paths.py` holds the shared path helpers. `coherence.py`
+  imports `_sign` instead of copying it.
+- **L34** — The paradigm remedy no longer names the non-existent `DSX-PAR-020`.
+  **L35** — Frame docstring updated.
+- **L36, L65** — `read_all` raises `CheckError` on an unreadable trail and skips lines
+  that are not JSON objects. `DECISION_LAYERS` is enforced.
+- **L37** — A suppression's `chart_id` now matches only as a whole token.
+  **L67** — A broken narrative pattern file prints a warning.
+- **L49** — The workflow template is safe for paths with spaces and prunes the same
+  folders as the hook.
+- **L52** — Runnable scripts are executable. **L56, L57** — `lint-scope.py` survives a
+  closed pipe, and its docstring matches `check.sh`.
+- **L27, L29, L90, L91** — CI now runs on Python 3.9, 3.11, 3.12 and 3.13, installs
+  PyYAML and matplotlib, and sets `DSX_CHECK_STRICT=1` so a missing linter fails.
+- **L61–L63, M7** — Unreferenced helpers deleted. Helpers used only by tests are kept
+  and documented as library API.
+- **O1, L59** — `scripts/gen-input-types.py --check` added and wired into `check.sh`.
+- **L46** — Portrait downscaled from 1.29 MB to 47 KB. It renders at 96 px.
+
+### Retired or folded in
+
+- **H3, L41, O2** — `scripts/run-ceremony-firing.ps1` deleted, and the headless loop
+  recorded as retired in `.planning/STATE.md` and `docs/operating-guide.md`.
+  **M25** — `gsd-reconcile-branch.ps1` docstring and example corrected.
+- **M26, L40** — `scripts/check_brief_refs.py` folded into
+  `tests/test_brief_citation_ledger.py` and deleted.
+
+### Tests added or hardened
+
+- **M19** — `examples/known-bad/EXPECTED-FINDINGS.json` is now the source of truth for
+  per-fixture expectations. `tests/test_known_bad_corpus.py` reads it.
+- **M22, M38** — Both orphan profiler fixtures are exercised. **L11, L21** —
+  `tests/test_pct_base.py` and `tests/test_narrative.py` added.
+- **L22** — `tests/test_catalogue_extractor.py` pins code extraction to the first argument of `report.add`.
+- **L33** — Each of the 11 chart fixtures is asserted to fire only its own target code.
+- **L38** — New fixture `exclusion-rule-without-justification` fires `DSX-VAL-080`.
+  The corpus is now 43 fixtures.
+- **O4** — `tests/test_viz_positive_cases.py` gives every DSX-VIZ code a positive and a
+  near-miss case. Escalation #2 had already been resolved at corpus level on
+  2026-09-06; this audit misread it as open.
+- **L31** — `tests/test_example_figures_regenerate.py` regenerates the example figures.
+  **M39, L88, L20** — `tests/_counts.py` holds the tripwire counts.
+  **L89, L92** — Vestigial skip removed. The RecursionError path is mocked.
+
+### Documented
+
+- **M1, M3** — Fragment gate commands carry `--allow-missing`. The verifier lists all
+  21 verify-profile families.
+- **M2, L54** — `light` → `quick`. **M4, L6** — `docs/plugin.md` lists all five
+  installed things.
+- **M9, M14, M15, L55** — README "Every subcommand" table, not-a-pip-package note, and
+  a pointer from the operating guide.
+- **M16** — Release notes for 2.2 through 2.6.1 (there was no 2.1 release).
+- **M13, L64** — The `recommend_*` functions are documented as reference routing
+  tables that `stats.check` does not call.
+- **M18** — `examples/known-bad/README.md` lists the five MISS fixtures, and each
+  POSTMORTEM is labelled.
+- **M21, L58** — The promoted-material lint split is documented as a no-op until intake
+  promotes something.
+- **M27** — `AmendmentRecord` is documented as operator-authored by design.
+- **M28, M32** — Five analyst-conduct gaps (SEED-003 AC-02..AC-06) and the
+  `DSX-PAR-021` / `DSX-PAR-030` pair added to `docs/known-limits.md`, with entry
+  conditions in `brief.md` §6.5.
+- **M29** — None of SEED-003 AC-10..AC-15 has landed. This is recorded in the seed and
+  listed in ROADMAP `## Next`.
+- **M31, L70–L72, L74, L75** — v2.6 roadmap ticked, stale graph and intel files marked,
+  research checklists closed, survivorship and narrative-shape gate
+  (`SEED-005`) given entry conditions.
+- **M33, M35–M37, L77–L81, L83, L84, L86, L87, L42** — References reworded,
+  informational template keys annotated, and skills pointed at `FIGURE-MANIFEST.yaml`,
+  `FORBIDDEN-CLAIMS.yaml`, `dsx_plotstyle.py` (new `use_style()`), the four styles,
+  the APA table, data-quality assertions and the input-type inventory.
+- **L1, L4** — The storyteller reads `STATS-REVIEW.md`. The ML auditor writes `ML-REVIEW.md`.
+- **L2, L3, L50** — `capability.json` author URL and description corrected.
+- **L5, L23** — Operating guide re-baselined to 2.6.1. GSD Core verified on 1.7.0 only.
+- **L18** — `chart_review`'s `strict` parameter is documented as uniform-dispatch only.
+- **L25, L26, L30, L32, L34, L43–L45, L47, L60** — Link, path, count and
+  historical-reference fixes, plus new `examples/README.md` and `docs/assets/README.md`.
+- **L28** — `readme-quality.yml` documented as owner-only. It is not pinned because the
+  external repository is not reachable from this one.
+- **L66** — Verified that ratio metrics never reach the additive formula.
+- **L93** — `.planning/` stays tracked as the project record, and the tests that read
+  it say so.
+
+### No change needed (the audit claim did not hold, or it asked for none)
+
+- **L24** — `handlers["fit"](data)` is code, not a link. **L32** — `RESULTS.md` is already
+  wired into the good spec by anchor, and `DECISIONS.jsonl` files are untracked.
+  **L53** — `shell` is a documented hook field. **M35** — `residual_note`,
+  `model_score_source` and `train_score` are read by checks.
+- **L68, L69, L82, L94–L97, O3, O5** — Recorded as informational by the auditors themselves.
+
+### Left open on purpose
+
+- **L73** — REQ-P7-08 stays unticked. Clause 2 (`measurement.known_gaps`) is read by no
+  check, as the v2.0.0 milestone audit already decided. The re-check note is in
+  `.planning/milestones/v2.0.0-REQUIREMENTS.md`.
+- **M18** — The five MISS fixtures still go undetected. Building those detectors
+  (origin-only leak scan, forking paths, selective exclusion) is new milestone work;
+  they are now labelled as misses.
+- **O3** — ROADMAP `## Next` is the v2.7 candidate list. It is a plan, not a defect.

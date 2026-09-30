@@ -75,7 +75,11 @@ granted). **Only when the value is the literal `research`** — i.e. `dsx.domain
 research` — offer to append the AI-assistance disclosure block from
 `templates/DISCLOSURE-research.md` after the existing five sections. The offer is
 **opt-in even under research**: the analyst may skip it with a one-line reason, and
-skipping is legitimate — it can never become a gate.
+skipping is legitimate — it can never become a gate. Under the same guard, when the
+readout reports statistical results, offer the APA-style results table in
+`templates/APA-TABLE-research.md` (one row per contrast: n, mean, standard
+deviation, test statistic, degrees of freedom, exact p value, effect size and its
+interval). It is equally optional and ungated: no check reads it.
 
 For **any other value — including the default `auto`, `marketing_science`, and every
 other enum value** — the narrative takes today's path **byte-unchanged**: no new
@@ -108,6 +112,15 @@ documented config-get only; add no gate check anywhere on the deterministic path
 - Write `narrative.path` (e.g. `NARRATIVE.md`) and embed every `claims[].text`
   verbatim. Forbidden wording (`data proves`, `with high confidence`, …) is
   `DSX-NAR-030`.
+- Add phase-specific forbidden wording in `FORBIDDEN-CLAIMS.yaml` next to
+  `ANALYSIS-SPEC.yaml`, starting from `templates/FORBIDDEN-CLAIMS.yaml`: one
+  `patterns[]` entry per overclaim, each with a new `id` and a `regex` that
+  matches the overclaim but not its negated correction. The check merges these
+  with its built-in patterns (the three in the template: `data_proves`,
+  `high_confidence`, `virtually_all_scenarios`), which apply to the narrative and
+  to every `claims[].text` whether or not the file exists. An entry that reuses a
+  built-in `id` is ignored, and a file that will not parse is skipped rather than
+  failing the run.
 
 Verify the final wording:
 

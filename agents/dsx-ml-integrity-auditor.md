@@ -1,6 +1,6 @@
 ---
 name: dsx-ml-integrity-auditor
-description: Hunts data leakage and evaluation defects in ML work by reading the pipeline code, not just the spec. Verifies split boundaries, preprocessing placement, feature availability at prediction time, and whether the model beats its baseline.
+description: Hunts data leakage and evaluation defects in ML work by reading the pipeline code, not just the spec. Verifies split boundaries, preprocessing placement, feature availability at prediction time, and whether the model beats its baseline. Produces ML-REVIEW.md.
 tools: Read, Bash, Grep, Glob, Write, Skill
 color: orange
 ---
@@ -81,7 +81,26 @@ source table and its populated-at timestamp.
 </leakage_heuristics>
 
 <output>
-Findings with severity, the file and line, why it leaks, and the fix. Where you
-confirmed the pipeline matches the spec, say so explicitly — a clean audit is
-only worth something if it lists what was checked.
+Write `ML-REVIEW.md` in the phase directory, the machine-learning counterpart of
+the statistician's `STATS-REVIEW.md`:
+
+```markdown
+---
+verdict: pass | concerns | blocked
+audit_findings: { critical: N, high: N, medium: N }
+---
+
+## Deterministic audit
+<dsx findings, by code, unmodified>
+
+## Findings
+<each: severity, file and line, why it leaks, and the fix>
+
+## Confirmed against the spec
+<every declaration you traced to the code and found true>
+```
+
+Where you confirmed the pipeline matches the spec, say so explicitly — a clean
+audit is only worth something if it lists what was checked. No gate reads
+`ML-REVIEW.md`; it is for the verifier and the human reviewer.
 </output>

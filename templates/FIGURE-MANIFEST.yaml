@@ -7,12 +7,12 @@
 # Prefer filling visuals[].artifact_path / svg_sha256 / chart_id first; this
 # file is for multi-figure coverage and generator ownership.
 
-manifest_version: 1
+manifest_version: 1              # informational — read by humans, not checked by dsx
 # Pinned render environment for reproducible svg_sha256 seals (REQ-P23-03).
 # Additive: dsx/checks/figures.py never reads this key. Bump when the analyst-side
 # matplotlib version changes and figures are re-sealed.
-matplotlib_version: "3.11.1"
-run_id: "<shared readout id>"
+matplotlib_version: "3.11.1"     # informational — read by humans, not checked by dsx
+run_id: "<shared readout id>"    # informational — read by humans, not checked by dsx (DSX-SMELL-013 reads visuals[].run_id in the spec, not this key)
 figures:
   - chart_id: <stable_id>
     path: figures/<name>.svg

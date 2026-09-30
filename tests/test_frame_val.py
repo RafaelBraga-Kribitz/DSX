@@ -1333,7 +1333,7 @@ class TestValGateSeverity(unittest.TestCase):
         from dsx.cli import CHECKS, GATE_PROFILES
 
         self.assertIn("val", CHECKS)
-        self.assertIs(CHECKS["val"], val.check)
+        self.assertIs(CHECKS["val"].check, val.check)
 
         registered_checks = set(CHECKS)
         reachable_profiles = [
@@ -1492,6 +1492,11 @@ _EXPECTED_VAL_CODES: dict[str, set[str]] = {
     # opposing segment caught by DSX-COH-041, a DSX-COH-* coherence code (not DSX-VAL-*,
     # and silent besides in the frame check), so no DSX-VAL-* code fires.
     "subgroup-harm-without-disposition-ANALYSIS-SPEC.yaml": set(),
+    # Measured 2026-09-30 (project audit L38) against the fixture as committed:
+    # loaded via dsx.loader.load(), ran dsx.frame.val.check(spec). A copy of the
+    # clean freq-proportion-checkout control plus one validity_frame.exclusions
+    # entry with a blank justification, so DSX-VAL-080 is the only code.
+    "exclusion-rule-without-justification-ANALYSIS-SPEC.yaml": {"DSX-VAL-080"},
 }
 
 

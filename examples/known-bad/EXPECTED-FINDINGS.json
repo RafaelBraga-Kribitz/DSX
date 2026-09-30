@@ -1,0 +1,566 @@
+{
+  "_about": [
+    "Per-fixture expected findings for examples/known-bad/. Source of truth for tests/test_known_bad_corpus.py, which derives its expectation maps from this file.",
+    "Keys per fixture: miss (true = nothing fires on the encoded defect; see README.md), severity_band (highest tier of the fixture's own target codes, null for a MISS), target_codes (union of every code below, checked by the test), critical_by_point (CRITICAL codes the gate must block on at that point; a string or a list), caught_at_plan_and_execute (CRITICAL codes expected at BOTH plan and execute), high_by_point / medium_by_point / low_by_point (verify/ship codes at that tier; MEDIUM and LOW are measured with --block-on), incidental_by_point (codes tolerated at a point as documented incidentals, never credited as a catch), note.",
+    "Every fixture on disk must have an entry. Adding a fixture means adding one entry here, not editing Python dicts."
+  ],
+  "fixtures": {
+    "bayesian-continuous-monitoring": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-PAR-011"
+      ],
+      "caught_at_plan_and_execute": [
+        "DSX-PAR-011"
+      ],
+      "note": "Phase 9: uncontrolled continuous monitoring of a Bayesian test; DSX-PAR-011 fires CRITICAL at plan and execute (paradigm is registered at every point)."
+    },
+    "chart-alphabetical-ranking": {
+      "miss": false,
+      "severity_band": "LOW",
+      "target_codes": [
+        "DSX-VIZ-080"
+      ],
+      "caught_at_plan_and_execute": [],
+      "low_by_point": {
+        "verify": "DSX-VIZ-080",
+        "ship": "DSX-VIZ-080"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-080 LOW, measured under --block-on LOW."
+    },
+    "chart-axis-baseline-undeclared": {
+      "miss": false,
+      "severity_band": "LOW",
+      "target_codes": [
+        "DSX-VIZ-021"
+      ],
+      "caught_at_plan_and_execute": [],
+      "low_by_point": {
+        "verify": "DSX-VIZ-021",
+        "ship": "DSX-VIZ-021"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-021 LOW, measured under --block-on LOW."
+    },
+    "chart-correlation-drawn-as-line": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-012"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-012",
+        "ship": "DSX-VIZ-012"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-012 HIGH at verify/ship."
+    },
+    "chart-dual-axis-lines": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-030"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-030",
+        "ship": "DSX-VIZ-030"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-030 HIGH at verify/ship."
+    },
+    "chart-estimates-without-uncertainty": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-070"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-070",
+        "ship": "DSX-VIZ-070"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-070 HIGH at verify/ship."
+    },
+    "chart-gauge-single-kpi": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-001"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-001",
+        "ship": "DSX-VIZ-001"
+      },
+      "note": "Phase 24: banned gauge mark. DSX-VIZ-001 HIGH at verify/ship."
+    },
+    "chart-input-type-undeclared": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-014"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-014",
+        "ship": "DSX-VIZ-014"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-014 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-pie-nine-slices": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-040"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-040",
+        "ship": "DSX-VIZ-040"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-040 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-radar-multimetric": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-001"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-001",
+        "ship": "DSX-VIZ-001"
+      },
+      "note": "Phase 24: banned radar mark. DSX-VIZ-001 HIGH at verify/ship."
+    },
+    "chart-rainbow-heatmap": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-052"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-052",
+        "ship": "DSX-VIZ-052"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-052 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-red-green-only": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-051"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-051",
+        "ship": "DSX-VIZ-051"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-051 HIGH at verify/ship."
+    },
+    "chart-relationship-undeclared": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-010"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-010",
+        "ship": "DSX-VIZ-010"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-010 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-relationship-unrecognised": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-011"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-011",
+        "ship": "DSX-VIZ-011"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-011 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-single-value-as-bar": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-013"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-013",
+        "ship": "DSX-VIZ-013"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-013 HIGH at verify/ship."
+    },
+    "chart-source-note-missing": {
+      "miss": false,
+      "severity_band": "LOW",
+      "target_codes": [
+        "DSX-VIZ-062"
+      ],
+      "caught_at_plan_and_execute": [],
+      "low_by_point": {
+        "verify": "DSX-VIZ-062",
+        "ship": "DSX-VIZ-062"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-062 LOW, measured under --block-on LOW."
+    },
+    "chart-takeaway-blank": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-060",
+        "DSX-VIZ-063"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-063",
+        "ship": "DSX-VIZ-063"
+      },
+      "medium_by_point": {
+        "verify": "DSX-VIZ-060",
+        "ship": "DSX-VIZ-060"
+      },
+      "note": "2026-09-06 VIZ coverage: a blank takeaway emits DSX-VIZ-063 HIGH and DSX-VIZ-060 MEDIUM from one field (the corpus's two-tier fixture)."
+    },
+    "chart-takeaway-repeats-name": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-063"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-063",
+        "ship": "DSX-VIZ-063"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-063 HIGH via its takeaway-equals-name branch."
+    },
+    "chart-takeaway-without-magnitude": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-064"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-064",
+        "ship": "DSX-VIZ-064"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-064 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-truncated-axis-bar": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-VIZ-020"
+      ],
+      "critical_by_point": {
+        "verify": "DSX-VIZ-020",
+        "ship": "DSX-VIZ-020"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "2026-09-06 VIZ coverage: truncated bar axis. DSX-VIZ-020 CRITICAL at verify/ship (viz registered there only), the only blocking finding."
+    },
+    "chart-twelve-colour-lines": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-050"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-050",
+        "ship": "DSX-VIZ-050"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-050 MEDIUM, measured under --block-on MEDIUM."
+    },
+    "chart-uncertainty-mark-misuse": {
+      "miss": false,
+      "severity_band": "MEDIUM",
+      "target_codes": [
+        "DSX-VIZ-071"
+      ],
+      "caught_at_plan_and_execute": [],
+      "medium_by_point": {
+        "verify": "DSX-VIZ-071",
+        "ship": "DSX-VIZ-071"
+      },
+      "note": "Phase 24: uncertainty mark outside Wilke's ten. DSX-VIZ-071 MEDIUM; blocks nothing at the default threshold, measured under --block-on MEDIUM."
+    },
+    "chart-units-undeclared": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-061"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-061",
+        "ship": "DSX-VIZ-061"
+      },
+      "note": "2026-09-06 VIZ coverage: DSX-VIZ-061 HIGH at verify/ship."
+    },
+    "chart-word-cloud-text": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-001"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-001",
+        "ship": "DSX-VIZ-001"
+      },
+      "note": "Phase 24: banned word-cloud mark. DSX-VIZ-001 HIGH at verify/ship."
+    },
+    "correlation-for-agreement-estimand": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-STA-051"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-STA-051",
+        "ship": "DSX-STA-051"
+      },
+      "note": "Phase 20-A: correlation used for an agreement estimand. DSX-STA-051 HIGH at verify/ship."
+    },
+    "correlation-pearson-ordinal-scale": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-STA-050"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-STA-050",
+        "ship": "DSX-STA-050"
+      },
+      "note": "Phase 20-A: Pearson on an ordinal scale. DSX-STA-050 HIGH at verify/ship (stats gate registered there only)."
+    },
+    "exclusion-rule-without-justification": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VAL-080"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VAL-080",
+        "ship": "DSX-VAL-080"
+      },
+      "note": "2026-09-30 (project audit L38): a declared row-exclusion rule with a blank justification. DSX-VAL-080 HIGH; reported at plan without blocking, blocks at verify/ship."
+    },
+    "feature-origin-only-leak": {
+      "miss": true,
+      "severity_band": null,
+      "target_codes": [],
+      "caught_at_plan_and_execute": [],
+      "note": "Phase 27. MISS: an outcome-window feature under an innocent name; no name pattern, fit call or declaration exposes it. DSX-ML-034 (attribution code) stays silent because no feature_provenance is declared."
+    },
+    "frequentist-uncontrolled-continuous": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-PAR-010"
+      ],
+      "caught_at_plan_and_execute": [
+        "DSX-PAR-010"
+      ],
+      "note": "Phase 9: frequentist peeking without a sequential design; DSX-PAR-010 fires CRITICAL at plan and execute."
+    },
+    "full-frame-cleaning": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-CODE-020",
+        "DSX-CODE-021",
+        "DSX-CODE-030",
+        "DSX-ML-090"
+      ],
+      "critical_by_point": {
+        "execute": [
+          "DSX-CODE-020",
+          "DSX-CODE-021",
+          "DSX-CODE-030"
+        ],
+        "ship": "DSX-ML-090"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 11.1-08: cleaning fitted on the full frame before the split. Three CRITICAL DSX-CODE codes at execute (code family absent from plan). DSX-ML-090 is HIGH; the 'ship' key only lets _own_target_codes recognise it."
+    },
+    "garden-of-forking-paths-p-hacking": {
+      "miss": true,
+      "severity_band": null,
+      "target_codes": [],
+      "caught_at_plan_and_execute": [],
+      "note": "Phase 12 coverage class. MISS: an undisclosed specification search reported as one comparison. Nothing fires on the defect; see the ATTRIBUTION sidecar for the absent code."
+    },
+    "icc-incomplete-triple": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-STA-060"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-STA-060",
+        "ship": "DSX-STA-060"
+      },
+      "note": "Phase 20-A: ICC reported without its model/type/unit triple. DSX-STA-060 HIGH at verify/ship."
+    },
+    "interference-shared-budget": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-INT-010"
+      ],
+      "critical_by_point": {
+        "plan": "DSX-INT-010"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 08-03: arms share a budget, so treatment spills into control. DSX-INT-010 CRITICAL at plan."
+    },
+    "kappa-missing-companions": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-STA-062"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-STA-062",
+        "ship": "DSX-STA-062"
+      },
+      "note": "Phase 20-A: kappa without its companion statistics. DSX-STA-062 HIGH at verify/ship."
+    },
+    "magnitude-without-computed-effect": {
+      "miss": true,
+      "severity_band": null,
+      "target_codes": [],
+      "caught_at_plan_and_execute": [],
+      "incidental_by_point": {
+        "plan": [
+          "DSX-COH-001"
+        ],
+        "verify": [
+          "DSX-COH-001"
+        ],
+        "ship": [
+          "DSX-COH-001"
+        ]
+      },
+      "note": "Phase 28. MISS: headline magnitude quoted for a metric no test computes. DSX-COH-001 fires CRITICAL at plan/verify/ship but is a swap-invariant incidental (another fixture's target), recorded point-scoped in incidental_by_point and never credited as a catch. DSX-CLM-034 must fire nowhere."
+    },
+    "operator-known-answer-selective-exclusion": {
+      "miss": true,
+      "severity_band": null,
+      "target_codes": [],
+      "caught_at_plan_and_execute": [],
+      "note": "Phase 12 coverage class. MISS: exclusions and weighting chosen after seeing the answer and never declared, so DSX-VAL-080 has nothing to read."
+    },
+    "post-hoc-procedure-switch": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-PRE-030"
+      ],
+      "critical_by_point": {
+        "verify": "DSX-PRE-030"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 10-05: executed procedure differs from the declared branch. DSX-PRE-030 CRITICAL at verify/ship; prereg is registered at verify and ship only."
+    },
+    "prescriptive-churn-recommendation": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-CLM-020",
+        "DSX-COH-001",
+        "DSX-COH-010"
+      ],
+      "critical_by_point": {
+        "plan": [
+          "DSX-COH-001",
+          "DSX-COH-010"
+        ],
+        "verify": [
+          "DSX-CLM-020"
+        ],
+        "ship": [
+          "DSX-CLM-020"
+        ]
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 11.2-08: a prescriptive claim under a descriptive question. DSX-COH-001/010 CRITICAL at plan (coherence absent from execute); DSX-CLM-020 CRITICAL at verify/ship (claims registered there only)."
+    },
+    "retracted-fabricated-field-experiment": {
+      "miss": true,
+      "severity_band": null,
+      "target_codes": [],
+      "caught_at_plan_and_execute": [],
+      "note": "Phase 12 coverage class. MISS: fabricated data behind a plausible declared source. A declaration-only gate cannot see it."
+    },
+    "subgroup-harm-without-disposition": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-COH-041"
+      ],
+      "critical_by_point": {
+        "plan": "DSX-COH-041",
+        "verify": "DSX-COH-041",
+        "ship": "DSX-COH-041"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Phase 29: prescriptive rollout ignoring a harmed minority segment above the declared floor. DSX-COH-041 CRITICAL at plan/verify/ship (coherence absent from execute)."
+    },
+    "triggering-dilution": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-INT-030"
+      ],
+      "critical_by_point": {
+        "plan": "DSX-INT-030"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 08-04: additive metric analysed on the eligible population without dilution adjustment. DSX-INT-030 CRITICAL at plan."
+    },
+    "weak-identification-mmm": {
+      "miss": false,
+      "severity_band": "CRITICAL",
+      "target_codes": [
+        "DSX-INT-030",
+        "DSX-VAL-040"
+      ],
+      "critical_by_point": {
+        "plan": "DSX-VAL-040",
+        "verify": "DSX-INT-030"
+      },
+      "caught_at_plan_and_execute": [],
+      "note": "Plan 07-07: marketing-mix model claiming strong identification. DSX-VAL-040 CRITICAL at plan. DSX-INT-030 is a second, genuine defect (additive metric on the eligible population); it also fires at plan and ship, and the 'verify' key only avoids a key collision. val/interference are absent from execute."
+    },
+    "weighted-kappa-missing-weights": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-STA-061"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-STA-061",
+        "ship": "DSX-STA-061"
+      },
+      "note": "Phase 20-A: weighted kappa without the weighting scheme. DSX-STA-061 HIGH at verify/ship."
+    }
+  }
+}
