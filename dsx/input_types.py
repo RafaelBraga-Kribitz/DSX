@@ -102,10 +102,3 @@ def permitted(shape: str, relationship: str | None = None) -> list[str]:
             return sorted(narrowed)
 
     return sorted(allowed)
-
-
-def known_shapes() -> list[str]:
-    """Every accepted shape key: the 40 IT ids plus the coarse family names."""
-    from .spec import DATA_INPUT_TYPES
-
-    return sorted(_by_id()) + sorted(DATA_INPUT_TYPES)

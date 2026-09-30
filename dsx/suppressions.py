@@ -3,7 +3,9 @@
 Optional ``suppressions[]`` on ANALYSIS-SPEC removes matching findings from the
 blocking set *after* checks run. Suppressions are not soft opinions — each row
 must name a real ``DSX-*`` code, a non-blank reason, and an authority pointer
-(SPEC, ADR, or ticket). Unknown codes abort the run (exit 2).
+(SPEC, ADR, or ticket). An unknown or malformed code surfaces as DSX-SPEC-072 /
+DSX-SPEC-071 when the ``spec`` check ran, and aborts the run (exit 2) when it
+did not — see ``apply_suppressions``.
 """
 
 from __future__ import annotations
@@ -19,6 +21,10 @@ from .spec import is_blank, items
 
 _CODE_RE = re.compile(r"^DSX-[A-Z]+-\d{3}$")
 _DSX_ROOT = Path(__file__).resolve().parent
+# A suppression row may not waive the findings that report bad suppression rows.
+_UNSUPPRESSIBLE = frozenset({"DSX-SPEC-071", "DSX-SPEC-072"})
+
+
 @functools.cache
 def known_codes() -> set[str]:
     """Codes emitted by ``report.add(...)`` under ``dsx/`` (cached; ``known_codes.cache_clear()`` resets)."""
@@ -96,7 +102,8 @@ def validate_suppressions(spec: dict) -> Report:
                 where=f"{where}.code",
             )
         elif code not in known:
-            # Unknown codes are operational errors — raise at apply time; also flag.
+            # CRITICAL, so every gate profile blocks on it; apply_suppressions
+            # skips the row instead of raising when this finding is present.
             report.add(
                 "DSX-SPEC-072",
                 "CRITICAL",
@@ -147,33 +154,66 @@ def _matches(finding: Finding, row: dict, spec: dict) -> bool:
     index, name = _visual_index_by_chart_id(spec, chart_id)
     if index is not None and finding.where.startswith(f"spec.visuals[{index}]"):
         return True
-    if chart_id and chart_id in finding.where:
+    if _contains_token(finding.where, chart_id):
         return True
     return bool(name and name in finding.title)
+
+
+def _contains_token(text: str, token: str) -> bool:
+    """True when ``token`` occurs in ``text`` as a whole identifier.
+
+    A chart_id is an identifier (``[A-Za-z0-9_-]``), so it must not be flanked
+    by identifier characters: ``fig`` matches ``chart fig.svg_sha256`` but not
+    ``spec.figures[0]`` — a bare substring test let a short chart_id suppress
+    findings the row never targeted.
+    """
+    if not token:
+        return False
+    pattern = rf"(?<![A-Za-z0-9_-]){re.escape(token)}(?![A-Za-z0-9_-])"
+    return re.search(pattern, text) is not None
 
 
 def apply_suppressions(spec: dict, report: Report) -> Report:
     """Drop findings matched by valid suppressions; record context for the report.
 
-    Raises ``CheckError`` (exit 2) when a suppression names an unknown code.
+    A row whose code has an invalid shape or is not a known code can never
+    match a finding, so it is never applied. How it surfaces depends on whether
+    ``validate_suppressions`` ran in this invocation (it runs inside the
+    ``spec`` check, which every gate profile and ``dsx audit`` include):
+
+    * ``report`` already carries that row's ``DSX-SPEC-071`` (invalid shape) or
+      ``DSX-SPEC-072`` (unknown code, CRITICAL) finding — the row is skipped and
+      the finding stands, so the catalogued code is what the operator sees and
+      the gate fails through the normal block threshold (exit 1).
+    * no such finding is present (a check subset without ``spec``, e.g.
+      ``dsx check --only prereg``) — raises ``CheckError`` (exit 2), so a bad
+      code is never silently ignored (CR-01, ``dsx/frame/prereg.py``).
+
+    ``DSX-SPEC-071``/``072`` themselves are never suppressible: otherwise one
+    row naming ``DSX-SPEC-072`` would waive every other row's unknown code.
     """
     rows = items(spec, "suppressions")
     if not rows:
         return report
 
     known = known_codes()
+    reported = {
+        (finding.code, finding.where)
+        for finding in report.findings
+        if finding.code in _UNSUPPRESSIBLE
+    }
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             continue
         code = str(row.get("code") or "").strip()
-        if code and code not in known:
-            raise CheckError(
-                f"spec.suppressions[{index}].code {code!r} is not a known DSX finding code"
-            )
-        if code and not _CODE_RE.match(code):
-            raise CheckError(
-                f"spec.suppressions[{index}].code {code!r} has invalid shape"
-            )
+        if not code or code in known:
+            continue
+        where = f"spec.suppressions[{index}].code"
+        if not _CODE_RE.match(code):
+            if ("DSX-SPEC-071", where) not in reported:
+                raise CheckError(f"{where} {code!r} has invalid shape")
+        elif ("DSX-SPEC-072", where) not in reported:
+            raise CheckError(f"{where} {code!r} is not a known DSX finding code")
 
     # Structural defects (missing reason/authority) stay as findings — do not
     # apply those rows.
@@ -194,6 +234,9 @@ def apply_suppressions(spec: dict, report: Report) -> Report:
     kept: list[Finding] = []
     suppressed: list[dict[str, str]] = []
     for finding in report.findings:
+        if finding.code in _UNSUPPRESSIBLE:
+            kept.append(finding)
+            continue
         matched = next((row for row in usable if _matches(finding, row, spec)), None)
         if matched is None:
             kept.append(finding)

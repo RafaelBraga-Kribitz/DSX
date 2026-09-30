@@ -195,15 +195,32 @@ under D-13, none promoted on estimate:
 
 - `SEED-003` (analyst conduct, notebook execution integrity, share-vs-risk quantity
   kinds; medium question settled 2026-09-10 — two media with an explicit boundary).
+  Its skill/reference items AC-10 … AC-15 are open skill work, none of it landed
+  (checked 2026-09-30, recorded in the seed): the conduct cycle and cell craft,
+  plain-question section headings, misparse triage after `read_csv`, the PT-BR
+  locale pack and notebook continuation discipline — mostly a new
+  `references/notebook-conduct.md`, plus boundary sentences in
+  `skills/dsx-explore-data/SKILL.md` and `references/narrative-discipline.md`.
 - `SEED-001` E-27 … E-31 (entry conditions unchanged).
 - `SEED-002`'s residue — a producer-side `parse_health` block (a gate reading it is
   a separate D-02/D-06 decision).
 - The good-control corpus: 15 specs is a thin false-positive-rate denominator
   (one-sided 95% bound ≈0.181 on 0/15); growing it is the real fix.
 - brief §6.5 items 1–6, entry conditions unchanged (paradigm-paired items wait for
-  their mirrors, D-12a).
+  their mirrors, D-12a). Rows 1 and 3 (`DSX-PAR-020`/`-021`, `DSX-PAR-030`) now also
+  state what opens the mirror work (2026-09-30; REV-001 note in `REVERSALS.md`).
+- brief §6.5 v2.2 backlog, the **survivorship-bias half** of the Phase 15 cohort/funnel
+  pair (HQ-8/HQ-13; the changing-denominator half shipped as `DSX-MET-021`): needs a
+  first-hand D-05 source stating a declaration-checkable survivorship rule **and** a
+  corpus case measured a live miss at all four gate points.
+- `SEED-005` (a narrative-shape gate — the Phase 13 `DSX-NAR` section check, plus the
+  Phase 14 disclosure/data-dictionary sibling): a known-bad narrative missing its
+  "So What" or "Now What" measured a live miss at all four gate points, then a
+  first-hand D-05 source.
+- `SEED-004` (concurrent `DECISIONS.jsonl` writers): only if a milestone's scope runs
+  more than one `dsx gate` against one project root.
 
 Opening v2.7 is interactive: `/gsd-new-milestone`, a fresh `LOOP-BRIEF.md` /
-`LOOP-LEDGER.md` / `HUMAN-QUEUE.md`, a new `gsd/v2.7.0-*` branch cut from `main`,
-`$Branch` repointed in `scripts/run-ceremony-firing.ps1`, then removing
-`.planning/loop-logs/.paused`.
+`LOOP-LEDGER.md` / `HUMAN-QUEUE.md` and a new `gsd/v2.7.0-*` branch cut from `main`.
+The headless ceremony loop was retired on 2026-09-30 (`scripts/run-ceremony-firing.ps1`
+deleted), so there is no scheduled firing to repoint or unpause.

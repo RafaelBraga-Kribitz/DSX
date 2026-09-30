@@ -26,6 +26,7 @@ from ..spec import (
     normalize,
     section,
 )
+from ._paths import find_file, resolve_roots
 
 HEDGE_TERMS = (
     "associated with", "correlated with", "suggests", "consistent with", "may",
@@ -68,7 +69,7 @@ def check(
     if normalize(design.get("kind", "")) == "experiment" and not strategy:
         strategy = "randomized_experiment"
     strength = IDENTIFICATION_STRATEGIES.get(strategy, {}).get("strength", "none")
-    roots = _resolve_roots(phase_dir)
+    roots = resolve_roots(phase_dir)
     results = section(spec, "results")
     raw_tests = results.get("tests") if results else None
     tests = raw_tests if isinstance(raw_tests, list) else []
@@ -92,14 +93,6 @@ def check(
 
     report.ok(f"{len(claims)} claim(s) audited")
     return report
-
-
-def _resolve_roots(phase_dir: str | None) -> list[Path]:
-    roots: list[Path] = []
-    if phase_dir:
-        roots.append(Path(phase_dir))
-    roots.append(Path.cwd())
-    return roots
 
 
 def _check_causal_language(
@@ -276,7 +269,7 @@ def _check_evidence_pointer(
         )
         return
 
-    resolved = _find_evidence_file(path_part, roots)
+    resolved = find_file(path_part, roots)
     if resolved is None:
         report.add(
             "DSX-CLM-031",
@@ -302,19 +295,6 @@ def _check_evidence_pointer(
             report.ok(f"evidence {path_part}#{anchor} resolved")
     else:
         report.ok(f"evidence file {path_part} exists")
-
-
-def _find_evidence_file(relative: str, roots: list[Path]) -> Path | None:
-    candidate = Path(relative)
-    if candidate.is_absolute() and candidate.exists():
-        return candidate
-    for root in roots:
-        path = root / relative
-        if path.exists():
-            return path
-    if candidate.exists():
-        return candidate
-    return None
 
 
 def _anchor_present(path: Path, anchor: str) -> bool:

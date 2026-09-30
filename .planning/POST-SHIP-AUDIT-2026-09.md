@@ -7,7 +7,7 @@ findings_raw: 28
 findings_confirmed_real: 26
 findings_applied: 21
 findings_escalated: 2
-findings_escalated_resolved: 2   # metric-direction inversion, fixed in v2.4.1 (07d3db0); calibration-corpus coverage, closed 2026-09-06 (v2.5.0)
+findings_escalated_resolved: 2   # metric-direction inversion, fixed in v2.4.1 (07d3db0); calibration-corpus coverage, closed 2026-09-06 (v2.5.0), unit-level cases added 2026-09-30 (tests/test_viz_positive_cases.py)
 findings_escalated_open: 0
 findings_investigated_and_dropped: 2
 ---
@@ -195,6 +195,15 @@ existing test suite), and branch both check functions on it.
 > D-table entry, so no `REVERSALS.md` record is owed; the operator's direction is
 > recorded in every fixture's postmortem. Suite 1528 OK. The original finding is kept
 > below unedited, as the record of what was found.
+>
+> **Closure confirmed 2026-09-30 (project audit, `.planning/PROJECT-AUDIT-2026-09-30.md`
+> O-item "escalation #2 still open").** The project audit re-read this escalation as
+> open; it was not, but the unit-level half was still missing. `tests/test_viz_positive_cases.py`
+> now builds, for every `DSX-VIZ-*` code `dsx/checks/viz.py` emits (21, read from the
+> module source so a new code without a case fails the suite), a minimal in-memory
+> positive case asserting the code fires at its catalogued severity and a near-miss
+> negative asserting it stays silent, calling `viz.check` directly. Together with the
+> 23 gate-level `chart-*` fixtures this escalation is closed at both levels.
 
 The known-bad corpus (`examples/known-bad/`) has exactly 4 chart-defect
 fixtures, all added in Phase 24 (commit `5de04e9`). Tracing what each

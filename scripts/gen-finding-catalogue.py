@@ -252,6 +252,14 @@ def _literal(node: ast.AST) -> str | None:
 
 
 def extract(path: Path) -> list[tuple[str, str, str]]:
+    """``(code, severity, title)`` for every ``report.add(...)`` call in ``path``.
+
+    The code is taken from the FIRST positional argument only, and only when it
+    is a string literal starting with ``DSX-``. Codes written into a title,
+    detail, remedy or decision-record text (``dsx/checks/ml.py``'s
+    "DSX-ML-023 fired ...") are never extracted or attributed — pinned by
+    ``tests/test_catalogue_extractor.py``.
+    """
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     found: list[tuple[str, str, str]] = []
     for node in ast.walk(tree):

@@ -18,6 +18,12 @@ Three keyword-explicit functions (GA-2):
     authority (GA-2), so this file imports no ``hashlib`` and calls nothing in
     ``dsx.checks.figures``.
 
+Style selection: ``use_style(name)`` applies one of the vendored
+``styles/<name>.mplstyle`` sheets by name — ``dsx-urban`` is the house default,
+``dsx-538``, ``dsx-bbc`` and ``dsx-econ`` are the alternatives — resolving the path
+relative to this file so a caller never depends on the working directory.
+``available_styles()`` lists the names it accepts.
+
 GA-3 determinism recipe (verified against installed matplotlib 3.11.1 source,
 23-RESEARCH §3/§4/§5):
   - ``svg.hashsalt='dsx'`` — makes SVG element ids a pure function of content
@@ -43,6 +49,7 @@ from pathlib import Path
 
 import matplotlib as mpl
 from matplotlib import font_manager
+from matplotlib import style as mpl_style
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.text import Text
@@ -50,8 +57,13 @@ from matplotlib.transforms import offset_copy
 
 # Fixed salt makes RendererSVG._make_id deterministic across renders and processes.
 _HASHSALT = "dsx"
-# Vendored fonts live one level up from templates/, in styles/fonts/.
+# Vendored fonts live one level up from templates/, in styles/fonts/. The glob in
+# register_fonts() picks up both faces shipped there, Lato-Regular.ttf and
+# Lato-Bold.ttf (bold is used by finalise_figure's title); the font licence is
+# styles/fonts/OFL.txt (SIL Open Font License 1.1).
 _FONT_DIR = Path(__file__).resolve().parent.parent / "styles" / "fonts"
+# The vendored .mplstyle sheets live beside the fonts, in styles/.
+_STYLE_DIR = Path(__file__).resolve().parent.parent / "styles"
 
 
 def register_fonts() -> None:
@@ -60,13 +72,61 @@ def register_fonts() -> None:
     Called once at import time so Lato resolves before any caller's
     ``plt.style.use`` / draw call (Pitfall 1). Idempotent: re-registering an
     already-known font is harmless.
+
+    The vendored files must win over any system-installed font of the same
+    family (Ubuntu's ``fonts-lato`` package ships a different Lato release with
+    different metrics, which moves text and breaks the ``svg_sha256`` seals).
+    ``findfont`` breaks score ties by list order and system fonts are listed
+    first, so every same-family entry that is not a vendored file is dropped
+    and the lookup caches are cleared.
     """
-    for ttf in sorted(_FONT_DIR.glob("Lato-*.ttf")):
-        font_manager.fontManager.addfont(str(ttf))
+    manager = font_manager.fontManager
+    vendored = sorted(_FONT_DIR.glob("Lato-*.ttf"))
+    for ttf in vendored:
+        manager.addfont(str(ttf))
+    vendored_paths = {str(ttf.resolve()) for ttf in vendored}
+    families = {
+        entry.name for entry in manager.ttflist
+        if str(Path(entry.fname).resolve()) in vendored_paths
+    }
+    manager.ttflist = [
+        entry for entry in manager.ttflist
+        if entry.name not in families or str(Path(entry.fname).resolve()) in vendored_paths
+    ]
+    # Private but long-standing (matplotlib >= 3.5) lru caches; guarded so a
+    # release that renames them degrades to the old ordering, not a crash.
+    for cache in (getattr(manager, "_findfont_cached", None),
+                  getattr(font_manager, "_get_font", None)):
+        if hasattr(cache, "cache_clear"):
+            cache.cache_clear()
 
 
 # Register at import time — before any style/draw resolves font.family to Lato.
 register_fonts()
+
+
+def available_styles() -> list[str]:
+    """Return the names ``use_style`` accepts, e.g. ``['dsx-538', ..., 'dsx-urban']``."""
+    return sorted(path.stem for path in _STYLE_DIR.glob("dsx-*.mplstyle"))
+
+
+def use_style(name: str) -> Path:
+    """Apply the vendored style sheet ``styles/<name>.mplstyle`` and return its path.
+
+    ``name`` is the file stem — ``"dsx-urban"`` (house default), ``"dsx-538"``,
+    ``"dsx-bbc"`` or ``"dsx-econ"``. The path is resolved relative to this module,
+    mirroring ``register_fonts()``, so the call works from any working directory.
+    An unknown name raises ``ValueError`` listing the names that exist.
+    """
+    path = _STYLE_DIR / f"{name}.mplstyle"
+    known = available_styles()
+    if name not in known or not path.is_file():
+        raise ValueError(
+            f"unknown DSX style {name!r}; available styles: "
+            f"{', '.join(known) if known else f'none found under {_STYLE_DIR}'}"
+        )
+    mpl_style.use(str(path))
+    return path
 
 
 def finalise_figure(

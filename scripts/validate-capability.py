@@ -6,12 +6,21 @@ for the user. This re-implements the conformance rules from the ADR-894 /
 ADR-1016 manifest reference so the failure happens here instead.
 
     python3 scripts/validate-capability.py
+
+Beyond the manifest reference it also cross-checks the manifest against this
+repository: agent frontmatter (parsed up to its closing ``---``), fragments on
+disk that nothing references, and every gate command's ``dsx gate <point>``
+and flags against the real argparse parser in dsx.cli, so a renamed flag or
+profile breaks here instead of in every user's loop.
 """
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import re
+import shlex
 import sys
 from pathlib import Path
 
@@ -48,22 +57,46 @@ COMMAND_MAX_LENGTH = 4096
 
 
 def main() -> int:
-    errors: list[str] = []
-    warnings: list[str] = []
-
     try:
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         print(f"FAIL: cannot read {MANIFEST}: {exc}", file=sys.stderr)
         return 1
 
+    errors, warnings = validate(manifest, ROOT, MANIFEST.parent)
+
+    # ── report ───────────────────────────────────────────────────────────────
+    for warning in warnings:
+        print(f"warn: {warning}")
+    if errors:
+        print(f"\nFAIL: {len(errors)} conformance error(s)", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        return 1
+
+    print(
+        f"capability '{manifest.get('id', '')}' v{manifest['version']} is conformant: "
+        f"{len(manifest.get('steps') or [])} steps, "
+        f"{len(manifest.get('contributions') or [])} contributions, "
+        f"{len(manifest.get('gates') or [])} gates, "
+        f"{len(manifest.get('skills') or [])} skills, {len(manifest.get('agents') or [])} agents, "
+        f"{len(manifest.get('config') or {})} config keys"
+    )
+    return 0
+
+
+def validate(manifest: dict, root: Path, cap_dir: Path) -> tuple[list[str], list[str]]:
+    """Return (errors, warnings) for ``manifest`` read from ``cap_dir`` under ``root``."""
+    errors: list[str] = []
+    warnings: list[str] = []
+
     cap_id = manifest.get("id", "")
 
     # ── envelope ─────────────────────────────────────────────────────────────
     if not KEBAB.match(cap_id):
         errors.append(f"id {cap_id!r} must be kebab-case")
-    if cap_id != MANIFEST.parent.name:
-        errors.append(f"id {cap_id!r} must equal the folder name {MANIFEST.parent.name!r}")
+    if cap_id != cap_dir.name:
+        errors.append(f"id {cap_id!r} must equal the folder name {cap_dir.name!r}")
     if cap_id.startswith(RESERVED_PREFIXES):
         errors.append(f"id {cap_id!r} uses a reserved prefix ({', '.join(RESERVED_PREFIXES)})")
     if manifest.get("role") != "feature":
@@ -104,24 +137,22 @@ def main() -> int:
         errors.append("duplicate agent stem")
 
     for name in skills:
-        if not (ROOT / "skills" / name / "SKILL.md").exists():
+        if not (root / "skills" / name / "SKILL.md").exists():
             errors.append(f"declared skill {name!r} has no skills/{name}/SKILL.md")
     for name in agents:
-        path = ROOT / "agents" / f"{name}.md"
+        path = root / "agents" / f"{name}.md"
         if not path.exists():
             errors.append(f"declared agent {name!r} has no agents/{name}.md")
         else:
-            head = path.read_text(encoding="utf-8").split("\n", 3)
-            if not head or head[0].strip() != "---":
-                errors.append(f"agents/{name}.md has no frontmatter")
-            elif f"name: {name}" not in "\n".join(head[:4]):
-                errors.append(f"agents/{name}.md frontmatter name does not match {name!r}")
+            agent_errors, agent_warnings = check_agent_frontmatter(path, name)
+            errors.extend(agent_errors)
+            warnings.extend(agent_warnings)
 
     # Every file on disk should be declared, or it will not install.
-    for path in sorted((ROOT / "agents").glob("*.md")):
+    for path in sorted((root / "agents").glob("*.md")):
         if path.stem not in agents:
             warnings.append(f"agents/{path.name} exists but is not declared in the manifest")
-    for path in sorted(p for p in (ROOT / "skills").iterdir() if p.is_dir()):
+    for path in sorted(p for p in (root / "skills").iterdir() if p.is_dir()):
         if path.name not in skills:
             warnings.append(f"skills/{path.name}/ exists but is not declared in the manifest")
 
@@ -177,7 +208,7 @@ def main() -> int:
         if step.get("onError") not in ON_ERROR:
             errors.append(f"{where}: onError must be 'skip' or 'halt'")
         check_when(step.get("when"), where)
-        _check_fragment(step.get("fragment"), where, errors)
+        _check_fragment(step.get("fragment"), where, errors, cap_dir)
 
         bucket = produced_per_point.setdefault(point or "?", set())
         for artefact in step.get("produces") or []:
@@ -203,7 +234,7 @@ def main() -> int:
                 errors.append(f"{where}: {field} must be present as an array")
         if not isinstance(contribution.get("fragment"), dict):
             errors.append(f"{where}: fragment is required")
-        _check_fragment(contribution.get("fragment"), where, errors)
+        _check_fragment(contribution.get("fragment"), where, errors, cap_dir)
         check_when(contribution.get("when"), where)
         if contribution.get("onError") not in ON_ERROR | {None}:
             errors.append(f"{where}: onError must be 'skip' or 'halt'")
@@ -236,6 +267,7 @@ def main() -> int:
                                 f"{where}: ${{{placeholder}}} is not a GSD gate placeholder — "
                                 "it will be left for sh to expand"
                             )
+                    errors.extend(f"{where}: {problem}" for problem in check_gate_command(command))
                 timeout = predicate.get("timeout")
                 if timeout is not None and (
                     not isinstance(timeout, (int, float)) or timeout <= 0
@@ -249,26 +281,127 @@ def main() -> int:
             errors.append(f"{where}: onError must be 'skip' or 'halt'")
         check_when(gate.get("when"), where)
 
-    # ── report ───────────────────────────────────────────────────────────────
-    for warning in warnings:
-        print(f"warn: {warning}")
-    if errors:
-        print(f"\nFAIL: {len(errors)} conformance error(s)", file=sys.stderr)
-        for error in errors:
-            print(f"  - {error}", file=sys.stderr)
-        return 1
+    # ── fragments nobody references ──────────────────────────────────────────
+    warnings.extend(orphan_fragments(manifest, cap_dir))
 
-    print(
-        f"capability '{cap_id}' v{manifest['version']} is conformant: "
-        f"{len(manifest.get('steps') or [])} steps, "
-        f"{len(manifest.get('contributions') or [])} contributions, "
-        f"{len(manifest.get('gates') or [])} gates, "
-        f"{len(skills)} skills, {len(agents)} agents, {len(config_keys)} config keys"
-    )
-    return 0
+    return errors, warnings
 
 
-def _check_fragment(fragment, where: str, errors: list[str]) -> None:
+def parse_frontmatter(text: str) -> dict[str, str] | None:
+    """Top-level ``key: value`` pairs between the opening and closing ``---``.
+
+    Returns None when the file does not open with ``---`` or never closes it.
+    Only the frontmatter block is read: a ``name: x`` line in the body must not
+    satisfy a check about the frontmatter.
+    """
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return fields
+        match = re.match(r"^([A-Za-z_][\w-]*):\s*(.*)$", line)
+        if match:
+            fields[match.group(1)] = match.group(2).strip().strip("\"'")
+    return None
+
+
+def check_agent_frontmatter(path: Path, name: str) -> tuple[list[str], list[str]]:
+    """Errors and warnings for one agent file's frontmatter."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    rel = f"agents/{path.name}"
+    fields = parse_frontmatter(path.read_text(encoding="utf-8"))
+    if fields is None:
+        errors.append(f"{rel} has no frontmatter (or it is never closed with ---)")
+        return errors, warnings
+    if fields.get("name") != name:
+        errors.append(f"{rel} frontmatter name {fields.get('name')!r} does not match {name!r}")
+    if not fields.get("description"):
+        errors.append(f"{rel} frontmatter has no description")
+    if "tools" not in fields:
+        warnings.append(f"{rel} frontmatter has no tools line — the agent inherits every tool")
+    return errors, warnings
+
+
+def orphan_fragments(manifest: dict, cap_dir: Path) -> list[str]:
+    """Warnings for fragments/*.md that no step or contribution points at."""
+    referenced = set()
+    for item in (manifest.get("steps") or []) + (manifest.get("contributions") or []):
+        fragment = item.get("fragment")
+        if isinstance(fragment, dict) and isinstance(fragment.get("path"), str):
+            referenced.add(Path(fragment["path"]).as_posix())
+    return [
+        f"fragments/{path.name} exists but no step or contribution references it"
+        for path in sorted((cap_dir / "fragments").glob("*.md"))
+        if f"fragments/{path.name}" not in referenced
+    ]
+
+
+_SHELL_SEPARATORS = {";", "&&", "||", "|", "&"}
+
+
+def check_gate_command(command: str) -> list[str]:
+    """Problems with the ``dsx gate <point> ...`` call inside a gate command.
+
+    The point must be a key of dsx.cli.GATE_PROFILES and every flag must be one
+    the real ``dsx gate`` argparse parser accepts. Placeholders such as
+    ``${PHASE_DIR}`` are kept as literal argument values, which argparse takes
+    as-is. A command that does not invoke ``dsx gate`` is not dsx's to judge.
+    """
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        tokens = list(lexer)
+    except ValueError as exc:
+        return [f"predicate.command does not parse as shell words: {exc}"]
+
+    calls = []
+    for i, token in enumerate(tokens[:-1]):
+        if tokens[i + 1] == "gate" and (token in ("$DSX", "${DSX}") or token.rsplit("/", 1)[-1] == "dsx"):
+            args = []
+            for arg in tokens[i + 2:]:
+                if arg in _SHELL_SEPARATORS:
+                    break
+                args.append(arg)
+            calls.append(args)
+    if not calls:
+        return []
+
+    try:
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+        from dsx.cli import GATE_PROFILES, build_parser
+    except Exception as exc:  # noqa: BLE001 - report any import failure as a finding
+        return [f"cannot import dsx.cli to cross-check the gate command: {exc}"]
+
+    problems = []
+    for args in calls:
+        if not args:
+            problems.append("`dsx gate` is called without a point")
+            continue
+        point = args[0]
+        if point not in GATE_PROFILES:
+            problems.append(
+                f"`dsx gate {point}` is not a gate profile (dsx.cli.GATE_PROFILES: {sorted(GATE_PROFILES)})"
+            )
+            continue
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                _namespace, unknown = build_parser().parse_known_args(["gate", *args])
+        except SystemExit:
+            message = err.getvalue().strip().splitlines()
+            problems.append(f"`dsx gate {' '.join(args)}` is rejected by dsx.cli: "
+                            f"{message[-1] if message else 'argparse error'}")
+            continue
+        if unknown:
+            problems.append(f"`dsx gate {point}` does not accept {' '.join(unknown)}")
+    return problems
+
+
+def _check_fragment(fragment, where: str, errors: list[str], cap_dir: Path) -> None:
     if fragment is None:
         return
     if not isinstance(fragment, dict) or len(fragment) != 1:
@@ -278,7 +411,7 @@ def _check_fragment(fragment, where: str, errors: list[str]) -> None:
         rel = fragment["path"]
         if ".." in Path(rel).parts:
             errors.append(f"{where}: fragment path {rel!r} escapes the capability directory")
-        elif not (MANIFEST.parent / rel).exists():
+        elif not (cap_dir / rel).exists():
             errors.append(f"{where}: fragment path {rel!r} does not exist")
     elif "inline" not in fragment:
         errors.append(f"{where}: fragment must carry path or inline")

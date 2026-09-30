@@ -1,5 +1,11 @@
 # LOOP-OPERATOR — how to start, watch and stop the ceremony
 
+> **Retired 2026-09-30.** The headless ceremony loop this file controls is retired and
+> `scripts/run-ceremony-firing.ps1` has been deleted (project audit H3: it pinned a
+> deleted branch and read ledger files that no longer exist). The commands below are
+> kept as history only; if a Scheduled Task named for this loop is still registered on
+> the operator's machine, unregister it. Future milestones run interactively.
+
 For the human. The agent-facing contract is `LOOP-BRIEF.md`; this file is the
 control panel. Everything here is a copy-paste PowerShell command.
 

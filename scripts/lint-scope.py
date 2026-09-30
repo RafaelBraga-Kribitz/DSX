@@ -13,9 +13,18 @@ real drop: 19 promoted skills carried 16 ruff findings and 2,631 markdownlint
 findings, while the 15 written here carried none.
 
 So style stops at the border, and correctness does not: `scripts/check.sh`
-excludes the promoted material from the full rule set and then runs ruff's `F`
-rules over it, which is the family that catches an undefined name or an unused
-import -- a real error, in anyone's house style.
+excludes the promoted material from the full rule set and then runs ruff's E9
+and F rules over it, minus the five tidiness codes (F401, F403, F405, F541,
+F841) -- `ruff check --select E9,F --ignore F401,F403,F405,F541,F841`. What is
+left is the family that says the code cannot work: an undefined name, a
+redefinition, a bad format string, a file that does not parse. An unused import
+or variable, a star import or an empty f-string is tidiness, and is not held
+against someone else's code.
+
+No promoted material exists in this repository today: every folder above holds
+only `dsx-*`, `using-dsx` and `README`, so `--ruff` and `--markdown` print
+nothing and the split is a no-op until `scripts/intake.py` promotes something.
+The border is exercised by tests/test_lint_scope.py in the meantime.
 
 The border is the naming convention, not a list to keep up to date. Everything
 written here is named `dsx-*`, plus the always-on `using-dsx` and the `README`
@@ -29,6 +38,7 @@ of each folder. A promoted item keeps the name its author gave it.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -93,8 +103,16 @@ def main(argv: list[str] | None = None) -> int:
         lines = [as_glob(p) for p in promoted]
     else:
         lines = promoted
-    for line in lines:
-        print(line)
+    try:
+        for line in lines:
+            print(line)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        # The reader stopped early (`lint-scope.py | head`). That is its call,
+        # not an error here. Point stdout at devnull so the interpreter's own
+        # flush at exit does not raise a second time.
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
     return 0
 
 

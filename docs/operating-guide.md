@@ -9,10 +9,15 @@
 How DSX and the house-style skills reach a project, how to choose a ceremony
 tier, and how to run several phases at once without losing track of them.
 
-Written against GSD Core 1.7.0 and DSX 2.0.0 (the release steps in section 6
-were added at 2.6.1). Every claim here was checked
-against the running system rather than the reference documentation, because the
-two disagree in at least one place — see [gsd-tiers.md](gsd-tiers.md).
+Written against GSD Core 1.7.0 and DSX 2.0.0, and brought up to DSX 2.6.1: the
+release steps in section 6 were added at 2.6.1, and the `dsx` command lines, skill
+and agent counts in this guide were re-checked against the 2.6.1 command-line
+tool on 2026-09-30. The GSD Core behaviour described here was checked on GSD Core
+1.7.0 only. The capability manifest accepts GSD Core 1.6.0 or newer
+(`engines.gsd >= 1.6.0`), but nobody has verified this guide on a 1.6.x release.
+Claims were checked against the running system rather than the reference
+documentation, because the two disagree in at least one place — see
+[gsd-tiers.md](gsd-tiers.md).
 
 ---
 
@@ -30,7 +35,7 @@ flowchart TD
     subgraph GLOBAL["Global — install once, every project sees it"]
         A["~/.gsd/capabilities/dsx<br/>gates, dsx CLI, IT001-IT040 catalogue"]
         B["~/.claude/agents/<br/>6 dsx agents"]
-        C["~/.claude/skills/<br/>14 dsx skills"]
+        C["~/.claude/skills/<br/>14 dsx skills + using-dsx"]
     end
 
     subgraph PROJECT["Per project — must be applied to each one"]
@@ -266,10 +271,10 @@ only for skill or config changes.
 
 ```mermaid
 flowchart TD
-    A["change in DSX repo"] --> B["python -m pytest tests/"]
+    A["change in DSX repo"] --> B["python3 -m unittest discover -s tests"]
     B --> C["node install.mjs"]
     C --> D["node install.mjs --check"]
-    D --> E{"agents 6/6, skills 9/9,<br/>self-test passed?"}
+    D --> E{"agents 6/6, skills 15/15,<br/>self-test passed?"}
     E -- no --> F["fix before continuing"]
     E -- yes --> G["every project now has the new gates"]
     G --> H{"did skills or config<br/>change too?"}
@@ -306,13 +311,14 @@ suite, then tag.
 | Switch ceremony tier | `pwsh scripts/gsd-tier.ps1 -Tier 0\|1\|2` |
 | Read current tier values | `pwsh scripts/gsd-tier.ps1 -Show` |
 | Every GSD Core defect this project works around, with its line and status | [docs/gsd-core-known-defects.md](gsd-core-known-defects.md) |
-| Recover a subagent commit stranded on a stray branch (`gsd-tools query commit` defect) | `pwsh scripts/gsd-reconcile-branch.ps1 -Branch <canonical>` — runs automatically after every headless ceremony firing; run by hand after an interactive `/gsd-execute-phase` or `/gsd-plan-phase` if you suspect the same thing happened |
+| Recover a subagent commit stranded on a stray branch (`gsd-tools query commit` defect) | `pwsh scripts/gsd-reconcile-branch.ps1 -Branch <canonical>` — run it by hand after an interactive `/gsd-execute-phase` or `/gsd-plan-phase` if you suspect the defect struck. It used to run automatically after each firing of the headless ceremony loop (`scripts/run-ceremony-firing.ps1`); that loop is retired, so nothing runs it for you now |
 | Permitted charts for a data shape | `dsx charts IT005 --relationship comparison` |
 | Whole chart catalogue | `dsx charts --list` |
 | Every closed vocabulary | `dsx vocab` |
 | Run one gate by hand | `dsx gate plan --phase-dir .planning/phases/07-x` |
 | Full audit of a spec | `dsx audit --spec ANALYSIS-SPEC.yaml` |
 | Read the decision trail | `dsx explain` |
+| Every other `dsx` subcommand (`validate`, `check`, `stats`, `recommend-test`, `power`, `init`, `profile`, `seal`) | One line each in the README's [CLI reference](../README.md#every-subcommand); `dsx <subcommand> --help` for the full flags |
 | Set one config key | `node ~/.claude/gsd-core/bin/gsd-tools.cjs config-set <key> <value>` |
 | Read one config key | `node ~/.claude/gsd-core/bin/gsd-tools.cjs config-get <key>` |
 | Confirm skills reach an agent | `node ~/.claude/gsd-core/bin/gsd-tools.cjs agent-skills gsd-planner` |
@@ -355,7 +361,10 @@ reads skill descriptions, honouring the capability's `runtimeCompat.supported: [
 contract. A `capability.json` `aliases` key is deliberately **not** used: it is not
 grounded in the installed GSD Core schema, and the repo's Tool Version Grounding rule
 forbids writing a key that may silently no-op. The `.claude/commands/*.md` shims are
-optional, Claude-Code-only sugar — non-load-bearing, never the sole path.
+optional, Claude-Code-only sugar — non-load-bearing, never the sole path. The
+Claude Code plugin ships two of them through the `commands` list in
+`.claude-plugin/plugin.json`; under the plugin they are namespaced as
+`/dsx:dsx-eda` and `/dsx:dsx-scope`.
 
 | Alias | Skill | CSV-first example |
 |---|---|---|
@@ -373,7 +382,7 @@ optional, Claude-Code-only sugar — non-load-bearing, never the sole path.
 | `/dsx-root-cause` | dsx-root-cause | "why did <metric> move" |
 | `/dsx-segment` | dsx-segment | "segment analysis", "which segment drove this" |
 
-All 13 DSX skills carry a `Triggers:` clause in their frontmatter `description`, so
+All 14 DSX skills carry a `Triggers:` clause in their frontmatter `description`, so
 intent routes to the right skill on any description-reading host even without the alias.
 
 ### Why there is no file-drop hook
@@ -437,7 +446,7 @@ Tier presets are in [docs/gsd-tiers.md](gsd-tiers.md).
 
 ```bash
 ./scripts/check.sh                           # the full gate: everything below
-python3 -m unittest discover -s tests -v     # 1633 tests at v2.6.1; the count grows with each phase
+python3 -m unittest discover -s tests -v     # over 1,700 tests at v2.6.1; the count grows with each phase
 python3 scripts/validate-capability.py       # manifest conformance
 python3 scripts/gen-finding-catalogue.py --write
 ```

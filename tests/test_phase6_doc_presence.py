@@ -29,6 +29,7 @@ class TestReversalsDocPresence(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Reading .planning/ here is deliberate: .planning/ is tracked as the project record.
         cls.reversals_text = (ROOT / ".planning" / "REVERSALS.md").read_text(
             encoding="utf-8"
         )

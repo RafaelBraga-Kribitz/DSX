@@ -23,11 +23,14 @@ Do not spend ink on takeaway wording while A–D still emit CRITICAL/HIGH.
 **Run the deterministic audit and treat its output as evidence:**
 
 ```bash
-dsx gate verify --phase-dir <phase> --report <phase>/DATA-REVIEW.md --verbose
+dsx gate verify --phase-dir <phase> --allow-missing --report <phase>/DATA-REVIEW.md --verbose
 ```
 
-The verify profile runs `dq`, `coherence`, `viz`, `smells`, `figures`,
-`narrative`, `code`, and `decision`. Profile assertions must match
+The verify profile runs every check family the gate has: `spec`, `design`,
+`stats`, `ml`, `metrics`, `claims`, `viz`, `repro`, `dq`, `coherence`, `smells`,
+`figures`, `narrative`, `code`, `decision`, `paradigm`, `val`, `interference`,
+`prereg`, `admissibility`, and `chart_review` (the authoritative list is
+`GATE_PROFILES` in `dsx/cli.py`). Among other things: profile assertions must match
 DATA-PROFILE.yaml, evidence pointers must resolve, claim strength must not
 exceed the question type, every claim text must appear in `narrative.path`,
 assumptions must be checked or waived, `decision.replay` must match

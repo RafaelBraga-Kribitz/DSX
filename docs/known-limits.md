@@ -53,19 +53,29 @@ is **not** checked rather than as anything the gate enforces:
   accurate. A plausible-looking reason that misdescribes why the frame changed
   clears the same bar as an honest one.
 
-## Concurrent `dsx gate` invocations are not supported
+## Concurrent `dsx gate` runs share one decision-trail lock
 
-Run `dsx gate` points against one analysis directory sequentially, not in
-parallel. The per-invocation identifier in `DECISIONS.jsonl` is derived by
-reading and counting existing invocation headers, and nothing locks that
-read against a second process's write. Two concurrent `dsx gate` runs
-against the same directory can both derive the same invocation identifier
-and both append a header carrying it, merging their decision trails under
-one invocation in `dsx explain`'s output. This does not affect any gate's
-exit code — the trail stays a side channel — but it does corrupt the
-grouping guarantee the trail is supposed to provide for that one invocation.
-Serialising `dsx gate` runs against a given analysis directory is the
-operator's responsibility today.
+`dsx gate` holds an exclusive operating-system advisory lock on
+`DECISIONS.jsonl.lock` while it numbers and appends its invocation, so
+parallel runs against one analysis directory get distinct invocation
+identifiers and each run's records stay together. A run that cannot take the
+lock within 10 seconds skips writing its trail; the gate still exits on its
+findings, because the trail is a side channel. The lock is advisory: another
+tool that writes `DECISIONS.jsonl` without taking it is not serialised. The
+Windows branch of the lock (`msvcrt`) is not exercised by the test suite,
+which runs on Linux.
+
+## The notebook execution check only sees a notebook it can find
+
+When `reproducibility.runs_clean_top_to_bottom` is declared true and
+`reproducibility.entrypoint` names a `.ipynb` file, `DSX-REP-040` opens the
+notebook and checks that every non-blank code cell has an execution count and
+that the counts strictly increase from top to bottom. The notebook is looked
+up against `--phase-dir` or the current directory, not the folder the spec
+sits in, so a notebook beside a `--spec` path run without `--phase-dir` is not
+found. A missing, unreadable or malformed notebook falls back to trusting the
+declared boolean. Cells whose stored outputs are errors are not checked, and
+an in-order notebook can still have been edited after it ran.
 
 ## What the declared-versus-executed reconciliation cannot see
 
@@ -342,3 +352,71 @@ the two figures above.
 None of this makes `DSX-CODE-001`, `DSX-CODE-021`, or any other
 `DSX-CODE-*` check sound, complete or exhaustive. Treat a clean scan as
 one input to your own judgement, not as a verdict.
+
+## Five analyst-conduct gaps the gate does not check
+
+These are accepted residuals: real ways an analysis can mislead that no check
+looks for today. Each was confirmed against the code on 2026-09-10 and is
+recorded as a gate candidate in `.planning/seeds/SEED-003-analyst-conduct-and-notebook-integrity.md`
+(rows AC-02 to AC-06). Under the project's rule that a check is only built after
+a constructed example shows the gate missing the problem, none of them has a
+finding code yet. Until one does, a human reviewer has to catch them.
+
+**A share of a total presented as a risk.** A claim that one group is "2.3 times
+more likely" to have a problem can be supported by a test that only measured
+that group's share of all incidents ("accounts for 70% of incidents"), or the
+other way round. These are different kinds of quantity: a large group can hold
+most of the incidents without being any riskier per member. `DSX-CLM-034`
+checks that a claim's numbers appear in the test it cites. It does not check
+that the test measured the right kind of quantity, and its own documentation
+says so. A claim whose numbers all sit inside the cited test passes even when
+that test measured the wrong thing.
+
+**A small base behind a mean, a count or an absolute rate.** `DSX-CLM-070` asks
+for the base (the number of cases, often written n) only when a claim quotes a
+relative percentage such as "up 40%". Even then, wording near the number that
+sounds like a base is enough to satisfy it. A headline mean, count or absolute
+rate resting on a handful of cases draws nothing, and `results.tests[]` has no
+field for the number of cases at all.
+
+**A claim or metric that names a column the data does not have.** The only check
+that reads `DATA-PROFILE.yaml` is the data-quality family, and its one link from
+a declaration to a profile column is `DSX-DQ-030` (declared maximum null rates).
+Nothing compares a metric's numerator, denominator or dimension, or a claim's
+wording, against the columns the profile actually lists.
+
+**One category drawn in different colours in different charts.** The colour
+checks (`DSX-VIZ-050`, `DSX-VIZ-051`, `DSX-VIZ-052`) look at one chart at a time.
+The only check across the whole set of figures is `DSX-SMELL-013`, which compares
+their `run_id` values. The spec has no field that maps each category to a colour,
+so there is nothing for a cross-chart check to read.
+
+**A descriptive finding drawn from a very short window.** `DSX-EXP-030` and
+`DSX-EXP-031` enforce a minimum run length, in whole weeks, on
+`design.duration_days`, but only for experiments. A descriptive or diagnostic
+finding based on a few days or a few periods is not flagged. This is the weakest
+of the five and may end up folded into the existing sample-size checks rather
+than earning a code of its own.
+
+## Prior sensitivity and convergence have no check in either paradigm
+
+Two checks named in the project brief are deferred and have no code:
+`DSX-PAR-021`, which would ask whether a Bayesian conclusion survives a different
+choice of prior, and `DSX-PAR-030`, which would ask whether a fitted model
+actually converged. The project's symmetry rule (brief decision D-12a) says a
+check that applies to one statistical paradigm ships only when its counterpart
+for the other paradigm ships too. The frequentist counterparts — does the
+conclusion survive alternative model specifications, and did a mixed model or a
+logistic regression converge — have not been written either, so both halves stay
+out. See reversal record REV-001 in `.planning/REVERSALS.md`.
+
+In practice this means the gate says nothing about prior or specification
+sensitivity, and nothing about convergence diagnostics such as R-hat, effective
+sample size, divergent transitions, mixed-model non-convergence or separation in
+a logistic model. A result from a model that never converged passes as long as
+its declarations are otherwise coherent.
+
+This is carried, not abandoned. `brief.md` section 6.5 (rows 1 and 3) states what
+reopens the work: a constructed example of either defect that the gate misses at
+all four gate points, or `dsx stats --paradigm` showing Bayesian frames above 15%
+of the operator's own history.

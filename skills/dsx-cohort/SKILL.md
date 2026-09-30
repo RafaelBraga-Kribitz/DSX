@@ -40,7 +40,9 @@ between segments, use `dsx-root-cause` or `dsx-segment`.
 
 Run `dsx gate plan` after filling the spec, `dsx charts matrix` (or `dsx charts <shape>`) before
 picking a mark for the grid, and `dsx check` before treating any of the above as settled. The gate
-output is the ruling; this skill only tells you where to look.
+output is the ruling; this skill only tells you where to look. To find the exact inventory id
+(`IT001`–`IT040`) that matches your columns without running the CLI, look up their signature in
+`references/input-type-inventory.md`.
 </field_to_gate_routing>
 
 <naming_caveat>

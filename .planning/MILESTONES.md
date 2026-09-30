@@ -278,7 +278,7 @@ transfer to a declaration-checkable rule, so only the changing-denominator half 
 
 **Delivered:** the full DSX validity-frame gate — estimand/unit/dependence/identification/sampling/missingness/measurement (`DSX-VAL-*`), interference and dilution (`DSX-INT-*`), the symmetric paradigm monitoring pair (`DSX-PAR-*`), the pre-registered inference plan with declared-vs-executed branch reconciliation (`DSX-PRE-*`), frequentist procedure admissibility over 14 cited families (`DSX-ADM-*`), the prescriptive-claim layer, reporting-completeness / missing-data discipline, and a calibration corpus with a measured catch rate and false-positive rate. Milestone audit `passed`; 256-code finding catalogue.
 
-**Closeout:** override_closeout — 2 dormant seeds deferred (SEED-001, SEED-002; see STATE.md Deferred Items). All 75 requirements accounted, 0 unsatisfied.
+**Closeout:** override_closeout — 2 dormant seeds deferred (SEED-001, SEED-002; see STATE.md Deferred Items). All 75 requirements accounted, 0 unsatisfied (74 satisfied + REQ-P7-08 satisfied within its declared D-06 scope: clause 1 by `DSX-VAL-070`, clause 2 deliberately unadjudicated, so its archived checkbox stays unticked).
 
 **Key accomplishments:**
 

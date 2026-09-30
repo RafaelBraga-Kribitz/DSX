@@ -21,5 +21,8 @@
     "spec-driven-development"
   ],
   "skills": "./skills/",
-  "agents": "./agents/"
+  "commands": [
+    "./.claude/commands/dsx-eda.md",
+    "./.claude/commands/dsx-scope.md"
+  ]
 }

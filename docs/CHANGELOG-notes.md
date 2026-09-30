@@ -1,7 +1,117 @@
 # Changelog notes
 
-Migration and behaviour-change notes moved here from the README's
+Two kinds of note live here. The release notes below say, version by version,
+what changed for someone using DSX. They are a short summary of the fuller
+milestone records in `.planning/MILESTONES.md`. After them come the migration
+and behaviour-change notes, moved here from the README's
 [The contract](../README.md#the-contract) section, verbatim.
+
+## Release notes
+
+### 2.6.1 (2026-09-11)
+
+A maintenance release with no new finding codes; the catalogue stays at 279.
+
+- Every place that states the version now says 2.6.1: `dsx --version`, the
+  capability manifest, the example specs and the template, held together by a
+  test. Before this, every decision record written since 2.0.0 claimed
+  `dsx_version: "2.0.0"`.
+- The finding catalogue now lists every severity and every message for the nine
+  codes that can be emitted with more than one wording.
+- Two linters, ruff for Python and markdownlint for Markdown, now run in
+  `scripts/check.sh` and were brought to zero findings.
+- Timing tests no longer depend on how fast the machine is; they check that run
+  time grows in proportion to input size.
+- `docs/gsd-core-known-defects.md` collects the ten GSD Core defects this
+  project works around, each checked by line against GSD Core 1.7.0.
+
+### 2.6.0 (2026-09-10)
+
+Exploration depth and three new finding codes (catalogue 276 → 279).
+
+- `dsx profile` computes more of the numbers an exploratory data analysis needs
+  on its own: five-number summaries with mean, standard deviation, zeros and
+  negatives for numeric columns; shares and one-off values for categorical
+  columns; how deep and even the time coverage is; rows per declared unit; and a
+  weekly base-rate table for a declared yes/no target. The profile only produces
+  data; it never blocks.
+- Five skills read the exploration notes (`EDA.md`) and the profile through named
+  fields instead of guessing.
+- Three new codes, each added only after a constructed case showed the gate
+  missed it: `DSX-ML-034` (where a model feature came from), `DSX-CLM-034`
+  (whether a claim can be traced to the test it cites) and `DSX-COH-041` (a
+  recommendation that could harm a subgroup, with no stated way of handling it).
+- Windows fixes found by re-running the suite in a fresh clone before release:
+  line-ending and absolute-path problems in test fixtures, and long paths under
+  `.planning/milestones/` (the README now documents `core.longpaths`).
+
+### 2.5.0 (2026-09-06)
+
+Test coverage and a working installer; no new codes (catalogue 276).
+
+- Nineteen new known-bad example specs, one for each visualization code
+  (`DSX-VIZ-*`) that had never fired against a constructed case. Every code in
+  that family now has an example built to trigger it.
+- The installer's self-test had failed on every fresh install since an earlier
+  phase; it now runs the same checks as `scripts/check.sh`, and it no longer
+  copies the local decision trail into the install.
+- A literature note, `docs/literature/the-ai-data-scientist.md`, maps one
+  published paper idea by idea onto what DSX adopted and what it catches.
+
+### 2.4.1 (2026-09-06)
+
+A fix to four machine-learning checks (`DSX-ML-051`, `-053`, `-060`, `-061`).
+They assumed a bigger score is always better, which reversed their verdict for
+error measures such as root mean squared error (RMSE), mean absolute error (MAE)
+and log loss. A spec can now declare `model.metric_direction`. When it is absent,
+the old behaviour is kept exactly. No new codes.
+
+### 2.4 (2026-09-03)
+
+Visual excellence (catalogue 275 → 276).
+
+- The chart-type vocabulary was reconciled, and every chart type the gate refuses
+  now carries a reason, a finding code and a citation.
+- A chart-selection guide built from five published chart taxonomies, a
+  vocabulary of ten ways to draw uncertainty, and a new code, `DSX-VIZ-071`, for
+  the chart-selection rule.
+- An optional style layer for the analyst's own charts: four matplotlib style
+  files under `styles/`, one open-licensed font, the helper
+  `templates/dsx_plotstyle.py`, and a catalogue of chart code snippets. Rendering
+  the same chart twice gives byte-identical SVG files, so figure seals hold.
+
+### 2.3 (2026-09-02)
+
+The statistical-test catalogue (catalogue 260 → 275).
+
+- The table of which statistical test fits which situation grew from about 15 to
+  about 75 rows across 11 categories, including correlation and agreement,
+  repeated measures, trends, resampling, post-hoc comparisons and proportions.
+- Fifteen new checks that read what the spec declares, each with a citation that
+  was re-checked against its original source before release.
+- A test now ties the rows of `references/test-selection.md` to what
+  `dsx recommend-test` actually returns, so the document and the code cannot
+  drift apart unnoticed.
+
+### 2.2 (2026-08-29)
+
+The analytic surface (catalogue 256 → 260). There was no 2.1 release: the
+milestone first planned as 2.1 shipped as 2.2.
+
+- Four new skills that route common marketing questions to the existing gates:
+  `dsx-cohort`, `dsx-funnel`, `dsx-root-cause` and `dsx-segment`.
+- A new skill, `dsx-reproduce`, re-runs an analysis away from the gate and
+  compares its numbers to the reported ones (`DSX-REP-060`, `DSX-REP-061`).
+- CUPED, a variance-reduction method for experiments, can be declared in the
+  spec; using a covariate measured after the experiment started now blocks
+  (`DSX-EXP-070`). A metric pooled across groups sampled at different rates with
+  no reweighting is flagged (`DSX-MET-021`).
+- `dsx-explore-data` searches past dated learnings before a new analysis, a
+  `DATA-DICTIONARY.md` template was added, and research-domain work can add an
+  optional AI-assistance disclosure and an APA-style results table.
+- Short slash-command names for starting from a CSV file (`/dsx-eda`,
+  `/dsx-scope`) and the documented reason there is no automatic "a file
+  appeared" hook.
 
 ## Migrating a pre-v2.0.0 spec
 

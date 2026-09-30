@@ -23,9 +23,17 @@ handled at import time by `templates/dsx_plotstyle.py`:
 
 ```python
 import matplotlib.pyplot as plt
-from templates.dsx_plotstyle import finalise_figure, direct_label, save_deterministic
-plt.style.use("styles/dsx-urban.mplstyle")  # house default; register_fonts() ran at import
+from templates.dsx_plotstyle import (
+    finalise_figure, direct_label, save_deterministic, use_style,
+)
+use_style("dsx-urban")  # house default; register_fonts() ran at import
 ```
+
+`use_style` resolves `styles/<name>.mplstyle` relative to the helper file, so it
+works from any working directory. Four styles ship in `styles/`: `dsx-urban`
+(the house default), `dsx-538`, `dsx-bbc` and `dsx-econ`. `available_styles()`
+lists them, and an unknown name raises `ValueError` naming the ones that exist.
+Every style sets the vendored Lato font (regular and bold, in `styles/fonts/`).
 
 `finalise_figure`'s `source` keyword is **mandatory with no default** — omitting
 it is a `TypeError` at call binding, which is the signature-level mirror of

@@ -3,6 +3,8 @@
 Paired spec: `feature-origin-only-leak-ANALYSIS-SPEC.yaml`
 Paired entrypoint: `feature-origin-only-leak-entrypoint.py`
 
+> **Known MISS.** No shipped check fires on the defect this fixture encodes, so the gate does not catch it; see `README.md` in this directory.
+
 ## What was concluded
 
 A retention-analytics team built a churn-risk model to flag at-risk customers for a

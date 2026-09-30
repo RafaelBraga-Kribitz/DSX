@@ -305,8 +305,8 @@ results:
 # verbatim (whitespace-normalised) in this file.
 narrative:
   path: NARRATIVE.md
-  audience: executive              # executive | product | technical
-  lead_claim: 0
+  audience: executive              # executive | product | technical; informational — read by humans, not checked by dsx
+  lead_claim: 0                    # informational — read by humans, not checked by dsx
 
 # Optional BI surface — if declared, path must exist at ship.
 # dashboard:
@@ -335,7 +335,7 @@ claims:
 assumptions:
   - assumption: "<what we are taking as true>"
     rationale: "<why>"
-    impact_if_wrong: "<what breaks>"
+    impact_if_wrong: "<what breaks>"  # informational — read by humans, not checked by dsx
     checked: false
     # waiver: "Not testable: …"   # at ship: checked:true XOR non-blank waiver
 
@@ -373,11 +373,11 @@ validity_frame:
     strength: strong                # strong | moderate | weak
     evidence: "<the design-based support for this strength, e.g. randomisation at assignment>"
     constraint_source: none        # none | informative_priors | penalisation | design_restriction | hierarchical_pooling
-    constraint_justification: "<required unless constraint_source is none>"
+    constraint_justification: "<required unless constraint_source is none>"  # informational — read by humans, not checked by dsx
 
   dependence:
     structure: none                # none | clustered | repeated_measures | temporal | spatial | hierarchical
-    cluster_var: null
+    cluster_var: null              # informational — read by humans, not checked by dsx
     method_family_required: null   # cluster_robust | delta_method | bootstrap_cluster | mixed_effects
 
   interference:
@@ -388,7 +388,7 @@ validity_frame:
 
   triggering:
     eligible_population: "<who could have triggered the analysed event>"
-    triggered_definition: "<the event that puts a unit in the analysis>"
+    triggered_definition: "<the event that puts a unit in the analysis>"  # informational — read by humans, not checked by dsx
     analysis_population: eligible  # eligible | triggered
     expected_trigger_rate: null
     dilution_adjusted: false

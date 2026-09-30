@@ -12,13 +12,19 @@ usable as a deterministic gate:
   family      the coarse data_input_type this shape belongs to
   admissible  the dsx mark names permitted for this shape
 
-Run after editing the inventory:
+Run after editing the inventory (``--write`` is the default and may be omitted):
 
-    python scripts/gen-input-types.py
+    python3 scripts/gen-input-types.py --write
+
+Exits 1 without writing anything when the checked-in JSON is stale, which makes
+it usable as a CI gate (scripts/check.sh runs it):
+
+    python3 scripts/gen-input-types.py --check
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -109,7 +115,25 @@ SHARED_SIGNATURE_GROUPS: list[list[str]] = [
 ]
 
 
-def main() -> int:
+def _shown(path: Path) -> str:
+    """Repository-relative path for messages; absolute when outside the repo."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Generate dsx/data/input_types.json from references/input-type-inventory.md."
+    )
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--write", action="store_true",
+                      help="write the generated JSON (the default when no mode is given)")
+    mode.add_argument("--check", action="store_true",
+                      help="exit 1 if the checked-in JSON differs from what would be generated; never writes")
+    args = parser.parse_args(argv)
+
     if not SOURCE.exists():
         print(f"missing source: {SOURCE}", file=sys.stderr)
         return 1
@@ -190,9 +214,22 @@ def main() -> int:
         "input_types": out,
     }
 
+    content = json.dumps(payload, indent=2) + "\n"
+    if args.check:
+        current = TARGET.read_text(encoding="utf-8") if TARGET.exists() else ""
+        if current != content:
+            print(
+                f"{_shown(TARGET)} is stale -- run "
+                "python3 scripts/gen-input-types.py --write",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"input types are current ({len(out)} input types)")
+        return 0
+
     TARGET.parent.mkdir(parents=True, exist_ok=True)
-    TARGET.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(f"wrote {TARGET.relative_to(ROOT)} ({len(out)} input types)")
+    TARGET.write_text(content, encoding="utf-8")
+    print(f"wrote {_shown(TARGET)} ({len(out)} input types)")
     return 0
 
 

@@ -15,7 +15,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import traceback
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
@@ -60,30 +63,97 @@ DEFAULT_SPEC_NAMES = (
     "ANALYSIS-SPEC.yml",
     "ANALYSIS-SPEC.json",
     "analysis-spec.yaml",
+    "analysis-spec.yml",
+    "analysis-spec.json",
 )
 
-# Registry of individual checks. `dsx audit` runs all of them.
-CHECKS: dict[str, Callable] = {
-    "spec": validate_structure,
-    "design": design.check,
-    "stats": stats.check,
-    "ml": ml.check,
-    "metrics": metrics.check,
-    "claims": claims.check,
-    "viz": viz.check,
-    "coherence": coherence.check,
-    "dq": dq.check,
-    "smells": smells.check,
-    "figures": figures.check,
-    "narrative": narrative.check,
-    "code": code.check,
-    "decision": decision.check,
-    "paradigm": paradigm.check,
-    "val": val.check,
-    "interference": interference.check,
-    "prereg": prereg.check,
-    "admissibility": admissibility.check,
-    "chart_review": chart_review.check,
+
+@dataclass(frozen=True)
+class CheckContext:
+    """The per-run keyword set ``run_checks`` computes once and hands to every
+    registered check. Each ``CheckEntry.run`` picks the fields its module's
+    real ``check()`` signature takes.
+
+    ``phase_dir`` is the GSD phase directory as given (repro's entrypoint
+    existence checks); ``root`` is where relative evidence paths resolve
+    (``resolve_root`` or ``phase_dir``); ``strict`` is true at verify/ship;
+    ``reconcile_trail`` is true only for a real ``dsx gate`` at verify/ship.
+    """
+
+    phase_dir: str | None
+    root: str | None
+    strict: bool
+    gate_point: str | None
+    reconcile_trail: bool
+
+
+@dataclass(frozen=True)
+class CheckEntry:
+    """One ``CHECKS`` registry entry. ``check`` is the module's own function,
+    whose signature differs by family (see ``dsx/checks/__init__.py``);
+    ``run(check, spec, ctx)`` adapts the common ``CheckContext`` onto it."""
+
+    check: Callable[..., Report]
+    run: Callable[[Callable[..., Report], dict, CheckContext], Report]
+
+
+def _spec_only(check: Callable[..., Report], spec: dict, ctx: CheckContext) -> Report:
+    return check(spec)
+
+
+def _admissibility(check: Callable[..., Report], spec: dict, ctx: CheckContext) -> Report:
+    # The frequentist-only scoping decision this check needs is forbidden to
+    # the adjudicator itself: dsx/frame/admissibility.py is scanned by the
+    # D-11 boundary test and must never read inference.paradigm.
+    # dsx/frame/paradigm.py is the one module that scanner exempts, so the
+    # boolean is computed here, in cli.py where both may be seen, and handed in
+    # as a plain parameter — the same shape `strict` and `reconcile_trail`
+    # already take. Computed inside this adapter rather than once per run in
+    # CheckContext, so the call is paid only when the check actually runs and
+    # its helper and consumer stay on adjacent lines for a reader.
+    return check(spec, applies_to_frame=paradigm.applies_to_frequentist_admissibility(spec))
+
+
+# Registry of individual checks — the single source of truth for which check
+# names exist and how each is called. `dsx audit` (and a bare `dsx check`)
+# runs all of them, in this order.
+CHECKS: dict[str, CheckEntry] = {
+    "spec": CheckEntry(validate_structure, _spec_only),
+    "design": CheckEntry(design.check, lambda f, spec, ctx: f(spec, strict=ctx.strict)),
+    "stats": CheckEntry(stats.check, _spec_only),
+    "ml": CheckEntry(ml.check, _spec_only),
+    "metrics": CheckEntry(metrics.check, _spec_only),
+    "claims": CheckEntry(
+        claims.check, lambda f, spec, ctx: f(spec, ctx.root, strict=ctx.strict)
+    ),
+    "viz": CheckEntry(viz.check, _spec_only),
+    "coherence": CheckEntry(coherence.check, lambda f, spec, ctx: f(spec, strict=ctx.strict)),
+    "dq": CheckEntry(dq.check, lambda f, spec, ctx: f(spec, ctx.root)),
+    "smells": CheckEntry(smells.check, _spec_only),
+    "figures": CheckEntry(
+        figures.check, lambda f, spec, ctx: f(spec, ctx.root, strict=ctx.strict)
+    ),
+    "narrative": CheckEntry(
+        narrative.check, lambda f, spec, ctx: f(spec, ctx.root, gate_point=ctx.gate_point)
+    ),
+    "code": CheckEntry(code.check, lambda f, spec, ctx: f(spec, ctx.root)),
+    "decision": CheckEntry(decision.check, lambda f, spec, ctx: f(spec, gate_point=ctx.gate_point)),
+    "paradigm": CheckEntry(paradigm.check, _spec_only),
+    "val": CheckEntry(val.check, _spec_only),
+    "interference": CheckEntry(interference.check, _spec_only),
+    "prereg": CheckEntry(
+        prereg.check,
+        lambda f, spec, ctx: f(spec, ctx.root, reconcile_trail=ctx.reconcile_trail),
+    ),
+    "admissibility": CheckEntry(admissibility.check, _admissibility),
+    "chart_review": CheckEntry(
+        chart_review.check, lambda f, spec, ctx: f(spec, ctx.root, strict=ctx.strict)
+    ),
+    # repro resolves entrypoints against the phase directory as given, not
+    # the evidence root, so it reads ctx.phase_dir rather than ctx.root.
+    "repro": CheckEntry(
+        repro.check, lambda f, spec, ctx: f(spec, ctx.phase_dir, strict=ctx.strict)
+    ),
 }
 
 # Which checks each GSD loop point cares about. Keeping this here rather than in
@@ -112,7 +182,7 @@ CHECKS: dict[str, Callable] = {
 # in progress for it to adjudicate. Whether the family applies at all to a
 # given spec is a third, separate knob from registration and severity: it is
 # computed by dsx/frame/paradigm.py::applies_to_frequentist_admissibility and
-# passed into run_checks's dedicated "admissibility" branch below, never
+# passed in by the "admissibility" CHECKS adapter (_admissibility) above, never
 # decided inside the adjudicator itself (D-22).
 GATE_PROFILES: dict[str, tuple[str, ...]] = {
     "plan": (
@@ -131,6 +201,10 @@ GATE_PROFILES: dict[str, tuple[str, ...]] = {
         "paradigm", "val", "interference", "prereg", "admissibility", "chart_review",
     ),
 }
+
+# Environment variable that makes main() print the traceback behind an
+# "invalid input" error (see the --help epilog).
+DEBUG_ENV = "DSX_DEBUG"
 
 # Default blocking severity per gate. Planning blocks on structural defects;
 # shipping blocks on anything material.
@@ -184,60 +258,21 @@ def run_checks(
     inspection commands (``validate``/``check``/``audit``) happen to have
     access to.
     """
+    ctx = CheckContext(
+        phase_dir=phase_dir,
+        root=resolve_root or phase_dir,
+        strict=gate_point in {"verify", "ship"},
+        gate_point=gate_point,
+        reconcile_trail=gate_invocation and gate_point in {"verify", "ship"},
+    )
     reports: list[Report] = []
-    strict = gate_point in {"verify", "ship"}
-    reconcile_trail = gate_invocation and gate_point in {"verify", "ship"}
-    root = resolve_root or phase_dir
     for name in names:
-        if name == "repro":
-            reports.append(repro.check(spec, phase_dir, strict=strict))
-        elif name == "dq":
-            reports.append(dq.check(spec, root))
-        elif name == "claims":
-            reports.append(claims.check(spec, root, strict=strict))
-        elif name == "coherence":
-            reports.append(coherence.check(spec, strict=strict))
-        elif name == "figures":
-            reports.append(figures.check(spec, root, strict=strict))
-        elif name == "chart_review":
-            reports.append(chart_review.check(spec, root, strict=strict))
-        elif name == "smells":
-            reports.append(smells.check(spec))
-        elif name == "narrative":
-            reports.append(narrative.check(spec, root, gate_point=gate_point))
-        elif name == "code":
-            reports.append(code.check(spec, root))
-        elif name == "design":
-            reports.append(design.check(spec, strict=strict))
-        elif name == "decision":
-            reports.append(decision.check(spec, gate_point=gate_point))
-        elif name == "prereg":
-            reports.append(prereg.check(spec, root, reconcile_trail=reconcile_trail))
-        elif name == "admissibility":
-            # The frequentist-only scoping decision this check needs is
-            # forbidden to the adjudicator itself: dsx/frame/admissibility.py
-            # is scanned by the D-11 boundary test and must never read
-            # inference.paradigm. dsx/frame/paradigm.py is the one module
-            # that scanner exempts, so the boolean is computed here, on the
-            # one line that both may see, and handed in as a plain parameter
-            # — the same shape `strict` and `reconcile_trail` already take.
-            # Computed inside this branch rather than once outside the loop
-            # alongside those two, so the call is paid only when the check
-            # actually runs and its helper and consumer stay on adjacent
-            # lines for a reader.
-            reports.append(
-                admissibility.check(
-                    spec,
-                    applies_to_frame=paradigm.applies_to_frequentist_admissibility(spec),
-                )
-            )
-        elif name in CHECKS:
-            reports.append(CHECKS[name](spec))
-        else:
+        entry = CHECKS.get(name)
+        if entry is None:
             raise CheckError(
-                f"unknown check {name!r}; known: "
-                + ", ".join(sorted(set(CHECKS) | {"repro"}))
+                f"unknown check {name!r}; known: " + ", ".join(sorted(CHECKS))
             )
+        reports.append(entry.run(entry.check, spec, ctx))
     merged = merge("+".join(names), reports)
     return apply_suppressions(spec, merged)
 
@@ -261,7 +296,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_check(args: argparse.Namespace) -> int:
     path = find_spec(args.spec, args.phase_dir)
     spec = load(path)
-    names = tuple(args.checks) if args.checks else (*tuple(CHECKS), "repro")
+    names = tuple(args.checks) if args.checks else tuple(CHECKS)
     report = run_checks(
         spec,
         names,
@@ -277,7 +312,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
     spec = load(path)
     report = run_checks(
         spec,
-        (*tuple(CHECKS), "repro"),
+        tuple(CHECKS),
         args.phase_dir,
         gate_point="ship",
         resolve_root=args.phase_dir or str(path.parent),
@@ -295,6 +330,9 @@ def cmd_audit(args: argparse.Namespace) -> int:
 def cmd_gate(args: argparse.Namespace) -> int:
     """Run the profile for a GSD loop point. This is what capability.json calls."""
     point = args.point
+    # argparse's `choices` already rejects an unknown point on the CLI; this
+    # guard is for programmatic callers that build the Namespace themselves
+    # (tests/test_cli_charts_init.py pins it).
     if point not in GATE_PROFILES:
         raise CheckError(
             f"unknown gate point {point!r}; expected one of {', '.join(GATE_PROFILES)}"
@@ -371,25 +409,37 @@ def _write_decision_trail(
     dicts, which an ``OSError``-only guard would not catch. The guard stops
     at ``Exception`` — control-flow signals like ``KeyboardInterrupt`` and
     ``SystemExit`` are deliberately left to propagate.
+
+    Concurrency (SEED-004 CL-01): the id derivation and every append run
+    under ``trail_lock(target)``, an exclusive OS advisory lock, so two gate
+    runs against one root get distinct invocation ids and each run's records
+    stay contiguous. Every record is built before the first line is written,
+    so a record that fails validation leaves no orphan header. A lock that
+    cannot be taken raises ``TrailLockTimeout`` into the same guard: the trail
+    is skipped and the gate still exits on its findings.
     """
+    from .decisions import trail_lock
+
     try:
         target = decisions_path(root)
-        inv = next_invocation_id(target)
-        append_decision(
-            target,
-            InvocationHeader(
-                invocation_id=inv,
-                gate_point=point,
-                dsx_version=__version__,
-                frame_digest=frame_digest(spec),
-                spec_id=spec.get("spec_id"),
-            ),
-        )
-        for n, raw in enumerate(collect_from_report(report), start=1):
-            fields = {k: v for k, v in raw.items() if k != "record_type"}
-            fields["id"] = f"DEC-{n:03d}"
-            fields["invocation_id"] = inv
-            append_decision(target, DecisionRecord(**fields))
+        with trail_lock(target):
+            inv = next_invocation_id(target)
+            records: list[InvocationHeader | DecisionRecord] = [
+                InvocationHeader(
+                    invocation_id=inv,
+                    gate_point=point,
+                    dsx_version=__version__,
+                    frame_digest=frame_digest(spec),
+                    spec_id=spec.get("spec_id"),
+                )
+            ]
+            for n, raw in enumerate(collect_from_report(report), start=1):
+                fields = {k: v for k, v in raw.items() if k != "record_type"}
+                fields["id"] = f"DEC-{n:03d}"
+                fields["invocation_id"] = inv
+                records.append(DecisionRecord(**fields))
+            for record in records:
+                append_decision(target, record)
     except Exception as exc:  # noqa: BLE001 -- D-04: the trail is a side channel; never fail the gate over it
         if verbose:
             print(f"dsx: could not write decision trail — {exc}", file=sys.stderr)
@@ -399,15 +449,10 @@ def cmd_profile(args: argparse.Namespace) -> int:
     from .profiler import profile_csv, write_profile
 
     pk = [p.strip() for p in (args.pk or "").split(",") if p.strip()] or None
-    sentinels: list = []
-    for raw in args.sentinel or []:
-        try:
-            sentinels.append(int(raw))
-        except ValueError:
-            try:
-                sentinels.append(float(raw))
-            except ValueError:
-                sentinels.append(raw)
+    # Sentinels pass through as the raw strings the user typed: they are the
+    # keys `sentinels_found` reports, and the profiler does its own numeric
+    # comparison (so `--sentinel -1` still matches a `-1.0` cell).
+    sentinels = list(args.sentinel or [])
 
     profile = profile_csv(
         args.csv,
@@ -508,8 +553,10 @@ def cmd_vocab(args: argparse.Namespace) -> int:
 def cmd_charts(args: argparse.Namespace) -> int:
     """Permitted chart types for a data shape. The lookup that replaces asking.
 
-    Deterministic: same shape and relationship in, same marks out. Exit 1 when
-    the shape is not in the catalogue, so a caller can branch on it.
+    Deterministic: same shape and relationship in, same marks out. A missing
+    or unknown shape is a usage error, so it exits 2 (``EXIT_ERROR``) like
+    every other could-not-run path — exit 1 stays reserved for a blocking
+    finding, so a typo in a chart id is never mistaken for a blocked gate.
     """
     from .input_types import UnknownShape, input_types, permitted
 
@@ -536,7 +583,7 @@ def cmd_charts(args: argparse.Namespace) -> int:
 
     if not args.shape:
         print("dsx charts: give a shape (e.g. IT007 or composition) or --list", file=sys.stderr)
-        return 1
+        return EXIT_ERROR
 
     try:
         marks = permitted(args.shape, args.relationship)
@@ -546,7 +593,7 @@ def cmd_charts(args: argparse.Namespace) -> int:
             "Use an inventory id IT001-IT040 or a family name from `dsx vocab`.",
             file=sys.stderr,
         )
-        return 1
+        return EXIT_ERROR
 
     if args.json:
         print(
@@ -584,10 +631,17 @@ def cmd_explain(args: argparse.Namespace) -> int:
     wrapped in a guard over ``Exception`` — control-flow signals like
     ``KeyboardInterrupt``/``SystemExit`` are deliberately left to propagate —
     so no failure mode reachable from ``read_all`` or the render step can
-    escape this function. ``read_all`` itself no longer raises for any
-    on-disk state, but this guard is what makes the "always returns 0"
-    contract a structural property of ``cmd_explain`` rather than an
-    enumeration of the failure modes someone happened to test.
+    escape this function. ``read_all`` returns ``[]`` for a missing trail but
+    can raise for one that exists and cannot be read, and this guard is what
+    makes the "always returns 0" contract a structural property of
+    ``cmd_explain`` rather than an enumeration of the failure modes someone
+    happened to test.
+
+    A caught failure is never silent: the underlying exception is always
+    printed to stderr, and under ``--json`` the output is an object with
+    ``"status": "unreadable"`` and the error text, so a broken trail cannot be
+    mistaken for an empty one (an empty or absent trail is the JSON array
+    ``[]``). Exit 0 either way (D-04).
     """
     path: Path | None = None
     try:
@@ -634,11 +688,25 @@ def cmd_explain(args: argparse.Namespace) -> int:
             print(not_found_message)
         else:
             print(_render_decision_trail(selected, spec_data))
-    except Exception as exc:  # noqa: BLE001 -- explain always exits 0 (D-04); any failure reads as no trail
-        print("dsx: no readable decision trail was found", file=sys.stdout)
-        if args.verbose:
-            print(f"dsx: {exc}", file=sys.stderr)
+    except Exception as exc:  # noqa: BLE001 -- explain always exits 0 (D-04); the failure is reported, not raised
+        if args.json:
+            print(
+                json.dumps(
+                    {"status": "unreadable", "error": _describe(exc), "records": []},
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+        else:
+            print("dsx: no readable decision trail was found", file=sys.stdout)
+        print(f"dsx: could not read the decision trail — {_describe(exc)}", file=sys.stderr)
     return 0
+
+
+def _describe(exc: BaseException) -> str:
+    """``TypeName: message`` — the exception text alone is often empty or
+    ambiguous (a bare ``KeyError`` prints only the key)."""
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _discover_operator_trails(root: str | Path) -> list[Path]:
@@ -680,19 +748,38 @@ def _discover_operator_trails(root: str | Path) -> list[Path]:
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
-    """Report the operator's own paradigm split (REQ-P12-04, D-12). A pure
+    """Operator readouts over the decision trails (REQ-P12-04, D-12). A pure
     reader modelled on ``cmd_explain``'s structural safety: it never imports
     the block-contract primitives (``Severity``/``GATE_THRESHOLDS``/
     ``Report``), carries no ``--block-on``, is not registered in ``CHECKS`` or
     ``GATE_PROFILES``, and ``return 0`` at the end by construction rather than
     by enumeration — it is a readout, never a gate (D-18).
 
+    Dispatch is by report selector flag through ``_STATS_REPORTS``. The
+    paradigm split is the only report today and the default when no selector
+    is given, so ``dsx stats`` and ``dsx stats --paradigm`` are identical by
+    design (IN-01, 12-REVIEW.md). A second report adds its flag in
+    ``build_parser`` and one entry in ``_STATS_REPORTS``.
+    """
+    selected = [name for name in _STATS_REPORTS if getattr(args, name, False)]
+    for name in selected or [_STATS_DEFAULT_REPORT]:
+        _STATS_REPORTS[name](args)
+    return 0
+
+
+def _stats_paradigm(args: argparse.Namespace) -> None:
+    """The ``--paradigm`` report: the frequentist/bayesian/undeclared split.
+
     Root resolution has a defensive fallback (an unusable ``--root`` degrades
     to ``.planning``), and everything from trail discovery through the final
     print is wrapped in a guard over ``Exception`` — control-flow signals like
     ``KeyboardInterrupt``/``SystemExit`` are deliberately left to propagate —
     so no failure reachable from ``rglob``/``read_all``/the aggregation can
-    escape the "always returns 0" contract, exactly as ``cmd_explain`` does.
+    escape ``cmd_stats``'s "always returns 0" contract, exactly as
+    ``cmd_explain`` does. A caught failure is still reported: the exception
+    goes to stderr unconditionally and the JSON carries ``"status":
+    "unreadable"`` plus ``"error"``, where a readable-but-empty history says
+    ``"status": "no_history"`` and a populated one ``"status": "ok"``.
     """
     root = getattr(args, "root", None) or ".planning"
 
@@ -751,19 +838,29 @@ def cmd_stats(args: argparse.Namespace) -> int:
         # is distinct_frames, never this raw count (D-14).
         result["raw_invocation_count"] = raw_invocations
         if distinct == 0:
+            result["status"] = "no_history"
             result["message"] = "no operator history yet"
         else:
+            result["status"] = "ok"
             result["shares"] = {k: v / distinct for k, v in buckets.items()}
         _print_stats(args, result, distinct)
-    except Exception as exc:  # noqa: BLE001 -- stats always exits 0, like explain; failure reads as no history
+    except Exception as exc:  # noqa: BLE001 -- stats always exits 0, like explain; the failure is reported, not raised
         result.setdefault("paradigm_split", {"frequentist": 0, "bayesian": 0, "undeclared": 0})
         result.setdefault("distinct_frames", 0)
         result.setdefault("raw_invocation_count", 0)
-        result["message"] = "no operator history yet"
+        result.pop("shares", None)
+        result["status"] = "unreadable"
+        result["error"] = _describe(exc)
+        result["message"] = "operator decision trails could not be read"
         _print_stats(args, result, 0)
-        if getattr(args, "verbose", False):
-            print(f"dsx: {exc}", file=sys.stderr)
-    return 0
+        print(f"dsx: could not read operator decision trails — {_describe(exc)}", file=sys.stderr)
+
+
+# `dsx stats` report selectors: flag name (the argparse dest) -> renderer.
+_STATS_REPORTS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "paradigm": _stats_paradigm,
+}
+_STATS_DEFAULT_REPORT = "paradigm"
 
 
 def _print_stats(args: argparse.Namespace, result: dict[str, Any], denom: int) -> None:
@@ -773,6 +870,12 @@ def _print_stats(args: argparse.Namespace, result: dict[str, Any], denom: int) -
     denominator."""
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if result.get("status") == "unreadable":
+        print(
+            f"dsx: the operator decision trails under {result['root']!r} could not "
+            "be read — no split reported (the error is on stderr)."
+        )
         return
     if denom == 0:
         print(
@@ -886,6 +989,9 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_seal(args: argparse.Namespace) -> int:
+    # The JSON key is `svg_sha256` for every format (SVG, PNG, HTML): it names
+    # the spec field the digest is pasted into (visuals[].svg_sha256, the only
+    # seal field dsx/checks/figures.py reads), not the file type.
     from .checks.figures import file_sha256
 
     path = Path(args.path)
@@ -959,6 +1065,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="dsx",
         description="Deterministic guardrails for data-science, analytics and BI work.",
+        epilog=(
+            "Exit codes: 0 pass, 1 block, 2 could not run. "
+            f"Set {DEBUG_ENV}=1 (or pass --verbose) to print a traceback on "
+            "stderr when a command fails with an invalid-input error, so an "
+            "internal bug is not mistaken for bad input."
+        ),
     )
     parser.add_argument("--version", action="version", version=f"dsx {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -982,7 +1094,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_validate.set_defaults(func=cmd_validate)
 
     p_check = sub.add_parser("check", help="run selected checks")
-    p_check.add_argument("checks", nargs="*", help="subset to run: " + ", ".join(sorted(CHECKS)) + ", repro")
+    p_check.add_argument("checks", nargs="*", help="subset to run: " + ", ".join(sorted(CHECKS)))
     add_common(p_check)
     p_check.set_defaults(func=cmd_check)
 
@@ -1016,18 +1128,18 @@ def build_parser() -> argparse.ArgumentParser:
     # that returns 0 by construction would be a lie in the help text, the same
     # reasoning already recorded for `explain`/`recommend-test`. It is NOT
     # registered in CHECKS or GATE_PROFILES; it is a readout, not a gate (D-18).
-    # --paradigm is the sole current `stats` report selector, reserved for
-    # forward compatibility (IN-01, 12-REVIEW.md): its help text is accurate —
-    # the split IS what the command reports — so a bare `dsx stats` reporting
-    # the same split is by-design, not a false contract. When a second `stats`
-    # sub-report is added, wire the report choice on this flag then, not now.
+    # Each report selector flag's dest is a key of _STATS_REPORTS, which
+    # cmd_stats dispatches on. --paradigm is the only report today and the
+    # default when no selector is given (IN-01, 12-REVIEW.md), so a bare
+    # `dsx stats` reporting the same split is by design, not a false contract.
     p_stats.add_argument("--paradigm", action="store_true",
-                         help="report the frequentist/bayesian/undeclared frame split")
+                         help="report the frequentist/bayesian/undeclared frame split "
+                              "(the default report when no selector is given)")
     p_stats.add_argument("--root", default=".planning",
                          help="operator trail search root (default: %(default)s; D-13)")
     p_stats.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     p_stats.add_argument("--verbose", action="store_true",
-                         help="surface read errors on stderr")
+                         help="accepted for symmetry; read errors always go to stderr")
     p_stats.set_defaults(func=cmd_stats)
 
     p_rec = sub.add_parser("recommend-test", help="derive the correct test from the data's shape")
@@ -1098,9 +1210,17 @@ def build_parser() -> argparse.ArgumentParser:
     p_seal = sub.add_parser(
         "seal",
         help="compute sha256:… for a figure file to paste into visuals[].svg_sha256",
+        description=(
+            "Compute the sha256:… seal of a figure file. The seal goes in the spec's "
+            "visuals[].svg_sha256 field whatever the format — SVG, PNG or HTML — so "
+            "the --json output names the key svg_sha256 for every format too."
+        ),
     )
     p_seal.add_argument("path", help="path to an SVG/PNG/HTML figure")
-    p_seal.add_argument("--json", action="store_true")
+    p_seal.add_argument(
+        "--json", action="store_true",
+        help="emit {path, svg_sha256}; the key is svg_sha256 for every format",
+    )
     p_seal.set_defaults(func=cmd_seal)
 
     return parser
@@ -1115,7 +1235,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"dsx: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except ValueError as exc:
+        # Most ValueErrors are genuine bad input (a severity name, a number
+        # out of range), but a check bug surfaces the same way. The message
+        # and exit 2 stay; the traceback is one env var away.
         print(f"dsx: invalid input — {exc}", file=sys.stderr)
+        debug = os.environ.get(DEBUG_ENV, "").strip() not in ("", "0")
+        if debug or getattr(args, "verbose", False):
+            traceback.print_exc(file=sys.stderr)
+        else:
+            print(f"dsx: set {DEBUG_ENV}=1 or pass --verbose for the traceback", file=sys.stderr)
         return EXIT_ERROR
     except KeyboardInterrupt:  # pragma: no cover
         return 130

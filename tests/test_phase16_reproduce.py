@@ -30,10 +30,14 @@ hygiene applies to the tests too).
 """
 import json
 import re
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests"))
+
+from _counts import DSX_SKILL_COUNT  # noqa: E402
 
 # The reproduce-report gate check must never pull a data library or an execution
 # primitive onto the deterministic gate path (REQ-P16-02, D-01).
@@ -83,11 +87,13 @@ class TestPhase16Reproduce(unittest.TestCase):
             "dsx-reproduce", names,
             "capability.json does not register dsx-reproduce",
         )
-        # It is the 14th DSX skill (13 through Phase 14 + this one, REQ-P16-01).
+        # The registered dsx-* count must equal the pinned tests/_counts.py value
+        # (dsx-reproduce was the 14th, REQ-P16-01).
         dsx = [n for n in names if isinstance(n, str) and n.startswith("dsx-")]
         self.assertEqual(
-            len(dsx), 14,
-            f"expected 14 registered dsx-* skills, found {len(dsx)}: {sorted(dsx)}",
+            len(dsx), DSX_SKILL_COUNT,
+            f"expected {DSX_SKILL_COUNT} registered dsx-* skills, found {len(dsx)}: "
+            f"{sorted(dsx)}",
         )
 
     def test_req01_skill_reruns_entrypoint_off_gate_path_and_writes_report(self):

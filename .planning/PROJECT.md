@@ -396,7 +396,7 @@ archived at `.planning/milestones/*-REQUIREMENTS.md`.
 
 - Computing test statistics or posteriors inside the gate path — breaks D-01/D-02
 - Bayesian procedure recommendation and admissibility — gated backlog, entry condition in brief §6.5
-- Prior justification, prior sensitivity, convergence declarations — deferred under D-12a; their frequentist mirrors are not written
+- Prior justification, prior sensitivity, convergence declarations — deferred under D-12a; their frequentist mirrors are not written. Entry conditions, including what opens the mirror work, are `brief.md` §6.5 rows 1 and 3 (stated 2026-09-30)
 - Causal identification *strategy* checking — `DSX-CAU-*` owns this
 - Survival, time-series and spatial estimation *methods* — temporal/spatial dependence are declared types; the methods are out
 - Reading a data warehouse from a gate — breaks the determinism doctrine

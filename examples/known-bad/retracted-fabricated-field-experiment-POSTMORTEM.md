@@ -2,6 +2,8 @@
 
 Paired spec: `retracted-fabricated-field-experiment-ANALYSIS-SPEC.yaml`
 
+> **Known MISS.** No shipped check fires on the defect this fixture encodes, so the gate does not catch it; see `README.md` in this directory.
+
 Coverage class (REQ-P12-01): a retracted paper carrying a published post-mortem /
 retraction notice.
 

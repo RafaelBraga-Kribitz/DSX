@@ -65,6 +65,24 @@ covered by shipped machinery and must not be rebuilt. What survives splits three
 | AC-14 | Locale pack — PT-BR currency rendering (display only, never mutating the data) and the Jupyter hazard that `$…$` in a markdown cell renders as mathematics, so money in prose must be escaped or set in inline code | a clearly-scoped locale section of `references/notebook-conduct.md`. The repo's working language stays English; this is locale knowledge, not a second language for the codebase |
 | AC-15 | Notebook continuation discipline — when extending an analysis that already ends in a conclusion, insert new question/code/interpretation cells **above** the conclusion block and then update the conclusion; if the new request is a genuinely different subject, ask whether it should be a new notebook | `references/notebook-conduct.md` |
 
+### Landing check — 2026-09-30 (project audit M29)
+
+None of AC-10 … AC-15 has landed. Checked by grep of `skills/dsx-explore-data/SKILL.md`,
+`skills/dsx-narrate/SKILL.md` and `references/narrative-discipline.md`, and
+`references/notebook-conduct.md` does not exist:
+
+| id | Looked for | Result |
+|---|---|---|
+| AC-10 | "one question", intent-before-code, interpretation-after | Not landed. The skill still says only "Write EDA as a script, not as scattered cells" (`:25-26`); no boundary sentence naming the notebook medium |
+| AC-11 | "question per cell", short cells, `.head()`/`.shape` display rules | Not landed (no `notebook-conduct.md`) |
+| AC-12 | business-question headings, no jargon | Not landed in `narrative-discipline.md` or `dsx-narrate` |
+| AC-13 | `read_csv`, encoding/mojibake, separator, decimal, `skiprows` triage | Not landed. Nearest neighbour: step 4d's "mixed types" pathology row (a numeric column holding strings, or an object column ≥ 95 % numeric-parseable) — it detects one symptom after the fact, not the read-time triage |
+| AC-14 | "PT-BR", locale, `$` escaping in markdown | Not landed |
+| AC-15 | continuation above the conclusion block | Not landed |
+
+Listed as open skill work in `.planning/ROADMAP.md` `## Next`. The seed stays dormant; its
+trigger (a new milestone whose scope includes analyst conduct) is unchanged.
+
 ## C. Profiler-side (producer, never a gate — D-02)
 
 | id | Item | Note |

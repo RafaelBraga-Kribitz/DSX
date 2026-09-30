@@ -3,6 +3,22 @@
 set -eu
 cd "$(dirname "$0")/.."
 
+# A linter that is not installed is skipped locally, loudly, so a contributor
+# without node or ruff can still run everything else. CI sets
+# DSX_CHECK_STRICT=1, which turns that skip into a failure: a gate that
+# silently skips is not a gate.
+strict="${DSX_CHECK_STRICT:-0}"
+skipped=""
+missing_tool() {
+  # $1 = tool, $2 = what it gates, $3 = install hint
+  if [ "$strict" = "1" ]; then
+    echo "FAIL: $1 not installed and DSX_CHECK_STRICT=1 -- $2 cannot be skipped ($3)" >&2
+    exit 1
+  fi
+  echo "WARNING: $1 not installed -- $2 SKIPPED ($3). Set DSX_CHECK_STRICT=1 to make this fail." >&2
+  skipped="${skipped} $1"
+}
+
 # Skills, agents and prompts promoted from someone else's library are not held
 # to this project's house style -- scripts/lint-scope.py says which those are
 # and why. They are excluded here rather than in ruff.toml and
@@ -40,7 +56,7 @@ if command -v ruff >/dev/null 2>&1; then
     ruff check --select E9,F --ignore F401,F403,F405,F541,F841 "$@"
   fi
 else
-  echo "ruff not installed -- lint SKIPPED (pip install ruff)"
+  missing_tool ruff "lint" "pip install ruff"
 fi
 
 echo "==> markdown lint (markdownlint-cli2, per .markdownlint-cli2.jsonc)"
@@ -51,7 +67,7 @@ if command -v markdownlint-cli2 >/dev/null 2>&1; then
   set +f
   markdownlint-cli2 "$@"
 else
-  echo "markdownlint-cli2 not installed -- markdown lint SKIPPED (npm install -g markdownlint-cli2)"
+  missing_tool markdownlint-cli2 "markdown lint" "npm install -g markdownlint-cli2"
 fi
 
 echo "==> unit tests"
@@ -68,6 +84,9 @@ python3 -c "import json; json.load(open('.claude-plugin/plugin.json')); json.loa
 
 echo "==> finding catalogue is current"
 python3 scripts/gen-finding-catalogue.py --check
+
+echo "==> input-type catalogue is current"
+python3 scripts/gen-input-types.py --check
 
 echo "==> capability manifest is valid JSON and internally consistent"
 python3 scripts/validate-capability.py
@@ -111,4 +130,8 @@ b=$(./bin/dsx audit --spec examples/bad-ANALYSIS-SPEC.yaml --json 2>&1) || true
 [ "$a" = "$b" ] || { echo "FAIL: non-deterministic output"; exit 1; }
 
 echo
-echo "all checks passed"
+if [ -n "$skipped" ]; then
+  echo "all checks passed EXCEPT the skipped linter(s):${skipped}" >&2
+else
+  echo "all checks passed"
+fi

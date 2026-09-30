@@ -1,5 +1,11 @@
 # Graph Report - dsx  (2026-08-27)
 
+> **HISTORICAL — do not rely on this without regenerating (banner added 2026-09-30).**
+> This report and `graph.json` were generated on 2026-08-27 (commit `c8b0bff1`) and
+> predate v2.4, v2.5 and v2.6: the code minted since then (e.g. `DSX-ML-034`,
+> `DSX-CLM-034`, `DSX-COH-041`, the v2.6 profiler blocks) is not in the graph.
+> Regenerate with graphify (steps below) before using it as a map of `dsx/`.
+
 > **This is a copy**, placed here to satisfy the global CLAUDE.md primer path
 > (`.planning/graphs/GRAPH_REPORT.md`). The tool's real working directory is
 > `dsx/graphify-out/` (gitignored) — that is where `graph.json`, `graph.html`,
