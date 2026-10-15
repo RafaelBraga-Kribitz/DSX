@@ -8,6 +8,30 @@ and behaviour-change notes, moved here from the README's
 
 ## Release notes
 
+### Unreleased
+
+Three additions drawn from NVIDIA's write-up of its KDD Cup 2026 data agent and
+the DataSpace benchmark behind it. No new finding codes; the catalogue stays at
+279, and no gate's verdict changes.
+
+- `dsx scout` reads two or more CSV extracts and writes `SCHEMA-SCOUT.yaml`:
+  each table's grain, every likely join key with its cardinality and fan-out,
+  and warnings for fan-out, many-to-many keys, low match rates, name
+  collisions and likely unit mismatches. `--expect left.col=right.col` exits 1
+  when a join you declare one-to-one fans out, which turns the 2026-08-28 join
+  learning into a check.
+- `dsx stats --inspect` sorts the finding codes that fired across your own
+  decision trails into eight failure categories, counted once per distinct
+  frame, and lists the codes that recur across frames.
+- `dsx outcome` scores a with/without-DSX run of the same agent against an
+  answer key, using the exact McNemar test on the paired difference. The
+  protocol for running it on DataSpace is in `experiments/dataspace/`; the
+  experiment has not been run.
+- `dsx/mathx.py` gains exact binomial helpers: Wilson and one-sided
+  Clopper-Pearson bounds, the number of clean examples needed for a target
+  false-alarm bound (59 for 5%), exact McNemar, and a paired-difference
+  interval.
+
 ### 2.6.1 (2026-09-11)
 
 A maintenance release with no new finding codes; the catalogue stays at 279.

@@ -52,7 +52,7 @@ from .decisions import (
 from .decisions import (
     append as append_decision,
 )
-from .findings import EXIT_ERROR, CheckError, Report, Severity, emit, merge
+from .findings import EXIT_BLOCK, EXIT_ERROR, CheckError, Report, Severity, emit, merge
 from .frame import admissibility, interference, paradigm, prereg, val
 from .loader import SpecParseError, load
 from .spec import describe_vocabulary, validate_structure
@@ -481,6 +481,63 @@ def cmd_profile(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_scout(args: argparse.Namespace) -> int:
+    """Multi-table schema scout (dsx/scout.py). Writes SCHEMA-SCOUT.yaml; exits
+    1 only when an ``--expect`` one-to-one join is broken, never otherwise."""
+    from .profiler import write_profile
+    from .scout import check_expectations, scout
+
+    result = scout(args.csv, min_containment=args.min_containment)
+    failures = check_expectations(result, list(args.expect or []))
+    if args.expect:
+        result["expectations"] = {
+            "asserted": list(args.expect),
+            "failures": failures,
+        }
+    out = Path(args.out or "SCHEMA-SCOUT.yaml")
+    write_profile(result, out)
+    if args.json:
+        print(json.dumps(
+            {
+                "wrote": str(out).replace("\\", "/"),
+                "joins": result["joins"],
+                "warnings": result["warnings"],
+                "expectation_failures": failures,
+            },
+            indent=2,
+            sort_keys=True,
+        ))
+    else:
+        print(
+            f"wrote {out} — {len(result['tables'])} tables, "
+            f"{len(result['joins'])} join candidate(s), {len(result['warnings'])} warning(s)"
+        )
+        for w in result["warnings"]:
+            print(f"  [{w['kind']}] {w['join']}: {w['detail']}")
+        for f in failures:
+            print(f"  BLOCK: {f}", file=sys.stderr)
+    return EXIT_BLOCK if failures else 0
+
+
+def cmd_outcome(args: argparse.Namespace) -> int:
+    """Score a two-arm outcome experiment (dsx/outcome.py). A readout, not a
+    gate: exits 0 whatever the arms scored, 2 on unreadable input."""
+    from .outcome import read_jsonl, render_text, score
+
+    result = score(
+        read_jsonl(args.key, what="answer key"),
+        read_jsonl(args.control, what="control arm"),
+        read_jsonl(args.treatment, what="treatment arm"),
+        sig_digits=args.sig_digits,
+        alpha=args.alpha,
+    )
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(render_text(result))
+    return 0
+
+
 def cmd_recommend(args: argparse.Namespace) -> int:
     from .checks.stats import recommend_test
     from .frame.admissibility import admissible_families
@@ -856,9 +913,41 @@ def _stats_paradigm(args: argparse.Namespace) -> None:
         print(f"dsx: could not read operator decision trails — {_describe(exc)}", file=sys.stderr)
 
 
+def _stats_inspect(args: argparse.Namespace) -> None:
+    """The ``--inspect`` report (dsx/inspector.py): fired finding codes across
+    operator trails, sorted into failure categories and deduplicated by frame
+    digest. Same never-raise contract as ``_stats_paradigm``."""
+    from .inspector import inspect_trails, render_text
+
+    root = getattr(args, "root", None) or ".planning"
+    try:
+        result = inspect_trails(_discover_operator_trails(root))
+        result["root"] = str(root)
+    except Exception as exc:  # noqa: BLE001 -- stats always exits 0; the failure is reported, not raised
+        result = {
+            "root": str(root),
+            "status": "unreadable",
+            "error": _describe(exc),
+            "message": "operator decision trails could not be read",
+            "categories": {},
+            "recurring": [],
+        }
+        print(f"dsx: could not read operator decision trails — {_describe(exc)}", file=sys.stderr)
+    if args.json:
+        print(json.dumps({"inspect": result}, indent=2, sort_keys=True))
+    elif result.get("status") == "unreadable":
+        print(
+            f"dsx: the operator decision trails under {result['root']!r} could not "
+            "be read — no categories reported (the error is on stderr)."
+        )
+    else:
+        print(render_text(result))
+
+
 # `dsx stats` report selectors: flag name (the argparse dest) -> renderer.
 _STATS_REPORTS: dict[str, Callable[[argparse.Namespace], None]] = {
     "paradigm": _stats_paradigm,
+    "inspect": _stats_inspect,
 }
 _STATS_DEFAULT_REPORT = "paradigm"
 
@@ -1135,6 +1224,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_stats.add_argument("--paradigm", action="store_true",
                          help="report the frequentist/bayesian/undeclared frame split "
                               "(the default report when no selector is given)")
+    p_stats.add_argument("--inspect", action="store_true",
+                         help="sort the finding codes that fired across operator trails "
+                              "into failure categories, counted once per distinct frame")
     p_stats.add_argument("--root", default=".planning",
                          help="operator trail search root (default: %(default)s; D-13)")
     p_stats.add_argument("--json", action="store_true", help="emit machine-readable JSON")
@@ -1206,6 +1298,41 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_profile.add_argument("--json", action="store_true")
     p_profile.set_defaults(func=cmd_profile)
+
+    p_scout = sub.add_parser(
+        "scout",
+        help="multi-table schema scout: grain, join keys and fan-out across CSVs (stdlib)",
+    )
+    p_scout.add_argument("csv", nargs="+", help="two or more CSV extracts")
+    p_scout.add_argument("--out", "-o", default="SCHEMA-SCOUT.yaml")
+    p_scout.add_argument(
+        "--expect",
+        action="append",
+        metavar="LEFT.col=RIGHT.col",
+        help="assert a one-to-one join (table name = file stem); exit 1 if it fans out "
+             "(repeatable)",
+    )
+    p_scout.add_argument(
+        "--min-containment", type=float, default=0.5,
+        help="share of the smaller side's distinct values that must appear on the other "
+             "side for a column pair to be a join candidate (default: %(default)s)",
+    )
+    p_scout.add_argument("--json", action="store_true")
+    p_scout.set_defaults(func=cmd_scout)
+
+    p_outcome = sub.add_parser(
+        "outcome",
+        help="score a with/without-DSX outcome experiment against an answer key — "
+             "read-only, never blocks",
+    )
+    p_outcome.add_argument("--key", required=True, help="answer key, JSON Lines")
+    p_outcome.add_argument("--control", required=True, help="arm run without DSX, JSON Lines")
+    p_outcome.add_argument("--treatment", required=True, help="arm run with DSX gates, JSON Lines")
+    p_outcome.add_argument("--sig-digits", type=int, default=4,
+                           help="significant digits numbers are compared at (default: %(default)s)")
+    p_outcome.add_argument("--alpha", type=float, default=0.05)
+    p_outcome.add_argument("--json", action="store_true")
+    p_outcome.set_defaults(func=cmd_outcome)
 
     p_seal = sub.add_parser(
         "seal",

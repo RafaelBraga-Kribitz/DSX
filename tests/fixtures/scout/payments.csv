@@ -1,0 +1,7 @@
+order_id,amount,status
+101,25.00,paid
+102,12.00,paid
+102,12.00,refund
+103,8.00,paid
+104,43.00,paid
+105,9.90,paid

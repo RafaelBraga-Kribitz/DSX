@@ -1,0 +1,5 @@
+{"task_id": "t1", "answer": 42, "category": "single_table"}
+{"task_id": "t2", "answer": {"columns": ["region", "revenue"], "rows": [["north", 1200.5], ["south", 800]]}, "category": "join"}
+{"task_id": "t3", "answer": "Lisbon", "category": "document"}
+{"task_id": "t4", "answer": [[1, "a"], [2, "b"]], "category": "join"}
+{"task_id": "t5", "answer": 0.3127, "category": "single_table"}
