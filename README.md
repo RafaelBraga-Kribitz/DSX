@@ -341,6 +341,9 @@ dsx validate                                      # structure only
 dsx audit --verbose --report DATA-REVIEW.md       # everything
 dsx check ml metrics                              # a subset
 dsx profile extract.csv --out DATA-PROFILE.yaml --pk user_id --time signup_at
+dsx scout orders.csv payments.csv --expect orders.order_id=payments.order_id  # grain, joins, fan-out
+dsx stats --inspect --root .planning              # which failure categories keep recurring
+dsx outcome --key key.jsonl --control a.jsonl --treatment b.jsonl  # did DSX make answers right more often?
 dsx seal figures/chart.svg                        # sha256:… for visuals[].svg_sha256
 dsx power --baseline 0.31 --mde 0.02              # sample size, achieved power, detectable MDE
 dsx recommend-test continuous --groups 3 --normal false
@@ -359,7 +362,12 @@ Python traceback, so an internal bug is not mistaken for bad input.
 The two read-only history commands never block and always exit 0, so their JSON
 says what happened: `dsx explain --json` prints `"status": "unreadable"` with the
 error when the decision trail exists but cannot be read, and `dsx stats --json`
-carries `"status"` as `ok`, `no_history` or `unreadable`.
+carries `"status"` as `ok`, `no_history` or `unreadable`. `dsx outcome` is a
+readout too: it exits 0 whatever the two arms scored.
+
+`dsx scout` is the one analyst-invoked command that can exit 1: only when a join
+named with `--expect LEFT.col=RIGHT.col` is not one-to-one. The table name is the
+file name without its extension.
 
 ### Every subcommand
 
@@ -375,13 +383,15 @@ against it.
 | `dsx audit` | Runs every check family | `--spec`, `--phase-dir`, `--block-on`, `--json`, `--verbose`, `--report` |
 | `dsx gate <point>` | Runs the check profile for one GSD loop point: `plan`, `execute`, `verify` or `ship` | the `audit` flags, plus `--allow-missing` (pass when no spec exists) |
 | `dsx explain` | Prints the decision trail from `DECISIONS.jsonl`; read-only, never blocks | `--spec`, `--phase-dir`, `--invocation`, `--json`, `--verbose` |
-| `dsx stats` | Reports your own split between frequentist, Bayesian and undeclared analyses from the decision trail; read-only, never blocks | `--paradigm` (the default report), `--root`, `--json`, `--verbose` |
+| `dsx stats` | Reports your own split between frequentist, Bayesian and undeclared analyses from the decision trail, or with `--inspect` sorts the finding codes that fired into failure categories, counted once per distinct frame; read-only, never blocks | `--paradigm` (the default report), `--inspect`, `--root`, `--json`, `--verbose` |
 | `dsx recommend-test <outcome>` | Names the right statistical test for the data's shape | `--groups`, `--paired`, `--normal`, `--equal-variance`, `--overdispersed`, `--n-per-group`, `--spec` |
 | `dsx power` | Sample size per arm, achieved power, or smallest detectable effect | `--baseline` (required), `--mde`, `--n-per-arm`, `--alpha`, `--power` |
 | `dsx vocab` | Prints every closed vocabulary as JSON | none |
 | `dsx charts [shape]` | Lists the chart types allowed for an input type (`IT001`–`IT040`) or a family such as `composition` | `--relationship`, `--list`, `--json` |
 | `dsx init` | Writes a new spec from `templates/ANALYSIS-SPEC.yaml` | `--output`, `--force` |
 | `dsx profile <csv>` | Computes `DATA-PROFILE.yaml` from a local CSV file | `--out`, `--pk`, `--time`, `--unit`, `--target`, `--sentinel`, `--json` |
+| `dsx scout <csv> <csv…>` | Writes `SCHEMA-SCOUT.yaml` for two or more CSV files: each table's grain, every column pair that looks like a join key with its cardinality and fan-out, and warnings for fan-out, many-to-many keys, low match rates, name collisions and likely unit mismatches | `--out`, `--expect` (repeatable), `--min-containment`, `--json` |
+| `dsx outcome` | Scores a two-arm outcome experiment, the same agent run without and with DSX, against an answer key: accuracy per arm and the paired difference with an exact McNemar test; read-only, never blocks | `--key`, `--control`, `--treatment` (all required), `--sig-digits`, `--alpha`, `--json` |
 | `dsx seal <figure>` | Prints the `sha256:…` seal to paste into `visuals[].svg_sha256` | `--json` |
 
 ## Configuration
@@ -426,6 +436,8 @@ activation rate" was the right question to ask in the first place.
 - [Two tiers of evidentiary rigour](docs/known-limits.md#two-tiers-of-evidentiary-rigour) — codes introduced in v2.0.0 carry a mechanically enforced citation and test linkage; pre-existing codes sit on a shrinking allow-list without one.
 - [What the entrypoint scan does not catch](docs/known-limits.md#what-the-entrypoint-scan-does-not-catch) — a clean leak scan is evidence that particular shapes were not found in the one declared entrypoint file, not evidence that the file does not leak.
 - [Five analyst-conduct gaps the gate does not check](docs/known-limits.md#five-analyst-conduct-gaps-the-gate-does-not-check) — a share of a total presented as a risk, a small base behind a mean or count, a claim naming a column the data lacks, one category drawn in different colours across charts, and a descriptive finding from a very short window all pass today.
+- [What the schema scout does not see](docs/known-limits.md#what-the-schema-scout-does-not-see) — `dsx scout` reads CSV files only, holds them in memory, proposes keys from value overlap, and never runs the analyst's own joins.
+- [What the outcome scorer does not show](docs/known-limits.md#what-the-outcome-scorer-does-not-show) — `dsx outcome` scores answers it is given; no with/without-DSX run has been done yet, so DSX's effect on answer accuracy is still unmeasured.
 - [Prior sensitivity and convergence have no check in either paradigm](docs/known-limits.md#prior-sensitivity-and-convergence-have-no-check-in-either-paradigm) — `DSX-PAR-021` and `DSX-PAR-030` are deferred with their frequentist counterparts, so a result from a model that never converged passes if its declarations are coherent.
 
 ## Design notes

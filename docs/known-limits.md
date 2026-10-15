@@ -420,3 +420,43 @@ This is carried, not abandoned. `brief.md` section 6.5 (rows 1 and 3) states wha
 reopens the work: a constructed example of either defect that the gate misses at
 all four gate points, or `dsx stats --paradigm` showing Bayesian frames above 15%
 of the operator's own history.
+
+## What the schema scout does not see
+
+`dsx scout` computes a join's fan-out from the files it is given, which makes
+it a measurement rather than a declaration. Its limits:
+
+- **CSV only, in memory.** Each file is read whole. A database table has to be
+  exported first, and an extract too large for memory has to be sampled — and a
+  sample can hide a duplicate key that the full table has.
+- **Keys are proposed from value overlap.** A column pair is a join candidate
+  when at least half the smaller side's distinct values appear on the other
+  side (`--min-containment`). Two unrelated integer columns that happen to
+  share values, such as two small counters, can be proposed; a real key with a
+  low match rate can be missed. Floating-point columns are never proposed.
+- **Single-column joins only.** A join on two columns together is not proposed
+  or measured, and the grain search stops at two-column keys.
+- **It does not read the analyst's code.** It says what a join *would* do, not
+  which joins the pipeline actually runs. The SQL fan-out lint (`DSX-SQL-*`)
+  covers the code side, statically.
+- **The unit warning is a heuristic.** It compares the medians of two
+  same-named numeric columns and fires when they differ by about a power of ten
+  (100 or more). Columns that measure different things, or that genuinely
+  differ in scale, can trigger it.
+
+## What the outcome scorer does not show
+
+`dsx outcome` is the scorer for an experiment that has not been run yet. Until
+someone runs the same agent on the same benchmark tasks without and with DSX,
+there is no evidence either way that DSX makes analyses come out right more
+often; the calibration numbers measure only how many seeded flaws it catches
+and how many clean analyses it leaves alone. The protocol is in
+[`experiments/dataspace/README.md`](../experiments/dataspace/README.md).
+
+The scorer's own limits: matching is exact after normalisation (case,
+whitespace, row order, column order, numbers rounded to `--sig-digits`), so an
+answer that is right but phrased differently, or a percentage given as `12%`
+against a key of `0.12`, is scored wrong. A task the gate blocked counts as
+wrong in the primary metric, so a gate that blocks everything cannot look
+accurate; the answered-only accuracy is reported alongside so the trade-off is
+visible.
