@@ -44,11 +44,14 @@ jobs:
       # suites. Installed so a green run means they ran. Pinned for the same
       # reason as the linters; matplotlib 3.11 needs Python >= 3.11, so 3.9
       # takes the last release line that supports it (3.9.4, verified against
-      # both plotstyle suites).
+      # both plotstyle suites). bk-viz is the Braga design system's chart theme
+      # that examples/analysis/charts.py draws the sealed figures with; it needs
+      # Python >= 3.10, so on 3.9 the figure-regeneration test skips.
       - name: Install the optional test dependencies
         run: |
           pip install -q "PyYAML==6.0.2" \
             "matplotlib==3.9.4; python_version < '3.11'" \
-            "matplotlib==3.11.2; python_version >= '3.11'"
+            "matplotlib==3.11.2; python_version >= '3.11'" \
+            "bk-viz @ git+https://github.com/RafaelBraga-Kribitz/bk-viz@fe8125a3043f49a798ef24740b23f81c46863562; python_version >= '3.10'"
       - name: Full check
         run: ./scripts/check.sh

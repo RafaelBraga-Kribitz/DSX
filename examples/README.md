@@ -62,15 +62,21 @@ recorded as `svg_sha256` in `good-ANALYSIS-SPEC.yaml`, and `.gitattributes` stor
 them as binary so the seal survives checkout. Nothing regenerates them automatically.
 They change only when someone re-runs `charts.py` and then `dsx seal`.
 
+`charts.py` draws them on the Braga design system v2.1 through the optional
+`bk-viz` package (`import bk_theme`, Python 3.10+; the pin is in
+`.github/workflows/ci.yml`): colours come only from its roles (one highlight per
+chart in `hl`, structure in `ink-2`), labels are ink, type is BKribitz, and
+`finalise_figure` sets the provenance footer. Re-rendered 2026-10-26 with matplotlib
+3.11.2 and bk-viz 2.0.0, then re-sealed.
+
 `tests/test_example_figures_regenerate.py` checks that they still match the
 generator. It re-renders all three into a temporary directory and compares them with
-the committed files after normalising line endings (the committed files were rendered
-on Windows, so they have CRLF endings) and the matplotlib version string in the SVG
-metadata. Every other byte must match. It skips when matplotlib is not installed, and
-when the installed matplotlib's major.minor differs from the version recorded in the
-SVGs, because output geometry can move between minor releases. Measured 2026-09-30
-with matplotlib 3.11.2, against files rendered with 3.11.1: identical after those two
-normalisations. A raw byte comparison is not possible across platforms.
+the committed files after normalising line endings (files rendered on Windows have
+CRLF endings) and the matplotlib version string in the SVG metadata. Every other byte
+must match. It skips when matplotlib or bk-viz is not installed, and when the
+installed matplotlib's major.minor differs from the version recorded in the SVGs,
+because output geometry can move between minor releases. A raw byte comparison is
+not possible across platforms.
 
 ## The good example still passes the current gate
 

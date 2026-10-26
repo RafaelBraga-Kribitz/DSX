@@ -40,7 +40,10 @@ so the gate can prove the bytes match the declaration.
    chart script, or import it from the DSX checkout; `references/chart-snippets.md`
    has worked examples). Call `use_style("dsx-urban")` for the house default, or
    `"dsx-538"`, `"dsx-bbc"` or `"dsx-econ"` for the alternatives in `styles/`;
-   `available_styles()` lists them and an unknown name raises an error. Finish
+   `available_styles()` lists them and an unknown name raises an error. For the
+   Braga design system v2.1 (a project that declares `bk-viz`), call
+   `use_bk_theme("light")` instead and colour marks only through `bk_theme`
+   roles (`bk.c("hl")` for the one highlight, never hex). Finish
    with `finalise_figure(fig, title=..., source=...)` (the source is mandatory)
    and write with `save_deterministic(fig, path)`, which produces the same SVG
    bytes on every render so the seal holds. Then seal:

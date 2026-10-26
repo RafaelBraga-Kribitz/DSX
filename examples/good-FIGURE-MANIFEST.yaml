@@ -2,7 +2,7 @@ manifest_version: 1
 run_id: "2026-06-readout"
 # Pinned renderer version for the deterministic figure recipe (Phase 23 field;
 # dsx/checks/figures.py does not read it, so it is additive and mints nothing).
-matplotlib_version: "3.11.1"
+matplotlib_version: "3.11.2"
 figures:
   - chart_id: activation_uplift_bar
     path: figures/activation_uplift.svg

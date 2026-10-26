@@ -2,8 +2,8 @@
 
 ![DSX: Data Science, eXamined: a spec-driven workflow with deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
+[![Status: Maintained](https://img.shields.io/badge/status-Maintained-5A5C61?labelColor=26282C)](#status)
 [![CI](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml)
 
 **Status:** Maintained · **DSX: Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
@@ -21,6 +21,7 @@ has one artifact and one check:
 | **eXplain** only what the evidence supports | the readout, with magnitude, interval and limitation | claims, narrative and decision-replay families |
 
 ```mermaid
+%%{init: {"theme":"base","fontFamily":"BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif","themeVariables":{"background":"#E4E6EA","primaryColor":"#DCDEE2","primaryTextColor":"#26282C","primaryBorderColor":"#26282C","secondaryColor":"#E4E6EA","secondaryTextColor":"#26282C","secondaryBorderColor":"#5A5C61","tertiaryColor":"#E4E6EA","tertiaryTextColor":"#26282C","tertiaryBorderColor":"#C2C4CA","lineColor":"#5A5C61","textColor":"#26282C","mainBkg":"#DCDEE2","nodeBorder":"#26282C","clusterBkg":"#E4E6EA","clusterBorder":"#C2C4CA","edgeLabelBackground":"#E4E6EA","titleColor":"#26282C","fontFamily":"BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif","fontSize":"14px"},"flowchart":{"curve":"linear","htmlLabels":true,"padding":8}}}%%
 flowchart LR
     D["Declare<br/>ANALYSIS-SPEC.yaml"] --> S["Substantiate<br/>dsx audit"] --> X["eXplain<br/>the readout"]
     S -.->|"exit 1 blocks"| H["Stop hook<br/>end of session"]
@@ -480,6 +481,7 @@ findings until Phase 11.1 shipped the four codes that now block it.
 | Python 3.9+ standard library | The `dsx` engine, check families and statistics kernel; no third-party package on the gate path (see [Design notes](#design-notes)) |
 | PyYAML (optional) | Used for the spec when installed; otherwise a bundled parser, tested for parity against it |
 | matplotlib (optional) | The `styles/*.mplstyle` chart styles and their determinism tests |
+| bk-viz (optional, Python 3.10+) | The Braga design system v2.1 chart theme (`bk_theme`): `use_bk_theme()` in `templates/dsx_plotstyle.py` and the example figures `examples/analysis/charts.py` draws |
 | Node.js standard library | `install.mjs`, the GSD Core capability installer |
 | `unittest`, ruff, markdownlint-cli2 | Test suite and linters run by `scripts/check.sh` |
 | GitHub Actions | `scripts/check.sh` on Python 3.9, 3.11, 3.12 and 3.13, linters pinned |

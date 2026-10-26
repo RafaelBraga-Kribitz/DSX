@@ -31,10 +31,10 @@ Determinism is structural, not incidental: re-running `examples/analysis/charts.
 reproduces the sealed SVG bytes for all three figures. The recipe is the Phase-23 style
 layer — `dsx_plotstyle.save_deterministic` fixes `svg.hashsalt`, bakes glyphs as paths
 (`svg.fonttype: path`), and suppresses the render timestamp (`metadata Date: None`);
-the dsx-urban style pins the same salt and fonttype (GA-3). Verified this run: two
+the figures are drawn on the Braga design system v2.1 (`bk-viz` 2.0.0, `use_bk_theme`) (GA-3). Verified this run: two
 consecutive renders produced byte-identical SVGs (`dsx seal` reported identical
 `sha256:` digests both times), and those digests match `spec.visuals[].svg_sha256`.
 
-- Renderer: matplotlib 3.11.1 (pinned in `good-FIGURE-MANIFEST.yaml`).
+- Renderer: matplotlib 3.11.2 (pinned in `good-FIGURE-MANIFEST.yaml`), theme bk-viz 2.0.0.
 - Data snapshot: `warehouse.fct_signups`, 2026-06-01..06-14 (the readout window).
 - Deviation from the declared environment: none.

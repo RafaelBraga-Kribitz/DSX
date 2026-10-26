@@ -35,6 +35,25 @@ works from any working directory. Four styles ship in `styles/`: `dsx-urban`
 lists them, and an unknown name raises `ValueError` naming the ones that exist.
 Every style sets the vendored Lato font (regular and bold, in `styles/fonts/`).
 
+For a figure in the Braga design system v2.1 (the owner's portfolio, or any
+project that declares `bk-viz`), call `use_bk_theme("light")` (or `"dark"`)
+instead of `use_style`. It installs `bk_theme` (BKribitz type, the `surface`
+ground, hairline axes); `finalise_figure` then sets the finding title and the
+provenance footer (`run_id=`, `tag=` optional) and `direct_label` writes labels
+in ink. Colour every mark through `bk_theme` roles, never hex: `bk.c("hl")` for
+the one highlighted mark (`bk.highlight_palette(labels, highlight=...)`),
+`bk.c("ink")` / `bk.c("mid")` for reference lines, `bk.palette("categorical", n)`
+for unordered series, `bk.palette("seq" | "div" | "two")` (as a
+`ListedColormap`) in place of `viridis`-style ramps, and `bk.variance_color` /
+`bk.variance_label` for good/bad variances. `examples/analysis/charts.py` is the
+worked example.
+
+```python
+import bk_theme as bk
+from templates.dsx_plotstyle import use_bk_theme
+use_bk_theme("light")
+```
+
 `finalise_figure`'s `source` keyword is **mandatory with no default** — omitting
 it is a `TypeError` at call binding, which is the signature-level mirror of
 `DSX-VIZ-062` (a figure must cite its source). `save_deterministic` **writes
