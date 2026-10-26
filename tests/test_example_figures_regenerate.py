@@ -14,8 +14,9 @@ binary so the seals survive), and the SVG metadata names the exact matplotlib
 version. Line endings and that one ``<dc:title>`` line are normalised; every
 other byte must match. Output geometry can move between matplotlib minor
 releases, so the test is skipped when the running matplotlib's major.minor
-differs from the one recorded in the committed files, and when matplotlib is
-not installed (the gate path is stdlib-only and CI need not have it).
+differs from the one recorded in the committed files, and when matplotlib or the
+figures' theme, bk-viz (``bk_theme``, Python >= 3.10), is not installed (the gate
+path is stdlib-only and CI need not have them).
 
 Writes only into a ``tempfile.TemporaryDirectory``.
 
@@ -43,6 +44,13 @@ except ImportError:  # pragma: no cover - depends on the environment
     matplotlib = None
     _MPL_VERSION = None
 
+try:
+    import bk_theme  # noqa: F401  (bk-viz: the theme charts.py draws with)
+
+    _BK_AVAILABLE = True
+except ImportError:  # pragma: no cover - depends on the environment
+    _BK_AVAILABLE = False
+
 
 def _normalise(data: bytes) -> bytes:
     data = data.replace(b"\r\n", b"\n")
@@ -55,6 +63,7 @@ def _recorded_version() -> tuple[int, int] | None:
 
 
 @unittest.skipIf(matplotlib is None, "matplotlib not installed; figures are frozen artefacts")
+@unittest.skipIf(not _BK_AVAILABLE, "bk-viz not installed; figures are frozen artefacts")
 class TestExampleFiguresRegenerate(unittest.TestCase):
     def test_charts_py_redraws_the_committed_figures(self):
         recorded = _recorded_version()
@@ -66,11 +75,10 @@ class TestExampleFiguresRegenerate(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("_dsx_example_charts", CHARTS_PATH)
         charts = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(charts)
-        import matplotlib.pyplot as plt
 
         with tempfile.TemporaryDirectory() as tmp, matplotlib.rc_context():
             charts.FIG_DIR = Path(tmp)
-            plt.style.use(str(charts.STYLE))
+            charts.apply_theme()
             written = [
                 charts.render_activation_uplift(),
                 charts.render_daily_trend(),

@@ -177,7 +177,7 @@ visuals:
     data_input_type: categorical-value
     renderer: matplotlib
     artifact_path: figures/activation_uplift.svg
-    svg_sha256: "sha256:1ab8459fc501777167a628553baa3e38a6988be05ab6fc5403f4f4320e902f4f"
+    svg_sha256: "sha256:d2cc8e15d3726c82028f0d7fb38f6dffec53a81a1035f8f560756c00cb6006b5"
     generator: analysis/charts.py
     run_id: "2026-06-readout"
     expected_categories: [control, treatment]
@@ -200,7 +200,7 @@ visuals:
     data_input_type: time-series
     renderer: matplotlib
     artifact_path: figures/daily_activation_trend.svg
-    svg_sha256: "sha256:f44091c2080fb22f4bc6b2f3e186007097c5592adc1ded0ab597a1cee073f11e"
+    svg_sha256: "sha256:348a02025ca57c13c559e750274c154a0559b890a02eefc28e1fa07c596295c4"
     generator: analysis/charts.py
     run_id: "2026-06-readout"
     series_role: component
@@ -226,7 +226,7 @@ visuals:
     data_input_type: interval-range
     renderer: matplotlib
     artifact_path: figures/activation_uplift_ci.svg
-    svg_sha256: "sha256:52023ee892b8dcd28c4468b5aec4562b59f9cc097c51fe6e05ed5857ec6c7ade"
+    svg_sha256: "sha256:1e1f3f1cce0d2dae5cf82a556dcf33458830bf01e2555daacccddef10d830158"
     generator: analysis/charts.py
     run_id: "2026-06-readout"
     series_role: component
