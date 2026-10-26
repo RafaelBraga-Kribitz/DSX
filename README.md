@@ -6,17 +6,17 @@
 [![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
 [![CI](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml)
 
-**Status:** Maintained · **DSX — Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
+**Status:** Maintained · **DSX: Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
 
 Analytical work shipped through a coding agent still leaks, underpowers, and overclaims.
-`dsx` makes those errors blocking — code that runs at a gate, not advice in a prompt.
+`dsx` makes those errors blocking: code that runs at a gate, not advice in a prompt.
 
 **Declare. Substantiate. eXplain.** The name is the order of work, and each step
 has one artifact and one check:
 
 | Step | Artifact | Checked by |
 |---|---|---|
-| **Declare** the analysis before the data is touched | `ANALYSIS-SPEC.yaml` — decision, question type, design, metric, claim | the contract, coherence and validity-frame families |
+| **Declare** the analysis before the data is touched | `ANALYSIS-SPEC.yaml`: decision, question type, design, metric, claim | the contract, coherence and validity-frame families |
 | **Substantiate** it with code, not with wording | the pipeline, the figures, the results the spec named | experiment, stats, ML, metric, SQL, data-quality, reproducibility families |
 | **eXplain** only what the evidence supports | the readout, with magnitude, interval and limitation | claims, narrative and decision-replay families |
 
@@ -31,7 +31,7 @@ flowchart LR
 A spec written after the analysis is a rationalisation, a claim made before the
 audit is a guess, and a readout that outruns its interval is the error the other
 two exist to prevent. The three steps are enforced at whichever point your setup
-reaches first — the end of a session, a push, or a phase boundary.
+reaches first: the end of a session, a push, or a phase boundary.
 
 ## The idea
 
@@ -58,7 +58,7 @@ The split is deliberate and it is the whole design:
 An agent decides that this is a causal question needing a difference-in-differences
 design. Code then verifies that parallel-trends evidence was declared, that the
 claim's verb matches the design's strength, that the sample meets the power the
-declared MDE requires, and that no feature in the model is populated after the
+declared minimum detectable effect (MDE) requires, and that no feature in the model is populated after the
 outcome. The agent stays flexible; the output stops being a matter of opinion.
 
 Every finding the gate raises carries a stable code, grouped into check families
@@ -246,7 +246,7 @@ $ dsx audit --spec examples/bad-ANALYSIS-SPEC.yaml
             reinterpret a null as evidence of no effect.
 ```
 
-That number is computed, not asserted. The same is true of the SRM chi-square,
+That number is computed, not asserted. The same is true of the sample ratio mismatch (SRM) chi-square,
 the peeking-inflated α, the Benjamini-Hochberg adjustment, and the reconciliation
 gap.
 
@@ -472,6 +472,17 @@ catches, and which sit on the gated backlog with an entry condition. The first e
 is *The AI Data Scientist* (arXiv:2508.18113), whose six-subagent pipeline was
 transcribed stage for stage into the known-bad corpus and passed the gate with zero
 findings until Phase 11.1 shipped the four codes that now block it.
+
+## Stack
+
+| Technology | Role |
+|---|---|
+| Python 3.9+ standard library | The `dsx` engine, check families and statistics kernel; no third-party package on the gate path (see [Design notes](#design-notes)) |
+| PyYAML (optional) | Used for the spec when installed; otherwise a bundled parser, tested for parity against it |
+| matplotlib (optional) | The `styles/*.mplstyle` chart styles and their determinism tests |
+| Node.js standard library | `install.mjs`, the GSD Core capability installer |
+| `unittest`, ruff, markdownlint-cli2 | Test suite and linters run by `scripts/check.sh` |
+| GitHub Actions | `scripts/check.sh` on Python 3.9, 3.11, 3.12 and 3.13, linters pinned |
 
 ## Status
 
