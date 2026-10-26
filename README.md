@@ -507,6 +507,7 @@ findings until Phase 11.1 shipped the four codes that now block it.
 | Python 3.9+ standard library | The `dsx` engine, check families and statistics kernel; no third-party package on the gate path (see [Design notes](#design-notes)) |
 | PyYAML (optional) | Used for the spec when installed; otherwise a bundled parser, tested for parity against it |
 | matplotlib (optional) | The `styles/*.mplstyle` chart styles and their determinism tests |
+| bk-viz (optional, Python 3.10+) | The Braga design system v2.1 chart theme (`bk_theme`): `use_bk_theme()` in `templates/dsx_plotstyle.py` and the example figures `examples/analysis/charts.py` draws |
 | Node.js standard library | `install.mjs`, the GSD Core capability installer |
 | `unittest`, ruff, markdownlint-cli2 | Test suite and linters run by `scripts/check.sh` |
 | GitHub Actions | `scripts/check.sh` on Python 3.9, 3.11, 3.12 and 3.13, linters pinned |
