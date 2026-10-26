@@ -10,7 +10,9 @@ on:
   pull_request:
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # Pinned: setup-python has no Python 3.9 build for Ubuntu 26.04 (ubuntu-latest since
+    # late Oct 2026), and the README promises 3.9+. Revisit when 3.9 leaves the matrix.
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
