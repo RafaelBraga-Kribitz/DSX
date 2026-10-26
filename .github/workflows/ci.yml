@@ -52,6 +52,6 @@ jobs:
           pip install -q "PyYAML==6.0.2" \
             "matplotlib==3.9.4; python_version < '3.11'" \
             "matplotlib==3.11.2; python_version >= '3.11'" \
-            "bk-viz @ git+https://github.com/RafaelBraga-Kribitz/bk-viz@f4f90b2c76b8fed4f27caa9b29282336d779a3da; python_version >= '3.10'"
+            "bk-viz @ git+https://github.com/RafaelBraga-Kribitz/bk-viz@fe8125a3043f49a798ef24740b23f81c46863562; python_version >= '3.10'"
       - name: Full check
         run: ./scripts/check.sh

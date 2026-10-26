@@ -160,7 +160,7 @@ def use_bk_theme(mode: str = "light", **apply_kwargs):
         raise ImportError(
             "use_bk_theme() needs the optional bk-viz package (Python >= 3.10): "
             'pip install "bk-viz @ git+https://github.com/RafaelBraga-Kribitz/bk-viz@'
-            'f4f90b2c76b8fed4f27caa9b29282336d779a3da"'
+            'fe8125a3043f49a798ef24740b23f81c46863562"'
         ) from exc
     bk_theme.apply(mode, **apply_kwargs)
     return bk_theme
