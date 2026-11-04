@@ -62,7 +62,11 @@ arXiv:2508.18113v1, §2.3) states this directly: a continuous age column was
 kept continuous rather than bucketed because the paper's own hypothesis-testing
 stage found a strong numeric relationship, and the same section's Table 2 shows
 the binning idiom (`bucketed_Age` via `pd.cut`) in active use elsewhere in the
-pipeline.
+pipeline. For the cost of binning a continuous predictor, see Royston, Altman &
+Sauerbrei (2006), "Dichotomizing continuous predictors in multiple regression: a
+bad idea", Statistics in Medicine 25(1):127-141, DOI 10.1002/sim.2331
+(bibliographic record confirmed; full text not read in this change). No specific
+number or quotation is attributed to it here.
 
 ## Detection signals
 

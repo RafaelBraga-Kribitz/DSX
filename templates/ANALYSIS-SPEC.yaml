@@ -1,9 +1,10 @@
 # ANALYSIS-SPEC — the analysis contract.
 #
 # This file is the deterministic input the whole capability turns on. Agents fill
-# it using judgement; `dsx` checks it using arithmetic. Every gate in the GSD loop
-# reads this file, so a field left blank is not a formatting oversight — it is a
-# decision that has not been made yet.
+# it using judgement; `dsx` checks it using arithmetic. Gates read the fields
+# marked GATE-READ, so a blank gate-read field is an undecided decision, not a
+# formatting oversight. Fields marked documentation-only are for human readers;
+# no check reads them.
 #
 # Fill it BEFORE touching data. Fields under `results:` are filled during execute.
 #
@@ -13,7 +14,7 @@
 
 spec_version: 1
 title: "<one line: the decision this analysis exists to support>"
-owner: "<analyst>"
+owner: "<analyst>"              # documentation-only — NOT gate-read (decision.owner below is gate-read)
 created: "<YYYY-MM-DD>"
 # spec_id is GATE-READ (DSX-PRE-040): required for prescriptive questions and
 # experiment designs. It is the stable, human-meaningful amendment-counter
@@ -97,7 +98,7 @@ metrics:
     denominator: "<expression including filters>"
     timezone: UTC
     source: <warehouse.table>
-    owner: <team>
+    owner: <team>                  # documentation-only — NOT gate-read
     # sql: |
     #   SELECT ...            # optional; linted for fan-out and NULL semantics
     # reconciliation:
@@ -305,8 +306,8 @@ results:
 # verbatim (whitespace-normalised) in this file.
 narrative:
   path: NARRATIVE.md
-  audience: executive              # executive | product | technical
-  lead_claim: 0
+  audience: executive              # executive | product | technical — documentation-only, NOT gate-read
+  lead_claim: 0                    # documentation-only — NOT gate-read
 
 # Optional BI surface — if declared, path must exist at ship.
 # dashboard:
@@ -413,6 +414,17 @@ validity_frame:
     construct: "<the concept being measured>"
     operationalisation: "<the exact rule that turns the construct into a number>"
     known_gaps: "<what the measurement misses>"
+
+  # Optional: row-exclusion rules. Uncomment and fill to declare them. One rule
+  # as a mapping, or a list of such mappings. The key set is closed (DSX-SPEC-083).
+  # `justification` is required whenever `rule` is set (DSX-VAL-080, HIGH).
+  # `applied_before_split` is a record for the reader; no check reads its value.
+  # The block sits under validity_frame, so the plan-time lock covers it.
+  # exclusions:
+  #   rule: "<which rows are removed, e.g. accounts with fewer than 3 sessions>"
+  #   action: "<what is done with them, e.g. dropped from training and test>"
+  #   applied_before_split: true
+  #   justification: "<why removing them is defensible for the claim population>"
 
 # ── Inference plan (REQ-P6-04) ───────────────────────────────────────────────
 # Declared before results exist, same discipline as decision: above. The

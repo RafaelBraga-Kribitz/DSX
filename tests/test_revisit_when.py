@@ -55,6 +55,25 @@ class TestRevisitWhenIsDiscriminating(unittest.TestCase):
     def test_duration_window_is_accepted(self):
         self.assertTrue(revisit_when_is_discriminating("churn above 5% for 8 weeks"))
 
+    def test_range_duration_without_metric_is_rejected(self):
+        """R1: a range count ("2-3", "2–3", "two to three") is one time anchor;
+        the first number must not survive the strip and pass as a threshold."""
+        for text in (
+            "reassess in 2–3 consecutive weeks",
+            "reassess in 2-3 weeks",
+            "reassess in two to three weeks",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(revisit_when_is_discriminating(text))
+
+    def test_range_duration_with_metric_is_accepted(self):
+        for text in (
+            "churn above 5% for 2-3 consecutive weeks",
+            "when activation falls below 28% for two to three weeks",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(revisit_when_is_discriminating(text))
+
     def test_metric_with_recurring_review_is_accepted(self):
         """A metric+threshold anchored to a digit-free recurring checkpoint is
         accepted — the residual after stripping "quarterly review" still carries
@@ -79,6 +98,46 @@ class TestRevisitWhenIsDiscriminating(unittest.TestCase):
     def test_date_deadline_window_is_accepted(self):
         self.assertTrue(
             revisit_when_is_discriminating("by 2026-Q4 if CAC exceeds $40")
+        )
+
+    def test_word_count_consecutive_window_is_accepted(self):
+        self.assertTrue(
+            revisit_when_is_discriminating(
+                "when weekly activation falls below 28% for two consecutive weeks"
+            )
+        )
+
+    def test_digit_count_consecutive_window_is_accepted(self):
+        self.assertTrue(
+            revisit_when_is_discriminating(
+                "when weekly activation falls below 28% for 2 consecutive weeks"
+            )
+        )
+
+    def test_bare_word_duration_without_metric_is_rejected(self):
+        self.assertFalse(revisit_when_is_discriminating("reassess in two weeks"))
+
+    def test_bare_consecutive_window_without_metric_is_rejected(self):
+        self.assertFalse(
+            revisit_when_is_discriminating("for two consecutive weeks")
+        )
+
+    def test_decimal_count_consecutive_window_without_metric_is_rejected(self):
+        """A decimal count is one complete number: the "2.5" must be stripped
+        whole, not leave a "2." digit that passes as a threshold."""
+        self.assertFalse(
+            revisit_when_is_discriminating("reassess in 2.5 consecutive weeks")
+        )
+
+    def test_decimal_count_window_without_metric_is_rejected(self):
+        self.assertFalse(revisit_when_is_discriminating("reassess in 2.5 weeks"))
+
+    def test_decimal_range_window_without_metric_is_rejected(self):
+        self.assertFalse(revisit_when_is_discriminating("reassess in 1.5-2.5 weeks"))
+
+    def test_decimal_count_consecutive_window_with_metric_is_accepted(self):
+        self.assertTrue(
+            revisit_when_is_discriminating("churn above 5% for 2.5 consecutive weeks")
         )
 
     def test_open_ended_state_change_is_rejected(self):
