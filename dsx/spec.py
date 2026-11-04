@@ -87,9 +87,27 @@ CAUSAL_VERBS_ALWAYS_HIT = (
     "lifts", "lifted", "lifting", "impact of", "effect of", "because of", "due to",
     "thanks to", "responsible for", "attributable to", "uplift from", "generates",
     "generated", "generating", "increasing", "decreasing",
+    "root cause", "root causes", "affects",
 )
 
-CAUSAL_VERBS_PURPOSE_GATED = ("reduce", "increase", "decrease")
+CAUSAL_VERBS_PURPOSE_GATED = ("reduce", "increase", "decrease", "prevent")
+
+# Provenance for "root cause", "root causes", "affects" (always-hit) and
+# "prevent" (purpose-gated): added after the Senior Statistician Roadmap check
+# (2026-08-20). Considered and rejected, because each has a literal or noun
+# reading that would fire DSX-COH-010 / DSX-CLM-011 CRITICAL on ordinary prose:
+#   - "driver of" / "drivers of": literal drivers ("send the report to the
+#     driver of the vehicle").
+#   - "triggers": also a noun in decision vocabulary ("revisit triggers"), and
+#     decision_rule is scanned at CRITICAL.
+#   - bare "drive": the purpose gate allows words between "to" and the verb, so
+#     "upload the report to the shared drive" would fire. "drives", "drove" and
+#     "driving" already fire.
+# "prevent" is a bare infinitive like reduce/increase/decrease, so it is
+# purpose-gated; this deviates from the roadmap's "full strength" and leaves
+# "we should prevent churn" uncaught (the named verbless limit).
+# Known caveat: "root cause" is itself a causal assertion, so an
+# association-typed claim that uses it is meant to fire.
 
 # Compatibility alias for any consumer still importing the flat name (grep at
 # plan 11.2-02 time found none outside dsx/checks/claims.py and
@@ -884,8 +902,18 @@ def falsifier_is_discriminating(value: Any) -> bool:
 # the recurring-token set below since it carries no digit). Bounded, non-nested
 # quantifiers only (mirrors _FALSIFIER_NUMBER_RE above, threat T-11.2-08 / T-7-03):
 # no `.*` chains.
+#
+# The count is digits or a spelled-out word one..twelve, and an optional
+# qualifier (consecutive|straight|full) may sit before the unit, so "for two
+# consecutive weeks" and "for 2 consecutive weeks" anchor like "for 8 weeks".
+#
+# An optional range prefix ("2-3", en/em dash, "two to three") is consumed in the same
+# span, so the first count of a range cannot survive the strip as a threshold.
 _WINDOW_DURATION_RE = re.compile(
-    r"\b\d+\s*(?:day|days|week|weeks|month|months|quarter|quarters|year|years)\b"
+    r"\b(?:(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(?:-|\u2013|\u2014|to)\s*)?"
+    r"(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
+    r"\s*(?:(?:consecutive|straight|full)\s+)?"
+    r"(?:day|days|week|weeks|month|months|quarter|quarters|year|years)\b"
 )
 
 # A date/deadline: an ISO calendar date (2026-07-15) or a fiscal-quarter date

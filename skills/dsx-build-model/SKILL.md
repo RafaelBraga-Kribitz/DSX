@@ -72,6 +72,17 @@ The sequence is not stylistic. Each step makes the next one checkable.
 
 6. **Tune on validation, never on test.** The test set is touched once, at the
    end, at a threshold already chosen on validation.
+   - At the tuning step, record the search in `model.selection_ledger`:
+     `candidates_evaluated`, `configurations_tried` and `selected_on`. The
+     accepted `selected_on` values are `train`, `validation`, `test`,
+     `cv_same_fold` and `nested_cv`; `test` and `cv_same_fold` are accepted
+     values that still draw a finding (DSX-ML-091, DSX-ML-092), and a blank or
+     unrecognised value counts as a missing field (DSX-ML-090).
+   - At the evaluation step, declare where the reported score came from in
+     `results.model_score_source` (`cv_mean`, `holdout` or `nested_cv`) and
+     list the per-fold scores in `results.fold_scores`. `best_fold`, `unknown`
+     or a blank value draws DSX-ML-052 once the model beats its baseline, and a margin smaller
+     than the `fold_scores` spread draws DSX-ML-053.
 
 7. **Calibrate if the probabilities drive decisions.** Tree ensembles rank well
    and calibrate badly. A "70% risk" bucket that contains 40% actual events

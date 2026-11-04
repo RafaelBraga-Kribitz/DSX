@@ -49,9 +49,19 @@ Pay attention to aggregates computed over the full history, joins to tables that
 are themselves updated after the outcome, and any feature engineered from a
 window that extends past the prediction timestamp.
 
+Also ask: *what statistic motivated this feature?* A feature chosen because a
+test, correlation or importance score computed over the full, unsplit frame
+singled it out has already seen the data the split exists to protect.
+
 **The evaluation.** How many times did the test set inform a decision? Where was
 the threshold chosen? Is the reported metric appropriate for the class balance?
 Is there a baseline, and does the model beat it?
+
+Compare the code with the declared fields: the search the code ran against
+`model.selection_ledger` (`candidates_evaluated`, `configurations_tried`,
+`selected_on`), and the score the code reports against
+`results.model_score_source` and `results.fold_scores`. A declaration that the
+code contradicts is a finding.
 
 ## Step 3 — Reproduce the headline number
 
@@ -75,6 +85,8 @@ Signals that warrant a full trace, in rough order of reliability:
    combined into an ensemble, with no stated basis for the selection and no
    nested protocol separating the tuning data from the data the reported
    score came from.
+9. A large machine-generated feature roster built from a small set of source
+   columns, with no stated basis for which features were kept.
 
 None of these prove leakage. All of them mean stop and trace the feature to its
 source table and its populated-at timestamp.

@@ -224,5 +224,140 @@ class TestNarrativeDocsNameNoQuarantinedField(unittest.TestCase):
         self.assertEqual(offenders, [], "\n".join(offenders))
 
 
+class TestStorytellerTypesActionClaimsPrescriptive(unittest.TestCase):
+    """Roadmap check 2026-08-20: a claim that carries an action must be typed
+    ``prescriptive`` in claims[], so the coherence ladder and the identification
+    checks can adjudicate it. The storyteller prompt must say so."""
+
+    def test_storyteller_instructs_prescriptive_typing_of_action_claims(self):
+        text = (ROOT / "agents" / "dsx-data-storyteller.md").read_text(encoding="utf-8")
+        flat = " ".join(text.split())
+        self.assertIn("carries an action", flat)
+        self.assertRegex(
+            flat, r"typed `prescriptive` in `claims\[\]`"
+        )
+
+
+# ── Documentation-only template fields (roadmap check 2026-08-20) ───────────
+_TEMPLATE = ROOT / "templates" / "ANALYSIS-SPEC.yaml"
+_DOC_ONLY_MARKER = "documentation-only"
+_NOT_GATE_READ = "NOT gate-read"
+
+
+def _scan_source_for_string_key_reads(text: str, keys: tuple[str, ...]) -> list[str]:
+    """AST detector: any ``.get("<key>")``, ``["<key>"]`` subscript or dotted
+    call-argument string literal ending in ``.<key>``. Returns one line per read,
+    prefixed with the receiver expression so a caller can allow-list receivers."""
+    reads: list[str] = []
+    tree = ast.parse(text)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Attribute) and node.func.attr == "get"
+                and node.args and isinstance(node.args[0], ast.Constant)
+                and node.args[0].value in keys
+            ):
+                reads.append(f"{ast.unparse(node.func.value)}|{node.args[0].value}|line {node.lineno}")
+            # Shared helper dsx.spec.get(spec, "owner"): undotted key as 2nd argument.
+            if (
+                isinstance(node.func, ast.Name) and node.func.id == "get"
+                and len(node.args) >= 2 and isinstance(node.args[1], ast.Constant)
+                and node.args[1].value in keys
+            ):
+                reads.append(f"{ast.unparse(node.args[0])}|{node.args[1].value}|line {node.lineno}")
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    for key in keys:
+                        if arg.value.endswith("." + key):
+                            reads.append(f"{arg.value[: -len(key) - 1]}|{key}|line {node.lineno}")
+        elif isinstance(node, ast.Subscript):
+            key = _subscript_key(node.slice)
+            if key in keys:
+                reads.append(f"{ast.unparse(node.value)}|{key}|line {node.lineno}")
+    return reads
+
+
+class TestDocumentationOnlyTemplateFields(unittest.TestCase):
+    """The template marks top-level ``owner``, per-metric ``owner``,
+    ``narrative.audience`` and ``narrative.lead_claim`` as documentation-only.
+    These tests keep the label true: no ``dsx/`` code reads them, and the only
+    ``owner`` read is the gate-read ``decision.owner`` (DSX-SPEC-011)."""
+
+    def _dsx_sources(self):
+        files = sorted(DSX_DIR.rglob("*.py"))
+        self.assertTrue(files)
+        return [(p, p.read_text(encoding="utf-8")) for p in files]
+
+    def test_no_dsx_module_reads_lead_claim(self):
+        offenders = [
+            str(p.relative_to(ROOT))
+            for p, text in self._dsx_sources()
+            if "lead_claim" in text
+        ]
+        self.assertEqual(offenders, [])
+
+    def test_no_dsx_module_reads_narrative_audience(self):
+        offenders: list[str] = []
+        for p, text in self._dsx_sources():
+            for read in _scan_source_for_string_key_reads(text, ("audience",)):
+                offenders.append(f"{p.relative_to(ROOT)}: {read}")
+        self.assertEqual(offenders, [])
+
+    def test_only_owner_read_is_the_decision_owner(self):
+        offenders: list[str] = []
+        seen_decision = False
+        for p, text in self._dsx_sources():
+            for read in _scan_source_for_string_key_reads(text, ("owner",)):
+                receiver = read.split("|")[0]
+                if receiver.split(".")[-1] == "decision":
+                    seen_decision = True
+                else:
+                    offenders.append(f"{p.relative_to(ROOT)}: {read}")
+        self.assertEqual(offenders, [])
+        self.assertTrue(seen_decision, "expected the gate-read decision.owner read")
+
+    def test_detector_fires_on_violating_samples(self):
+        self.assertTrue(_scan_source_for_string_key_reads('v = metric.get("owner")\n', ("owner",)))
+        self.assertTrue(_scan_source_for_string_key_reads('v = spec["owner"]\n', ("owner",)))
+        self.assertTrue(
+            _scan_source_for_string_key_reads('v = get(spec, "metrics.owner")\n', ("owner",))
+        )
+        self.assertTrue(
+            _scan_source_for_string_key_reads('v = get(spec, "owner")\n', ("owner",))
+        )
+        self.assertTrue(
+            _scan_source_for_string_key_reads('v = narrative.get("audience")\n', ("audience",))
+        )
+        permitted = _scan_source_for_string_key_reads('v = decision.get("owner")\n', ("owner",))
+        self.assertEqual([r.split("|")[0] for r in permitted], ["decision"])
+
+    def test_template_marks_the_four_fields_documentation_only(self):
+        lines = _LINE_SPLIT_RE.split(_TEMPLATE.read_text(encoding="utf-8"))
+        wanted = {
+            "top-level owner": re.compile(r'^owner:'),
+            "metric owner": re.compile(r"^    owner: <team>"),
+            "narrative.audience": re.compile(r"^  audience:"),
+            "narrative.lead_claim": re.compile(r"^  lead_claim:"),
+        }
+        for label, pattern in wanted.items():
+            with self.subTest(field=label):
+                matches = [ln for ln in lines if pattern.match(ln)]
+                self.assertEqual(len(matches), 1, matches)
+                self.assertIn(_DOC_ONLY_MARKER, matches[0])
+                self.assertIn(_NOT_GATE_READ, matches[0])
+
+    def test_decision_owner_is_not_marked_documentation_only(self):
+        lines = _LINE_SPLIT_RE.split(_TEMPLATE.read_text(encoding="utf-8"))
+        matches = [ln for ln in lines if ln.startswith("  owner: ")]
+        self.assertEqual(len(matches), 1, matches)
+        self.assertNotIn(_DOC_ONLY_MARKER, matches[0])
+
+    def test_template_header_distinguishes_blank_gate_fields_from_doc_only(self):
+        head = "\n".join(_LINE_SPLIT_RE.split(_TEMPLATE.read_text(encoding="utf-8"))[:10])
+        self.assertIn("undecided decision", head)
+        self.assertIn("documentation-only", head)
+        self.assertNotIn("Every gate in the GSD loop", head)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

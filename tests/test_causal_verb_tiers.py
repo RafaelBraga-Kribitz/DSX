@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dsx.checks import claims, coherence
 from dsx.findings import Report, Severity
+from dsx.spec import causal_verb_matches
 
 
 def codes(report: Report) -> set[str]:
@@ -238,6 +239,57 @@ class TestCausalVerbTiers(unittest.TestCase):
         report = claims.check(spec)
         self.assertIn("DSX-CLM-020", codes(report))
         self.assertNotIn("DSX-CLM-011", codes(report))
+
+
+class TestRoadmapLexiconAdditions(unittest.TestCase):
+    """Roadmap check 2026-08-20: root cause / affects (always-hit) and prevent
+    (purpose-gated). driver(s) of, triggers and bare drive are deliberately NOT
+    in the lexicon: each has a literal or noun reading that would fire a
+    CRITICAL gate on ordinary prose."""
+
+    def test_root_cause_fires(self):
+        self.assertIn("root cause", causal_verb_matches("the root cause of churn is price"))
+
+    def test_root_causes_fires(self):
+        self.assertTrue(causal_verb_matches("we found two root causes of churn"))
+
+    def test_affects_fires(self):
+        self.assertIn("affects", causal_verb_matches("price affects retention"))
+
+    def test_prevent_fires_in_purpose_construction(self):
+        self.assertIn(
+            "prevent", causal_verb_matches("offer incentives to prevent churn")
+        )
+
+    def test_prevent_fires_through_claims_check(self):
+        report = claims.check(_claims_spec("Offer incentives to prevent churn.", "association"))
+        self.assertIn("DSX-CLM-011", codes(report))
+
+    def test_prevent_without_purpose_marker_does_not_fire(self):
+        self.assertEqual(causal_verb_matches("a prevent valve was installed"), [])
+
+    def test_shared_drive_does_not_fire(self):
+        self.assertEqual(
+            causal_verb_matches("upload the report to the shared drive."), []
+        )
+
+    def test_revisit_triggers_does_not_fire(self):
+        self.assertEqual(causal_verb_matches("the revisit triggers"), [])
+
+    def test_literal_driver_of_does_not_fire(self):
+        self.assertEqual(
+            causal_verb_matches("the driver of each vehicle completed the survey."), []
+        )
+        self.assertEqual(
+            causal_verb_matches("send the report to the driver of the vehicle."), []
+        )
+
+    def test_root_cause_in_association_claim_fires_clm011(self):
+        """Stated caveat: 'root cause' is itself a causal assertion."""
+        report = claims.check(
+            _claims_spec("The root cause of churn is slow onboarding.", "association")
+        )
+        self.assertIn("DSX-CLM-011", codes(report))
 
 
 if __name__ == "__main__":
