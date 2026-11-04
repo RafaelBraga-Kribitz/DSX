@@ -336,6 +336,16 @@ CHART_CAPABILITIES: dict[str, frozenset[str]] = {
     "financial-ohlc": frozenset({"candlestick", "ohlc_bar", "line", "column_range"}),
 }
 
+# What a figure is, when it is not a chart of data. Omit the field for a data
+# figure (the default). `diagram` declares a figure with no data (a pipeline flow,
+# a module map): it needs no relationship, no units and no magnitude in its
+# takeaway, and a figure that also declares data fields loses the exemption
+# (DSX-VIZ-015). Name -> description, the same shape as series_roles.
+VISUAL_KINDS: dict[str, str] = {
+    "data": "A chart of data: relationship, units and a takeaway with a magnitude are checked (the default).",
+    "diagram": "A structural figure with no data: exempt from DSX-VIZ-010, DSX-VIZ-064 and DSX-VIZ-061 only.",
+}
+
 RENDERERS = {"matplotlib", "plotly", "altair", "ggplot", "glyph", "other"}
 
 SERIES_ROLES = {"component", "scenario"}
@@ -718,6 +728,7 @@ _VOCABULARIES: list[tuple[str, Any]] = [
     ("metric_types", METRIC_TYPES),
     ("data_input_types", DATA_INPUT_TYPES),
     ("renderers", RENDERERS),
+    ("visual_kinds", VISUAL_KINDS),
     ("series_roles", SERIES_ROLES),
     # New this phase (REQ-P6-06) — every one a name->description dict per D-04:
     ("identification_strengths", IDENTIFICATION_STRENGTHS),

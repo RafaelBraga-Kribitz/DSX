@@ -288,6 +288,9 @@ _GOLDEN_SHIP_FINDINGS: dict[str, frozenset[str]] = {
         "DSX-VIZ-020",
     }),
     "examples/known-bad/chart-axis-baseline-undeclared-ANALYSIS-SPEC.yaml": frozenset(),
+    "examples/known-bad/chart-diagram-declared-with-data-ANALYSIS-SPEC.yaml": frozenset({
+        "DSX-VIZ-015",
+    }),
     "examples/known-bad/chart-dual-axis-lines-ANALYSIS-SPEC.yaml": frozenset({
         "DSX-VIZ-030",
     }),

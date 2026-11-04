@@ -780,6 +780,7 @@ class TestSpecStructure(unittest.TestCase):
         # it satisfies the same estimand assertion.
         # 2026-09-30 (project audit L38): exclusion-rule-without-justification is the
         # forty-sixth (45 -> 46), a clone of a good-corpus control's validity_frame.
+        # chart-diagram-declared-with-data (DSX-VIZ-015 fixture) is the forty-seventh (46 -> 47).
         from dsx.loader import load
         from dsx.spec import ESTIMAND_TYPES
 
@@ -789,7 +790,7 @@ class TestSpecStructure(unittest.TestCase):
             + sorted((root / "examples" / "known-bad").glob("*-ANALYSIS-SPEC.yaml"))
             + sorted((root / "templates").glob("ANALYSIS-SPEC.yaml"))
         )
-        self.assertEqual(len(paths), 46, [str(p) for p in paths])
+        self.assertEqual(len(paths), 47, [str(p) for p in paths])
         bad = []
         for p in paths:
             estimand_type = load(str(p)).get("validity_frame", {}).get("estimand", {}).get("type")

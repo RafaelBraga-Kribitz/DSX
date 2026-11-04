@@ -18,7 +18,7 @@ A code that fires at more than one severity lists every severity it can carry
 headline text first and the other texts after `also:`. `<…>` stands for a
 value filled in at run time.
 
-**Total: 279 codes.**
+**Total: 280 codes.**
 
 ## Contract structure — `DSX-SPEC-*`
 
@@ -297,6 +297,7 @@ Encoding correctness, proportionality, uncertainty, access.
 | `DSX-VIZ-012` | HIGH | '<…>' shows a <…> relationship with a <…> chart |
 | `DSX-VIZ-013` | HIGH | '<…>' chart type conflicts with data_input_type |
 | `DSX-VIZ-014` | MEDIUM | '<…>' has no data_input_type |
+| `DSX-VIZ-015` | HIGH | '<…>' has an invalid visual_kind declaration |
 | `DSX-VIZ-020` | CRITICAL | '<…>' is a <…> chart with a truncated y-axis |
 | `DSX-VIZ-021` | LOW | '<…>' does not declare its y-axis baseline |
 | `DSX-VIZ-030` | HIGH | '<…>' uses two y-axes |

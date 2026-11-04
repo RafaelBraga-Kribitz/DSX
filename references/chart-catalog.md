@@ -130,6 +130,14 @@ comes from Cleveland & McGill (perception) and Wilke (uncertainty).
 | Magnitude | `radar` | categorical-multi | area | refusal | Duan et al. 2023 (J Clin Epidemiol 156:85-94), Introduction — area-vs-axis-order and area-proportional-to-square-of-value criticisms; HQ-27 Tier-3 |
 | Magnitude | `word_cloud` | categorical-value | area | refusal | Jacob Harris, 'Word clouds considered harmful', Nieman Journalism Lab 2011-10-13 — HQ-27; editorial rationale, not perceptual |
 
+**One mark, two relationships.** A catalog row carries one function, so `heatmap`
+sits under Correlation, its FT function. The live gate also admits it under the
+`comparison` relationship when `data_input_type` is `grouped-categorical` (or an
+inventory id of that family: IT006, IT008, IT015, IT033). A family-by-skill table
+of shares is a comparison, not a correlation. The condition is held by
+`RELATIONSHIP_MARK_INPUT_GATE` in `dsx/checks/viz.py`; every other
+relationship–mark pairing is unchanged.
+
 ## Machine-readable payload
 
 ```json
@@ -447,7 +455,7 @@ comes from Cleveland & McGill (perception) and Wilke (uncertainty).
     {
       "mark": "heatmap",
       "function": "Correlation",
-      "description": "A value over two categorical axes, encoded as colour intensity.",
+      "description": "A value over two categorical axes, encoded as colour intensity. Read as a correlation on trivariate or matrix input, and as a comparison on grouped-categorical input (a group x category table of values).",
       "data_signature": "trivariate",
       "perceptual_channel": "colour_saturation",
       "citation": "FT Visual Vocabulary 2016, Correlation (function axis, D-3, HQ-27); DSX admissible mark",

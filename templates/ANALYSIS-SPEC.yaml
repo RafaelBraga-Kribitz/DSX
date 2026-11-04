@@ -223,6 +223,9 @@ analysis:
 visuals:
   - name: <chart name>
     chart_id: <stable_id>              # unique across visuals; used by FIGURE-MANIFEST
+    # visual_kind: diagram             # only for a figure with NO data (flow, module map);
+    #                                  # drop relationship, data_input_type, y_axis*, shows_estimates.
+    #                                  # Exempts DSX-VIZ-010/064/061 only; any data field voids it (VIZ-015).
     relationship: comparison           # `dsx vocab` for the closed list
     type: bar
     data_input_type: categorical-value # `dsx vocab` — must admit `type`

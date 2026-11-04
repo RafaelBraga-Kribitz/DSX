@@ -9,13 +9,24 @@ declared chart spec — no rendering required, so the check runs in a gate.
 from __future__ import annotations
 
 from ..findings import Report
-from ..input_types import canonical_id
+from ..input_types import canonical_id, family_of
 from ..input_types import get as input_type_record
-from ..spec import CHART_CAPABILITIES, DATA_INPUT_TYPES, as_number, is_blank, items, normalize
+from ..spec import (
+    CHART_CAPABILITIES,
+    DATA_INPUT_TYPES,
+    VISUAL_KINDS,
+    as_number,
+    is_blank,
+    items,
+    normalize,
+)
 
 # Relationship → admissible chart types. The first entry is the default choice.
 RELATIONSHIP_CHARTS: dict[str, tuple[str, ...]] = {
-    "comparison": ("bar", "horizontal_bar", "dot_plot", "bullet", "butterfly"),
+    # heatmap is a comparison only for grouped-categorical input (a group x category
+    # table of values, printed or not); RELATIONSHIP_MARK_INPUT_GATE below holds that
+    # condition. Under correlation it keeps its trivariate / matrix reading.
+    "comparison": ("bar", "horizontal_bar", "dot_plot", "bullet", "butterfly", "heatmap"),
     "trend": ("line", "area", "sparkline", "slope"),
     "part_to_whole": ("stacked_bar", "treemap", "waffle", "pie"),
     "distribution": ("histogram", "box", "violin", "density", "ecdf", "strip", "kde",
@@ -40,6 +51,25 @@ RELATIONSHIP_CHARTS: dict[str, tuple[str, ...]] = {
                     "confidence_strips", "eye", "half_eye", "quantile_dot_plot",
                     "confidence_band", "graded_confidence_band", "fitted_draws"),
 }
+
+# A mark that a relationship admits only for named data_input_type families. A
+# (relationship, mark) pair listed here is admissible only when the declared
+# data_input_type is one of those families (an IT id counts by its family). Pairs
+# not listed are admitted for every input type that the matrix admits.
+RELATIONSHIP_MARK_INPUT_GATE: dict[tuple[str, str], frozenset[str]] = {
+    ("comparison", "heatmap"): frozenset({"grouped-categorical"}),
+}
+
+# visual_kind: diagram declares a figure that carries no data (a pipeline flow, a
+# module map). It exempts the figure from DSX-VIZ-010, DSX-VIZ-064 and the unit
+# check DSX-VIZ-061, and from nothing else. A diagram must therefore carry none of
+# these fields: a figure that declares any of them has data, and the exemption is
+# void (DSX-VIZ-015).
+DIAGRAM_DATA_FIELDS = (
+    "relationship", "data_input_type", "y_axis", "y_axis_min", "y_axis_starts_at_zero",
+    "dual_axis", "shows_estimates", "shows_uncertainty", "uncertainty_mark",
+    "category_count",
+)
 
 # Chart families whose visual encoding is length from a baseline. Truncating the
 # axis breaks the proportionality the reader is decoding.
@@ -129,20 +159,77 @@ def check(spec: dict) -> Report:
         label = visual.get("name") or f"visual {index}"
         chart_type = normalize(visual.get("type", ""))
 
+        no_data = _declares_no_data(visual, label, where, report)
+
         _check_banned(chart_type, label, where, report)
-        _check_relationship_match(visual, chart_type, label, where, report)
+        if not no_data:
+            _check_relationship_match(visual, chart_type, label, where, report)
         _check_input_type_matrix(visual, chart_type, label, where, report)
         _check_axis_truncation(visual, chart_type, label, where, report)
         _check_dual_axis(visual, label, where, report)
         _check_slice_count(visual, chart_type, label, where, report)
         _check_color(visual, label, where, report)
-        _check_labelling(visual, label, where, report)
+        _check_labelling(visual, label, where, report, no_data=no_data)
         _check_uncertainty(visual, label, where, report)
         _check_uncertainty_vocabulary(visual, label, where, report)
         _check_ordering(visual, chart_type, label, where, report)
 
     report.ok(f"{len(visuals)} visual(s) audited")
     return report
+
+
+def _declares_no_data(visual: dict, label: str, where: str, report: Report) -> bool:
+    """True when the figure validly declares ``visual_kind: diagram``.
+
+    A declared diagram is exempt from DSX-VIZ-010 (no relationship), DSX-VIZ-064
+    (takeaway needs a magnitude or comparison) and DSX-VIZ-061 (units). Nothing
+    else is exempt: the seal, the takeaway text and every other check still run.
+    The exemption is void, with a finding, when the figure carries any data field
+    (``DIAGRAM_DATA_FIELDS``) or when ``visual_kind`` is not in ``VISUAL_KINDS``:
+    a figure with data must not be able to opt out of the checks that read it.
+    """
+    raw = visual.get("visual_kind")
+    if is_blank(raw):
+        return False
+    kind = normalize(raw)
+    if kind not in VISUAL_KINDS:
+        report.add(
+            "DSX-VIZ-015", "HIGH",
+            f"'{label}' has an invalid visual_kind declaration",
+            detail=(
+                f"Unrecognised visual_kind {raw!r}. Allowed: " + ", ".join(sorted(VISUAL_KINDS))
+                + ". No exemption applies."
+            ),
+            remedy="Use visual_kind: diagram for a figure with no data, or omit the field.",
+            where=f"{where}.visual_kind",
+        )
+        return False
+    if kind != "diagram":
+        return False
+    bool_flags = {"dual_axis", "shows_estimates", "shows_uncertainty"}
+    carried = [
+        field for field in DIAGRAM_DATA_FIELDS
+        if (visual.get(field) is True if field in bool_flags
+            else not is_blank(visual.get(field)))
+    ]
+    if carried:
+        report.add(
+            "DSX-VIZ-015", "HIGH",
+            f"'{label}' has an invalid visual_kind declaration",
+            detail=(
+                "visual_kind: diagram declares a figure with no data, but this figure "
+                f"also declares {', '.join(carried)}. The diagram exemption from "
+                "DSX-VIZ-010, DSX-VIZ-064 and DSX-VIZ-061 does not apply."
+            ),
+            remedy=(
+                "Remove visual_kind: diagram if the figure shows data, or remove the data "
+                "fields if it does not."
+            ),
+            where=f"{where}.visual_kind",
+        )
+        return False
+    report.ok(f"'{label}' declared a diagram with no data; relationship and units not required")
+    return True
 
 
 def _check_banned(chart_type: str, label: str, where: str, report: Report) -> None:
@@ -181,21 +268,49 @@ def _check_relationship_match(
             where=f"{where}.relationship",
         )
         return
-    if chart_type and chart_type not in admissible:
+    gate = RELATIONSHIP_MARK_INPUT_GATE.get((relationship, chart_type))
+    gated_out = gate is not None and _input_family(visual) not in gate
+    if chart_type and (chart_type not in admissible or gated_out):
+        if gated_out:
+            admissible = tuple(m for m in admissible if m != chart_type)
+            detail = (
+                f"A {chart_type} reads as a {relationship} only for "
+                f"{' / '.join(sorted(gate))} input (a group x category table of values). "
+                f"This figure declares data_input_type {visual.get('data_input_type')!r}. "
+                f"A {relationship} relationship reads correctly from: {', '.join(admissible)}."
+            )
+            remedy = (
+                f"Declare data_input_type: {sorted(gate)[0]} if that is the data shape, "
+                f"or use {admissible[0]}."
+            )
+        else:
+            detail = (
+                f"A {relationship} relationship reads correctly from: {', '.join(admissible)}. "
+                f"A {chart_type} encodes a different comparison, so the reader decodes the "
+                "wrong quantity."
+            )
+            remedy = f"Use {admissible[0]} unless you have a specific reason for another."
         report.add(
             "DSX-VIZ-012",
             "HIGH",
             f"'{label}' shows a {relationship} relationship with a {chart_type} chart",
-            detail=(
-                f"A {relationship} relationship reads correctly from: {', '.join(admissible)}. "
-                f"A {chart_type} encodes a different comparison, so the reader decodes the "
-                "wrong quantity."
-            ),
-            remedy=f"Use {admissible[0]} unless you have a specific reason for another.",
+            detail=detail,
+            remedy=remedy,
             where=f"{where}.type",
         )
     elif chart_type:
         report.ok(f"'{label}': {chart_type} suits a {relationship} relationship")
+
+
+def _input_family(visual: dict) -> str | None:
+    """The coarse data_input_type family a visual declares, or None if absent/unknown."""
+    raw = visual.get("data_input_type")
+    if is_blank(raw):
+        return None
+    family = family_of(str(raw))
+    if family:
+        return family
+    return normalize(str(raw)).replace("_", "-")
 
 
 def _check_input_type_matrix(
@@ -383,7 +498,9 @@ def _check_color(visual: dict, label: str, where: str, report: Report) -> None:
         )
 
 
-def _check_labelling(visual: dict, label: str, where: str, report: Report) -> None:
+def _check_labelling(
+    visual: dict, label: str, where: str, report: Report, *, no_data: bool = False
+) -> None:
     takeaway = visual.get("takeaway")
     name = str(visual.get("name") or "")
     if is_blank(takeaway):
@@ -426,7 +543,9 @@ def _check_labelling(visual: dict, label: str, where: str, report: Report) -> No
             has_token = any(tok in lowered for tok in COMPARISON_TOKENS) or (
                 "%" in takeaway_s or "pp" in lowered
             )
-            if not has_digit and not has_token:
+            if no_data:
+                report.ok(f"'{label}' takeaway is exempt from the magnitude test (diagram)")
+            elif not has_digit and not has_token:
                 report.add(
                     "DSX-VIZ-064",
                     "MEDIUM",
@@ -441,7 +560,7 @@ def _check_labelling(visual: dict, label: str, where: str, report: Report) -> No
             else:
                 report.ok(f"'{label}' takeaway states a finding")
 
-    if is_blank(visual.get("units")):
+    if is_blank(visual.get("units")) and not no_data:
         report.add(
             "DSX-VIZ-061",
             "HIGH",

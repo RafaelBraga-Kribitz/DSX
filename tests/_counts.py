@@ -22,9 +22,9 @@ The leading underscore keeps this module out of ``unittest discover``'s
 
 from __future__ import annotations
 
-# Codes in references/finding-codes.md: the Phase-12 snapshot's 256 plus the 23
-# additive mints listed in tests/test_finding_catalogue_invariant.py::_MINTED_CODES.
-EXPECTED_CATALOGUE_TOTAL = 279
+# Codes in references/finding-codes.md: the Phase-12 snapshot's 256 plus the 24
+# additive mints (the last is DSX-VIZ-015) listed in tests/test_finding_catalogue_invariant.py::_MINTED_CODES.
+EXPECTED_CATALOGUE_TOTAL = 280
 
 # Codes in the byte-frozen Phase-12 snapshot. Never changes (D-08).
 SNAPSHOT_TOTAL = 256
