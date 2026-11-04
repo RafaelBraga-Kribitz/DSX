@@ -8,7 +8,20 @@ line-length = 120
 # Corpus fixtures under examples/ are deliberately defective analysis code read as
 # text by the entrypoint scan -- style rules would fight their purpose. .planning/
 # holds archived measurement spikes, not shipped code.
-extend-exclude = ["examples", ".planning", "graphify-out", ".claude"]
+# intake/ is a staging area for material written elsewhere — a personal library,
+# another plugin, a colleague's repository. It is not this project's code and is
+# never installed from; holding someone else's draft to DSX's house style would
+# make `./scripts/check.sh` fail for a reason the operator cannot act on.
+# Measured: a real drop put 550 findings in intake/ and 15 everywhere else.
+#
+# Skills, agents and prompts PROMOTED out of intake/ are excluded too, but not
+# here: this list cannot say "every promoted item, whatever it is called", so
+# scripts/check.sh derives them from scripts/lint-scope.py and passes them as
+# --extend-exclude, then re-runs ruff over them with the rules that catch a
+# real error. Running bare `ruff check .` therefore reports house-style
+# findings on promoted material that the project's gate does not; the gate is
+# ./scripts/check.sh.
+extend-exclude = ["examples", ".planning", "graphify-out", ".claude", "intake"]
 
 [lint]
 select = ["E", "W", "F", "I", "B", "UP", "SIM", "C4", "RUF", "PLW", "ISC", "PIE", "PERF", "FURB", "BLE"]

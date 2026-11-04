@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# SessionStart hook for the dsx plugin.
+#
+# Injects skills/using-dsx/SKILL.md as session context. That file is the only
+# always-loaded text in the plugin; every other skill loads on demand through
+# the Skill tool. Keep it short — it is paid for on every session.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"
+
+using_dsx_content=$(cat "${PLUGIN_ROOT}/skills/using-dsx/SKILL.md" 2>&1 || echo "Error reading using-dsx skill")
+
+# Escape for JSON embedding. Each ${s//old/new} is a single pass.
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+using_dsx_escaped=$(escape_for_json "$using_dsx_content")
+session_context="<EXTREMELY_IMPORTANT>\nYou have dsx.\n\n**Below is the full content of your 'dsx:using-dsx' skill — the contract for any work that touches data. For all other skills, use the 'Skill' tool:**\n\n${using_dsx_escaped}\n</EXTREMELY_IMPORTANT>"
+
+# Each harness reads a different field, and Claude Code reads both of its
+# candidates without de-duplicating, so emit exactly one.
+#   Cursor          -> additional_context
+#   Claude Code     -> hookSpecificOutput.additionalContext
+#   Copilot / other -> additionalContext
+# printf rather than a heredoc: bash 5.3+ can hang on heredocs inside hooks.
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$session_context" | cat
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context" | cat
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$session_context" | cat
+fi
+
+exit 0

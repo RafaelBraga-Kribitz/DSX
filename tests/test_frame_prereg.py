@@ -1434,7 +1434,11 @@ class TestDocumentedLimits(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.readme_text = (ROOT / "README.md").read_text(encoding="utf-8")
+        # README.md keeps the `## Known limits` heading and a summary; the full text
+        # of each limit moved, verbatim, to docs/known-limits.md. Read both.
+        cls.readme_text = (ROOT / "README.md").read_text(encoding="utf-8") + "\n" + (
+            ROOT / "docs" / "known-limits.md"
+        ).read_text(encoding="utf-8")
         cls.readme_normalized = _normalize_whitespace(cls.readme_text)
         cls.prereg_source = (ROOT / "dsx" / "frame" / "prereg.py").read_text(
             encoding="utf-8"

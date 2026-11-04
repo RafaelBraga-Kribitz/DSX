@@ -1,4 +1,4 @@
-# gsd-dsx
+# DSX
 
 **Data science, analytics and BI rigour for GSD Core.**
 
@@ -371,6 +371,7 @@ declared, not shown; `dsx-viz-critic` never opens the picture. The smoke test of
 evidence in Phase 33.
 
 **Target features:**
+
 - Phase 31 — Resolver: `dsx charts` gains a deterministic default (data shape,
   relationship, category count, longest label, series count, has-time, has-interval →
   one mark and its render defaults), a tested table; the admissible set stays.

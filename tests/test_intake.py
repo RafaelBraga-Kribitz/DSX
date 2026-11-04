@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -106,8 +107,13 @@ class TestScan(unittest.TestCase):
         self.assertTrue(any("capability.json" in n or "skills/" in n for n in by_name["dsx-explore-data"].notes))
         self.assertEqual(by_name["Bad Name"].status, "invalid")
         self.assertEqual(by_name["nofront"].status, "invalid")
-        self.assertEqual(by_name["reviewer"].status, "invalid")
-        self.assertTrue(any("does not match" in n for n in by_name["reviewer"].notes))
+        # Policy: the destination name is the identity, so a disagreeing
+        # frontmatter name is rewritten on promote rather than blocking the item.
+        self.assertEqual(by_name["reviewer"].status, "ok")
+        self.assertTrue(
+            any("will be rewritten to 'reviewer'" in n for n in by_name["reviewer"].notes),
+            by_name["reviewer"].notes,
+        )
 
     def test_overlap_hint(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -217,17 +223,6 @@ class TestPrompts(unittest.TestCase):
             (root / "intake" / "prompts" / "README.md").write_text("# How to use this folder\n")
             self.assertEqual(intake.scan(root), [])
 
-    def test_skills_index_is_unrecognised_not_promotable(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = make_root(tmp)
-            (root / "intake" / "prompts" / "SKILLs.md").write_text(
-                "# AI Prompts for Data Professionals\n\nBrowse by role.\n")
-            [item] = intake.scan(root)
-            self.assertEqual((item.kind, item.status), ("prompt", "unrecognised"))
-            self.assertTrue(any("library index" in n for n in item.notes), item.notes)
-            self.assertEqual(quiet_main(["--root", str(root), "--promote", "SKILLs"]), 1)
-            self.assertTrue((root / "intake" / "prompts" / "SKILLs.md").exists())
-
 
 class TestUnrecognised(unittest.TestCase):
     """Nothing under intake/ is skipped in silence."""
@@ -276,22 +271,6 @@ class TestUnrecognised(unittest.TestCase):
         self.assertEqual((item.kind, item.status), ("prompt", "unrecognised"))
         self.assertTrue(any("not a .md file" in n for n in item.notes), item.notes)
 
-    def test_nested_folder_in_a_flat_kind_folder_is_reported(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = make_root(tmp)
-            (root / "intake" / "prompts" / "data-analyst" / "eda").mkdir(parents=True)
-            (root / "intake" / "prompts" / "data-analyst" / "eda" / "a.md").write_text("# A\n")
-            (root / "intake" / "agents" / "global").mkdir()
-            (root / "intake" / "agents" / "global" / "data-scientist.md").write_text(
-                GOOD_AGENT.format(name="data-scientist", desc="A generalist."))
-            items = {i.name: i for i in intake.scan(root)}
-        self.assertEqual(items["data-analyst"].status, "unrecognised")
-        self.assertEqual(items["data-analyst"].kind, "prompt")
-        self.assertTrue(any("nested folder" in n for n in items["data-analyst"].notes),
-                        items["data-analyst"].notes)
-        self.assertEqual(items["global"].status, "unrecognised")
-        self.assertEqual(items["global"].kind, "agent")
-
     def test_unrecognised_is_never_promotable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = make_root(tmp)
@@ -329,6 +308,252 @@ class TestBatchPromote(unittest.TestCase):
             # Non-zero because one name failed, but the valid one still moved.
             self.assertEqual(code, 1)
             self.assertTrue((root / "prompts" / "good.md").exists())
+
+
+class TestNameContract(unittest.TestCase):
+    """intake must never admit a name the manifest gate would reject."""
+
+    def test_intake_name_pattern_is_the_manifest_gate_pattern(self):
+        # The standing guarantee. scripts/validate-capability.py applies KEBAB to
+        # every declared skill and agent; a promoted item is declared. If intake's
+        # pattern is looser by even one character class, promote can write a
+        # manifest that ./scripts/check.sh then rejects — which is what happened
+        # before these were tied together ("Good9", "global--code-reviewer").
+        src = (Path(__file__).resolve().parent.parent
+               / "scripts" / "validate-capability.py").read_text(encoding="utf-8")
+        gate = re.search(r'^KEBAB\s*=\s*re\.compile\(r"([^"]+)"\)', src, re.MULTILINE)
+        self.assertIsNotNone(gate, "validate-capability.py no longer defines KEBAB")
+        self.assertEqual(
+            intake.NAME_RE.pattern, gate.group(1),
+            "intake.NAME_RE and validate-capability.py's KEBAB have drifted apart",
+        )
+
+    def test_names_the_manifest_rejects_are_invalid_with_a_fix_hint(self):
+        for bad, fixed in (("Good9", "good9"),
+                           ("global--code-reviewer", "global-code-reviewer"),
+                           ("data-analytics-skills--forecasting",
+                            "data-analytics-skills-forecasting")):
+            with self.subTest(bad=bad):
+                self.assertFalse(intake.NAME_RE.match(bad))
+                self.assertEqual(intake.kebab(bad), fixed)
+                self.assertTrue(intake.NAME_RE.match(fixed))
+
+    def test_a_rejected_name_never_reaches_the_manifest(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "skills" / "Good9").mkdir()
+            (root / "intake" / "skills" / "Good9" / "SKILL.md").write_text(
+                GOOD_SKILL.format(name="Good9", desc="Rejected by the manifest gate."))
+            [item] = intake.scan(root)
+            self.assertEqual(item.status, "invalid")
+            self.assertTrue(any("good9" in n for n in item.notes), item.notes)
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "Good9"]), 1)
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertNotIn("Good9", manifest["skills"])
+
+
+class TestIntakeInternalCollision(unittest.TestCase):
+    """Two items under intake/ claiming one name must not silently shadow."""
+
+    def _two_named(self, root, name):
+        (root / "intake" / "skills" / name).mkdir()
+        (root / "intake" / "skills" / name / "SKILL.md").write_text(
+            GOOD_SKILL.format(name=name, desc="The skill one."))
+        (root / "intake" / "agents" / f"{name}.md").write_text(
+            GOOD_AGENT.format(name=name, desc="The agent one."))
+
+    def test_both_are_reported_as_collisions_naming_each_other(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            items = intake.scan(root)
+        self.assertEqual(len(items), 2)
+        self.assertEqual({i.status for i in items}, {"collision"})
+        self.assertTrue(any("intake/agents/review.md" in n for n in items[1].notes), items[1].notes)
+        self.assertTrue(
+            any("intake/skills/review/SKILL.md" in n for n in items[0].notes), items[0].notes)
+
+    def test_promote_refuses_the_ambiguous_name_and_moves_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "review"]), 1)
+            # Before the fix, promote's {name: item} lookup kept whichever sorted
+            # last, moved it, left the other behind, and exited 0.
+            self.assertTrue((root / "intake" / "skills" / "review" / "SKILL.md").exists())
+            self.assertTrue((root / "intake" / "agents" / "review.md").exists())
+            self.assertFalse((root / "skills" / "review").exists())
+            self.assertFalse((root / "agents" / "review.md").exists())
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertNotIn("review", manifest["skills"])
+        self.assertNotIn("review", manifest["agents"])
+
+    def test_a_unique_name_alongside_a_collision_still_promotes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            self._two_named(root, "review")
+            (root / "intake" / "prompts" / "opener.md").write_text("# Opener\n")
+            self.assertEqual(
+                quiet_main(["--root", str(root), "--promote", "review", "opener"]), 1)
+            self.assertTrue((root / "prompts" / "opener.md").exists())
+            self.assertTrue((root / "intake" / "skills" / "review" / "SKILL.md").exists())
+
+
+class TestNamespaceSubfolders(unittest.TestCase):
+    """A namespace subfolder is allowed for every kind; only skills keep theirs."""
+
+    def test_nested_agent_joins_its_namespace_into_the_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "agents" / "global").mkdir()
+            (root / "intake" / "agents" / "global" / "code-reviewer.md").write_text(
+                GOOD_AGENT.format(name="code-reviewer", desc="A nested agent."))
+            [item] = intake.scan(root)
+            self.assertEqual((item.name, item.kind, item.status),
+                             ("global-code-reviewer", "agent", "ok"))
+            self.assertEqual(quiet_main(["--root", str(root), "--promote",
+                                         "global-code-reviewer"]), 0)
+            # install.mjs reads agents/ with one non-recursive readdir and skips
+            # anything not ending in .md, so the destination MUST be flat.
+            dst = root / "agents" / "global-code-reviewer.md"
+            self.assertTrue(dst.exists())
+            self.assertFalse((root / "agents" / "global").exists())
+            self.assertIn("name: global-code-reviewer", dst.read_text())
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertIn("global-code-reviewer", manifest["agents"])
+
+    def test_nested_prompt_joins_its_namespace_and_strips_a_sub_extension(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "prompts" / "marketing").mkdir()
+            (root / "intake" / "prompts" / "marketing" / "cold-open.md").write_text("# Cold open\n")
+            (root / "intake" / "prompts" / "marketing" / "brief.prompt.md").write_text("# Brief\n")
+            names = sorted(i.name for i in intake.scan(root))
+        # `brief.prompt.md` must not derive `marketing-brief.prompt` — the dot
+        # fails NAME_RE. ECC names every file in .github/prompts/ this way.
+        self.assertEqual(names, ["marketing-brief", "marketing-cold-open"])
+
+    def test_nested_skill_keeps_only_its_folder_basename(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "data-analytics" / "forecasting"
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(GOOD_SKILL.format(
+                name="forecasting", desc="A skill inside a namespace folder."))
+            [item] = intake.scan(root)
+            # The folder basename is the name in all four measured libraries,
+            # and install.mjs copies skills/<name>/ recursively.
+            self.assertEqual((item.name, item.status), ("forecasting", "ok"))
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "forecasting"]), 0)
+            self.assertTrue((root / "skills" / "forecasting" / "SKILL.md").exists())
+
+    def test_a_skills_own_agents_payload_is_never_hoisted(self):
+        # ECC ships skills/lead-intelligence/agents/ (4 files) and public skills
+        # ships examples/skill-creator/agents/ (4). Those belong to the skill.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "lead-intelligence"
+            (d / "agents").mkdir(parents=True)
+            (d / "SKILL.md").write_text(GOOD_SKILL.format(
+                name="lead-intelligence", desc="Carries its own agents."))
+            (d / "agents" / "scorer.md").write_text(GOOD_AGENT.format(
+                name="scorer", desc="Payload of the skill, not a library agent."))
+            items = intake.scan(root)
+        self.assertEqual([(i.name, i.kind) for i in items], [("lead-intelligence", "skill")])
+
+    def test_a_skill_dropped_into_the_agents_folder_does_not_leak_its_payload(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "agents" / "misfiled-skill"
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(GOOD_SKILL.format(name="x", desc="Wrong folder."))
+            (d / "helper.md").write_text(GOOD_AGENT.format(name="helper", desc="Payload."))
+            names = sorted(i.name for i in intake.scan(root))
+        self.assertNotIn("misfiled-skill-helper", names)
+
+    def test_a_namespace_folder_holding_skills_is_not_reported_as_broken(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "data-analytics" / "forecasting"
+            d.mkdir(parents=True)
+            (d / "SKILL.md").write_text(GOOD_SKILL.format(name="forecasting", desc="Real."))
+            statuses = {i.name: i.status for i in intake.scan(root)}
+        self.assertEqual(statuses, {"forecasting": "ok"})
+
+    def test_a_folder_with_no_skill_md_anywhere_below_is_still_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "notes" / "deep"
+            d.mkdir(parents=True)
+            (d / "scratch.md").write_text("wip\n")
+            [item] = intake.scan(root)
+        self.assertEqual((item.name, item.status), ("notes", "invalid"))
+        self.assertTrue(any("no SKILL.md anywhere below it" in n for n in item.notes), item.notes)
+
+    def test_a_non_markdown_file_in_a_namespace_folder_is_still_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "prompts" / "marketing").mkdir()
+            (root / "intake" / "prompts" / "marketing" / "notes.txt").write_text("x\n")
+            [item] = intake.scan(root)
+        self.assertEqual(item.status, "unrecognised")
+
+    def test_a_derived_name_that_fails_the_manifest_gate_is_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "agents" / "Global").mkdir()
+            (root / "intake" / "agents" / "Global" / "code-reviewer.md").write_text(
+                GOOD_AGENT.format(name="code-reviewer", desc="Upper-case namespace."))
+            [item] = intake.scan(root)
+        self.assertEqual(item.status, "invalid")
+        self.assertTrue(any("global-code-reviewer" in n for n in item.notes), item.notes)
+
+
+class TestFrontmatterRewrite(unittest.TestCase):
+    """Option B: the destination name is the identity; the frontmatter follows it."""
+
+    def test_a_declared_name_that_fails_the_gate_is_not_fatal_because_it_is_rewritten(self):
+        # The real shape: folder `forecasting`, frontmatter
+        # `data-analytics-skills--forecasting` (double hyphen fails the gate).
+        # Validating a string that is about to be overwritten would block it
+        # for no reason.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "forecasting"
+            d.mkdir()
+            (d / "SKILL.md").write_text(GOOD_SKILL.format(
+                name="data-analytics-skills--forecasting", desc="Prefixed declared name."))
+            [item] = intake.scan(root)
+            self.assertEqual(item.status, "ok")
+            self.assertEqual(quiet_main(["--root", str(root), "--promote", "forecasting"]), 0)
+            written = (root / "skills" / "forecasting" / "SKILL.md").read_text()
+            manifest = json.loads((root / "capabilities" / "dsx" / "capability.json").read_text())
+        self.assertIn("name: forecasting", written)
+        self.assertNotIn("data-analytics-skills--forecasting", written)
+        self.assertIn("forecasting", manifest["skills"])
+
+    def test_rewrite_leaves_every_other_line_alone(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            d = root / "intake" / "skills" / "keeps-body"
+            d.mkdir()
+            (d / "SKILL.md").write_text(
+                "---\nname: other\ndescription: \"Kept.\"\nallowed-tools:\n  - Read\n"
+                "---\n\n<objective>\nBody with name: not-frontmatter inside it.\n</objective>\n")
+            quiet_main(["--root", str(root), "--promote", "keeps-body"])
+            out = (root / "skills" / "keeps-body" / "SKILL.md").read_text()
+        self.assertIn("name: keeps-body", out)
+        self.assertIn("description: \"Kept.\"", out)
+        self.assertIn("  - Read", out)
+        self.assertIn("Body with name: not-frontmatter inside it.", out)
+
+    def test_a_prompt_without_frontmatter_is_promoted_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = make_root(tmp)
+            (root / "intake" / "prompts" / "opener.md").write_text("# Opener\n\nBody.\n")
+            quiet_main(["--root", str(root), "--promote", "opener"])
+            out = (root / "prompts" / "opener.md").read_text()
+        self.assertEqual(out, "# Opener\n\nBody.\n")
 
 
 if __name__ == "__main__":

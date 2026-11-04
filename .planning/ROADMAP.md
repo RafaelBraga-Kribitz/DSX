@@ -1,4 +1,4 @@
-# Roadmap: gsd-dsx
+# Roadmap: DSX
 
 **Active:** v2.7 Figure Pipeline — Phases 31–34 (opened 2026-09-16)
 **Shipped:** v2.6 Exploration Depth and Backlog Evidence — Phases 25–30 (2026-09-10); v2.4 Visual Excellence — Phases 21–24 (2026-09-03); v2.3 Test Catalog — Phases 17–20 (2026-09-02); v2.2 Analytic Surface — Phases 13–16 (2026-08-29); v2.0.0 DSX Validity Frame — Phases 6–12 (2026-08-28); v1.1.0–v1.5.0 — Phases 1–5

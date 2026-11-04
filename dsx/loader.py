@@ -189,6 +189,15 @@ def _parse_sequence(lines: list[_Line], i: int, indent: int, origin: str) -> tup
                 result.append(None)
             continue
 
+        if item[0] in "{[":
+            # A flow collection is one value (`- { name: smb, effect: 0.021 }`),
+            # never the inline first key of a block mapping. Splitting it on its
+            # first `: ` used to yield the key "{ name" and silently drop every
+            # field after it — and every check reading that list then saw no
+            # data. PyYAML masked the defect wherever it was installed.
+            result.append(_scalar(item, line.number, origin))
+            continue
+
         key, sep, rest = _split_key(item)
         if sep:
             # Inline first key of a mapping item; subsequent keys are indented
