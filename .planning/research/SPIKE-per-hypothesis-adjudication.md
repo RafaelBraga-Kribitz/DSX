@@ -1,6 +1,6 @@
 # Spike: per-hypothesis procedure adjudication
 
-Status: recommendation, awaiting operator decision. No product code was changed. The per-row container is not implemented.
+Status: DECIDED 2026-11-04 by the operator: drop for now, with the entry condition below. No product code was changed. The per-row container is not implemented.
 
 Origin: Senior Statistician Roadmap check, item 7. The question: does the single-procedure adjudication (`inference.primary_procedure` against one `validity_frame` estimand and dependence pair) miss a hypothesis row whose procedure is inadmissible for that row's design?
 
@@ -168,15 +168,19 @@ DSX-ADM-020 CRITICAL @ spec.primary_procedure :: No admissible procedure for the
 4. Tests, `references/` text, the finding catalogue (`scripts/gen-finding-catalogue.py --check`) and the golden ship-finding sets for the 59 fixtures under `examples/`. If the container is optional, the golden sets should not move; that is also unverified.
 5. Operator burden: a spec with 36 hypotheses would declare 36 entries, or a default plus exceptions. Authoring cost grows with test count.
 
-## Recommendation (awaiting operator decision)
+## Decision
 
-Recommendation: **drop for now; keep as a conditional adopt**. Do not build the per-row container yet.
+Decision: **drop for now; keep as a conditional adopt**. Do not build the per-row container yet.
 
 Reason: the measured miss does not need different designs. Variant B has one estimand and dependence pair for every row, and only the procedure on row 17 differs. So a row-level procedure mismatch can be missed inside a single frame. The recommendation to wait rests on a judgement, not on the measurement: no row-level procedure is a contract field today, so nothing obliges an author to declare one, and this spike used a constructed case. Whether real specs carry row-level procedures, in one frame or in several, is UNVERIFIED. Rows with a different design could also be separate specs, each adjudicated on its own; this is a policy preference and does not close the single-frame miss.
 
 Entry condition (D-13, measured first, never widened to manufacture a miss): adopt only when a real or corpus-derived spec exists in which (a) one decision legitimately reports hypotheses with different procedures, under one frame or under several estimand or dependence pairs, and (b) the existing gates measurably miss an inadmissible procedure on one of those rows, as variant B did. Build that case, run it at all four gate points, and record the codes. If the present gate already catches the case, the entry condition is not met and nothing is minted.
 
 A cheaper alternative to evaluate first if the condition is met: a documentation rule that each distinct design gets its own spec and decision record, with a lint that flags `results.tests` rows carrying a `procedure` key the gate ignores. This is UNVERIFIED and not part of this spike.
+
+## Evidence from the operator's own analyses
+
+A read-only sweep of 9 analytical repositories (pattern search, 5 sites read in detail) found 0 analyses with a different test procedure for each hypothesis, and 1 decision that combines several procedures under one decision rule. Notebooks, PyMC internals, R scripts and Markdown reports were not read, so the count can be too low. One author and 9 repositories do not give a general rate. The paper that raised the question selects a method for each hypothesis by design, so a tool of that kind is the case to watch.
 
 ## Limits of the spike
 
