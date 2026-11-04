@@ -460,3 +460,17 @@ against a key of `0.12`, is scored wrong. A task the gate blocked counts as
 wrong in the primary metric, so a gate that blocks everything cannot look
 accurate; the answered-only accuracy is reported alongside so the trade-off is
 visible.
+
+## The `revisit_when` check is lexical
+
+`revisit_when` must name a time anchor and a discriminating condition. The check
+strips the duration, date and recurring-checkpoint words and then looks for a
+comparison or a number in what remains. It reads the wording, not the meaning.
+It shows that a metric-and-threshold pattern is present. It does not show that
+the metric exists or can be measured. Unusual wording of a duration-only trigger
+(a form of range or comparator the pattern does not list) can still pass as if
+it carried a threshold.
+
+The reverse also holds. A duration used as the metric itself, such as "within 30
+days" in a service-level trigger, is stripped together with the time anchor and
+reads as non-discriminating.

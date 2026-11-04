@@ -140,6 +140,33 @@ class TestRevisitWhenIsDiscriminating(unittest.TestCase):
             revisit_when_is_discriminating("churn above 5% for 2.5 consecutive weeks")
         )
 
+    def test_between_range_duration_without_metric_is_rejected(self):
+        """"between 2 and 3 weeks" is one range: the first count must not
+        survive the strip as a threshold."""
+        self.assertFalse(
+            revisit_when_is_discriminating("reassess between 2 and 3 weeks")
+        )
+
+    def test_comparator_duration_without_metric_is_rejected(self):
+        for text in (
+            "reassess after less than two weeks",
+            "reassess after less than 2 weeks",
+            "reassess in over 2 weeks",
+            "reassess in at most 3 months",
+            "reassess after fewer than 4 days",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(revisit_when_is_discriminating(text))
+
+    def test_comparator_duration_with_metric_is_accepted(self):
+        for text in (
+            "activation below 28% for at least 2 weeks",
+            "churn above 5% for more than 8 weeks",
+            "churn above 5% between 2 and 3 weeks",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(revisit_when_is_discriminating(text))
+
     def test_open_ended_state_change_is_rejected(self):
         self.assertFalse(revisit_when_is_discriminating("when the market changes"))
 

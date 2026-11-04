@@ -920,8 +920,13 @@ def falsifier_is_discriminating(value: Any) -> bool:
 #
 # An optional range prefix ("2-3", en/em dash, "two to three") is consumed in the same
 # span, so the first count of a range cannot survive the strip as a threshold.
+# "between N and M <unit>" is a range too, and a comparator attached to a duration
+# ("less than", "more than", "fewer than", "greater than", "at least", "at most",
+# "over", "under") is consumed with it, so neither the comparator nor the first count
+# of a range survives the strip as a threshold.
 _WINDOW_DURATION_RE = re.compile(
-    r"\b(?:(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(?:-|\u2013|\u2014|to)\s*)?"
+    r"\b(?:(?:between\s+)?(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(?:-|–|—|to|and)\s*)?"
+    r"(?:(?:(?:less|more|fewer|greater)\s+than|at\s+least|at\s+most|over|under)\s+)?"
     r"(?:\d+(?:\.\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
     r"\s*(?:(?:consecutive|straight|full)\s+)?"
     r"(?:day|days|week|weeks|month|months|quarter|quarters|year|years)\b"
