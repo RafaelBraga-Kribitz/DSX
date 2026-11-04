@@ -49,19 +49,34 @@ const CAPABILITY_PAYLOAD = [
   { from: 'references', to: 'references' },
   { from: 'templates', to: 'templates' },
   { from: 'examples', to: 'examples' },
+  // templates/dsx_plotstyle.py resolves its vendored Lato fonts and the
+  // dsx-*.mplstyle sheets at <overlay>/styles, one level up from templates/.
+  // Without this entry the overlay renders in a fallback font and its SVG
+  // seals stop matching repository-rendered figures.
+  { from: 'styles', to: 'styles' },
+];
+
+/** Files --check requires inside the overlay, beyond each payload entry itself. */
+const OVERLAY_REQUIRED_FILES = [
+  path.join('bin', 'dsx'),
+  path.join('styles', 'fonts', 'Lato-Regular.ttf'),
+  path.join('styles', 'fonts', 'Lato-Bold.ttf'),
 ];
 
 // ── argv ─────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = { runtime: 'claude', local: false, check: false, uninstall: false, force: false };
+  const args = { runtime: 'claude', local: false, check: false, uninstall: false };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
     if (token === '--runtime') args.runtime = argv[++i];
     else if (token === '--local') args.local = true;
     else if (token === '--check') args.check = true;
     else if (token === '--uninstall') args.uninstall = true;
-    else if (token === '--force') args.force = true;
+    // --force used to be documented as "replace without prompting", but the
+    // installer never prompts: it always replaces the overlay. The flag is
+    // still accepted, as a no-op, so existing scripts that pass it keep working.
+    else if (token === '--force') continue;
     else if (token === '--help' || token === '-h') args.help = true;
     else if (token.startsWith('--runtime=')) args.runtime = token.slice('--runtime='.length);
     else die(`unknown argument: ${token}`);
@@ -89,7 +104,8 @@ function copyRecursive(from, to) {
       // its accumulated frame digests along, and DSX-PRE-041's identity-free floor
       // (dsx/frame/prereg.py) then blocks the known-good spec at verify/ship in the
       // installed copy — exactly what the self-test reported on 2026-09-06.
-      if (entry === 'DECISIONS.jsonl') continue;
+      // Its advisory-lock sibling (dsx/decisions.py) is local state for the same reason.
+      if (entry === 'DECISIONS.jsonl' || entry === 'DECISIONS.jsonl.lock') continue;
       copyRecursive(path.join(from, entry), path.join(to, entry));
     }
     return;
@@ -152,7 +168,7 @@ function install(args) {
   log(`overlay:  ${overlayRoot}`);
   log(`runtime:  ${runtimeHome}\n`);
 
-  if (fs.existsSync(overlayRoot) && !args.force) {
+  if (fs.existsSync(overlayRoot)) {
     log('existing install found — replacing capability payload');
   }
 
@@ -295,6 +311,13 @@ function check(args) {
   log(`overlay:  ${overlayRoot}`);
   log(`python:   ${python.command} (${python.version})`);
 
+  const missingPayload = [
+    ...CAPABILITY_PAYLOAD.map((item) => item.to),
+    ...OVERLAY_REQUIRED_FILES,
+  ].filter((rel) => !fs.existsSync(path.join(overlayRoot, rel)));
+  const payloadTotal = CAPABILITY_PAYLOAD.length + OVERLAY_REQUIRED_FILES.length;
+  log(`payload:  ${payloadTotal - missingPayload.length}/${payloadTotal} present`);
+
   const missingAgents = manifest.agents.filter(
     (name) => !fs.existsSync(path.join(runtimeHome, 'agents', `${name}.md`)),
   );
@@ -309,8 +332,12 @@ function check(args) {
   log(`self-test: ${result.ok ? 'passed' : `FAILED — ${result.output}`}`);
   console.log('');
 
-  const problems = missingAgents.length + missingSkills.length + (result.ok ? 0 : 1);
+  const problems =
+    missingPayload.length + missingAgents.length + missingSkills.length + (result.ok ? 0 : 1);
   if (problems) {
+    if (missingPayload.length) {
+      console.error(`  missing from overlay: ${missingPayload.join(', ')} (re-run node install.mjs)`);
+    }
     if (missingAgents.length) console.error(`  missing agents: ${missingAgents.join(', ')}`);
     if (missingSkills.length) console.error(`  missing skills: ${missingSkills.join(', ')}`);
     process.exit(1);
@@ -337,14 +364,15 @@ function help() {
   console.log(`
 DSX installer
 
-  node install.mjs [--runtime <name>] [--local] [--force]
+  node install.mjs [--runtime <name>] [--local]
   node install.mjs --check
   node install.mjs --uninstall
 
   --runtime   ${Object.keys(RUNTIMES).join(' | ')}   (default: claude)
   --local     install into ./<runtime-dir> instead of the home directory
   --check     verify an existing install and run the self-test
-  --force     replace an existing install without prompting
+
+  An existing install is always replaced; there is no prompt.
 `);
 }
 

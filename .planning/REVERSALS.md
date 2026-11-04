@@ -79,6 +79,14 @@ genuine subjective-belief priors.
 scoping rule — a paradigm-specific check ships only when its counterpart also
 ships — still governs both.
 
+*Entry conditions (D-13 note, added 2026-09-30; not a reversal).* "Stay
+deferred" is not open-ended: `brief.md` §6.5 rows 1 and 3 carry the entry
+conditions for `DSX-PAR-021` and `DSX-PAR-030`, including what opens the
+unwritten mirror work — a known-bad corpus case whose target defect is prior or
+specification sensitivity (row 1) or a non-converged fit (row 3) measured a
+live miss at all four gate points, or `dsx stats --paradigm` showing Bayesian
+frames above 15% of the operator's history.
+
 ### Reversal record REV-002 (D-14)
 
 **Date:** 2026-08-27 (Phase 12, plan 12-07)

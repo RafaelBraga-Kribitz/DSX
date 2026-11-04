@@ -2,8 +2,11 @@
 This is an analytical phase. Beyond the standard plan review, verify:
 
 - **`ANALYSIS-SPEC.yaml` exists and is complete.** Run
-  `dsx gate plan --phase-dir <phase> --verbose`. A non-zero exit is a blocking
-  finding — quote the finding codes in your review.
+  `dsx gate plan --phase-dir <phase> --allow-missing --verbose`, the same form
+  the capability's own `plan:post` gate runs. A non-zero exit is a blocking
+  finding — quote the finding codes in your review. `--allow-missing` makes a
+  phase with no spec exit 0; when `dsx.require_spec` is on, drop the flag,
+  because a missing spec is then itself a block.
 - **The decision rule was written before results.** If it references an observed
   number, it was written afterwards. That is HARKing, and it invalidates the
   inferential claim regardless of how the analysis is done.

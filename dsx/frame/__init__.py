@@ -6,7 +6,8 @@ it the way a ``dsx/checks/*.py`` module does. Each frame family gets its own
 code prefix and its own module, added as its phase ships:
 
     family                       prefix        phase
-    paradigm manifest            DSX-PAR-*     Phase 6 (this phase — DSX-PAR-001)
+    paradigm manifest            DSX-PAR-*     Phase 6  (DSX-PAR-001, INFO)
+    paradigm declaration         DSX-PAR-*     Phase 9  (DSX-PAR-002, HIGH)
     paradigm monitoring pair     DSX-PAR-*     Phase 9  (DSX-PAR-010/011, symmetric)
     validity frame               DSX-VAL-*     Phase 7
     interference / SUTVA         DSX-INT-*     Phase 8

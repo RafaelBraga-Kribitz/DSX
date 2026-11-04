@@ -20,15 +20,26 @@ writes and signs.
 The repository was renamed from `gsd-dsx` to `DSX`. GitHub redirects the old
 path, so a command that still names `GSD-DSX` keeps working.
 
-Three things, and nothing else:
+Five things, and nothing else:
 
 - **One always-on rule.** A SessionStart hook injects
-  [`skills/using-dsx/SKILL.md`](../skills/using-dsx/SKILL.md) — about 70 lines —
-  into every session: no data before a spec, no claim before `dsx audit`, and
+  [`skills/using-dsx/SKILL.md`](../skills/using-dsx/SKILL.md) into every
+  session: no data before a spec, no claim before `dsx audit`, and
   which skill to invoke for which work. That is the entire per-session cost.
 - **Fourteen skills, loaded on demand.** `dsx-scope-analysis`,
   `dsx-explore-data`, `dsx-design-experiment` and the rest load through the
   Skill tool only when the work calls for them.
+- **Six specialist agents, used on demand.** The briefs in
+  [`agents/`](../agents/) — `dsx-analysis-architect`, `dsx-statistician`,
+  `dsx-metric-steward`, `dsx-ml-integrity-auditor`, `dsx-viz-critic` and
+  `dsx-data-storyteller` — are reviewers the model can hand work to. Claude Code
+  finds them in the plugin's default `agents/` folder; `plugin.json` does not
+  list them. They cost nothing until one is called.
+- **Two slash commands for starting from a CSV file.** Under the plugin they are
+  namespaced with the plugin's name: `/dsx:dsx-eda` profiles and explores an
+  extract (it routes to `dsx-explore-data`), and `/dsx:dsx-scope` turns a
+  business question into an `ANALYSIS-SPEC` (it routes to
+  `dsx-scope-analysis`). `plugin.json` lists both in its `commands` entry.
 - **A Stop hook that will not let the session end on a failing audit.** Before
   the turn closes, [`hooks/stop-gate`](../hooks/stop-gate) finds every
   `ANALYSIS-SPEC.{yaml,yml,json}` under the working directory and runs
@@ -58,7 +69,7 @@ Requires Python 3.9+ on PATH and no third-party packages.
 | `DSX_STOP_GATE` | `on` | `off` disables the end-of-session gate for one shell |
 | `DSX_BLOCK_ON` | `HIGH` | Minimum severity that blocks: `CRITICAL` · `HIGH` · `MEDIUM` · `LOW` |
 | `DSX_SEARCH_DEPTH` | `4` | How deep under the working directory the Stop hook looks for specs |
-| `DSX_PYTHON` | `python3` | Interpreter override |
+| `DSX_PYTHON` | `python3`, then `python` (must be Python 3.9 or newer) | Interpreter override. An interpreter older than 3.9 is skipped. |
 
 ## Continuous integration
 

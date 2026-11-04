@@ -38,7 +38,9 @@ between segments, use `dsx-root-cause` or `dsx-segment`.
 | a chart declaration with `data_input_type: event-time` and mark `funnel` | the ordered step visual itself | the chart matrix consulted through `dsx charts` — the `funnel` mark is admitted only under `data_input_type: event-time`; any other pairing is refused by `DSX-VIZ-013` |
 
 Run `dsx charts event-time` (or `dsx charts <shape>`) before declaring the mark, and `dsx gate
-plan` / `dsx check` before treating the metric declarations as settled.
+plan` / `dsx check` before treating the metric declarations as settled. To find the exact inventory
+id (`IT001`–`IT040`) that matches your columns without running the CLI, look up their signature in
+`references/input-type-inventory.md`.
 </field_to_gate_routing>
 
 <ordering_integrity_routing>

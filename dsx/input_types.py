@@ -83,7 +83,7 @@ def permitted(shape: str, relationship: str | None = None) -> list[str]:
     "no chart is valid" is almost always a mis-declared relationship rather than
     a real dead end, and the caller needs something to report.
     """
-    from .checks.viz import RELATIONSHIP_CHARTS
+    from .checks.viz import RELATIONSHIP_CHARTS, RELATIONSHIP_MARK_INPUT_GATE
     from .spec import CHART_CAPABILITIES
 
     it_id = canonical_id(shape)
@@ -98,14 +98,12 @@ def permitted(shape: str, relationship: str | None = None) -> list[str]:
     if relationship:
         rel = str(relationship).strip().lower().replace("-", "_")
         narrowed = allowed & set(RELATIONSHIP_CHARTS.get(rel, ()))
+        family = family_of(shape) or str(shape).strip().lower().replace("_", "-")
+        narrowed = {
+            mark for mark in narrowed
+            if family in RELATIONSHIP_MARK_INPUT_GATE.get((rel, mark), {family})
+        }
         if narrowed:
             return sorted(narrowed)
 
     return sorted(allowed)
-
-
-def known_shapes() -> list[str]:
-    """Every accepted shape key: the 40 IT ids plus the coarse family names."""
-    from .spec import DATA_INPUT_TYPES
-
-    return sorted(_by_id()) + sorted(DATA_INPUT_TYPES)

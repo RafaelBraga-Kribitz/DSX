@@ -1,6 +1,3 @@
 # API Surface
 
-> Generated from `.planning/intel/api-map.json`. Do not edit by hand.
-
-> **Incomplete:** api-map.json has no entries (intel extraction is regex/JS-only or not yet populated).
-> Treat absence here as "unknown", not "does not exist".
+> **Never populated (noted 2026-09-30).** gsd-core's intel extraction produced zero symbols for this Python project (`api-map.json` was never written), so this file holds no API surface. Kept only because archived Phase 8 and 11.1.1 plans cite it by name; read the code (`dsx/`) instead.

@@ -8,6 +8,18 @@ Why reimplement instead of importing scipy: these functions run inside blocking
 gates. A gate that errors because the user's environment lacks scipy is a gate
 that gets disabled. Every function here is pure, dependency-free and unit-tested
 against reference values.
+
+Documented library API with no gate-path caller. These are reference
+arithmetic, pinned by their tests to published worked values, and kept off the
+gate path on purpose (the tests assert that ``dsx/checks/design.py`` never
+imports the CUPED helpers):
+
+    cuped_theta, cuped_variance_reduction   Deng et al. (2013) CUPED identities
+                                            (tests/test_cuped.py)
+    label_convention_band                   report-only Landis & Koch kappa label
+                                            (tests/test_effect_size_kind.py)
+    diluted_effect                          additive metrics ONLY; the ratio-metric
+                                            case is not implemented (see its docstring)
 """
 
 from __future__ import annotations
@@ -21,11 +33,6 @@ from collections.abc import Sequence
 def norm_cdf(x: float) -> float:
     """Standard normal CDF. Exact to machine precision via ``math.erfc``."""
     return 0.5 * math.erfc(-x / math.sqrt(2.0))
-
-
-def norm_sf(x: float) -> float:
-    """Upper tail: P(Z > x)."""
-    return 0.5 * math.erfc(x / math.sqrt(2.0))
 
 
 # Acklam's rational approximation coefficients for the inverse normal CDF.
@@ -89,11 +96,6 @@ def z_two_sided(alpha: float) -> float:
     """Critical value for a two-sided test at level ``alpha``."""
     _check_prob(alpha, "alpha")
     return norm_ppf(1.0 - alpha / 2.0)
-
-
-def z_one_sided(alpha: float) -> float:
-    _check_prob(alpha, "alpha")
-    return norm_ppf(1.0 - alpha)
 
 
 # ── Chi-square ───────────────────────────────────────────────────────────────
@@ -198,21 +200,6 @@ def sample_size_two_proportions(
         + zb * math.sqrt(p1 * (1.0 - p1) + p2 * (1.0 - p2))
     ) ** 2
     return math.ceil(numerator / (p2 - p1) ** 2)
-
-
-def sample_size_two_means(
-    sd: float, mde_absolute: float, alpha: float = 0.05, power: float = 0.80
-) -> int:
-    """Per-arm sample size for a two-sided two-sample mean comparison."""
-    if sd <= 0:
-        raise ValueError("sd must be positive")
-    if mde_absolute == 0:
-        raise ValueError("mde_absolute must be non-zero")
-    _check_prob(alpha, "alpha")
-    _check_prob(power, "power")
-    za = z_two_sided(alpha)
-    zb = norm_ppf(power)
-    return math.ceil(2.0 * ((za + zb) ** 2) * (sd**2) / (mde_absolute**2))
 
 
 def power_two_proportions(
@@ -350,7 +337,6 @@ REPORT_ONLY_EFFECT_KINDS = frozenset(
 # 2-decimal ranges with gaps at .21/.41/... ; a continuous band needs a tie
 # rule, and this is ours). Report-only: never fed into interpret_effect /
 # DSX-STA-011.
-KAPPA_BANDS_CITATION = "Landis & Koch (1977), Biometrics 33(1):159-174"
 KAPPA_BANDS = (
     (0.00, "poor"),
     (0.20, "slight"),
@@ -366,10 +352,6 @@ KAPPA_BANDS = (
 # different alpha at each level, so a level-free pin would be wrong. The table is
 # level-keyed precisely so the ordinal value is reachable only by asking for the
 # ordinal level. Report-only reference value, never on any gate compute path.
-KRIPPENDORFF_REFERENCE_CITATION = (
-    "Krippendorff's alpha reference value confirmed at source (HQ-16 B4); "
-    "level-of-measurement dependent — the value must carry its level"
-)
 KRIPPENDORFF_REFERENCE = {
     "nominal": 0.4765,
     "ordinal": 0.7598,
@@ -440,6 +422,102 @@ def proportion_diff_ci(
     z = z_two_sided(alpha)
     diff = p2 - p1
     return diff - z * se, diff + z * se
+
+
+def wilson_interval(k: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """Wilson score interval for a binomial proportion ``k / n``.
+
+    Wilson, E.B. (1927), JASA 22(158):209-212. Unlike the Wald interval it stays
+    inside [0, 1] and keeps near-nominal coverage at 0 or n successes.
+    """
+    _check_count(k, n)
+    if n == 0:
+        raise ValueError("n must be >= 1")
+    z = z_two_sided(alpha)
+    p = k / n
+    denom = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denom
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    lower = 0.0 if k == 0 else max(0.0, centre - half)
+    upper = 1.0 if k == n else min(1.0, centre + half)
+    return lower, upper
+
+
+def binom_cdf(k: int, n: int, p: float) -> float:
+    """P(X <= k) for X ~ Binomial(n, p), summed exactly term by term."""
+    _check_prob(p, "p")
+    if k < 0:
+        return 0.0
+    if k >= n:
+        return 1.0
+    return math.fsum(math.comb(n, i) * p**i * (1 - p) ** (n - i) for i in range(k + 1))
+
+
+def clopper_pearson_upper(k: int, n: int, alpha: float = 0.05) -> float:
+    """One-sided exact (Clopper-Pearson) upper confidence bound for ``k / n``.
+
+    The largest p with P(X <= k | p) >= alpha, found by bisection on the exact
+    binomial CDF. For k = 0 it equals ``1 - alpha ** (1 / n)``: 0 false alarms
+    in 15 clean analyses bounds the false-alarm rate at about 0.181.
+    Clopper, C.J. and Pearson, E.S. (1934), Biometrika 26(4):404-413.
+    """
+    _check_count(k, n)
+    _check_prob(alpha, "alpha", exclusive=True)
+    if n == 0:
+        raise ValueError("n must be >= 1")
+    if k >= n:
+        return 1.0
+    lo, hi = k / n, 1.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if binom_cdf(k, n, mid) >= alpha:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
+def clean_examples_needed(target_upper: float, alpha: float = 0.05) -> int:
+    """Smallest n for which 0 false alarms in n clean examples bounds the
+    false-alarm rate (one-sided, exact) at or below ``target_upper``."""
+    _check_prob(target_upper, "target_upper", exclusive=True)
+    _check_prob(alpha, "alpha", exclusive=True)
+    n = math.ceil(math.log(alpha) / math.log(1 - target_upper))
+    # Guard the float boundary: step until the exact bound really is under target.
+    while n > 1 and 1 - alpha ** (1 / (n - 1)) <= target_upper:
+        n -= 1
+    while 1 - alpha ** (1 / n) > target_upper:
+        n += 1
+    return n
+
+
+def mcnemar_exact(b: int, c: int) -> float:
+    """Two-sided exact McNemar p-value for paired binary outcomes.
+
+    ``b`` and ``c`` are the discordant counts (right under one arm and wrong
+    under the other, each way). Under the null each discordant pair is a fair
+    coin, so p = min(1, 2 * P(X <= min(b, c))) with X ~ Binomial(b + c, 0.5).
+    McNemar, Q. (1947), Psychometrika 12(2):153-157.
+    """
+    if b < 0 or c < 0:
+        raise ValueError("discordant counts must be >= 0")
+    m = b + c
+    if m == 0:
+        return 1.0
+    return min(1.0, 2 * binom_cdf(min(b, c), m, 0.5))
+
+
+def paired_diff_ci(b: int, c: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """Wald interval for the paired difference in proportions ``(c - b) / n``
+    (treatment minus control), from the discordant counts of n paired items."""
+    if n < 1:
+        raise ValueError("n must be >= 1")
+    if b < 0 or c < 0 or b + c > n:
+        raise ValueError("need 0 <= b, c and b + c <= n")
+    d = (c - b) / n
+    se = math.sqrt(max((b + c) - (c - b) ** 2 / n, 0.0)) / n
+    z = z_two_sided(alpha)
+    return d - z * se, d + z * se
 
 
 # ── Multiplicity ─────────────────────────────────────────────────────────────
@@ -702,6 +780,11 @@ def _check_prob(value: float, name: str, exclusive: bool = False) -> None:
     if not ok:
         bound = "(0, 1)" if exclusive else "[0, 1]"
         raise ValueError(f"{name} must be in {bound}, got {value!r}")
+
+
+def _check_count(k: int, n: int) -> None:
+    if n < 0 or k < 0 or k > n:
+        raise ValueError(f"need 0 <= k <= n, got k={k!r}, n={n!r}")
 
 
 def _validate_pvalues(pvalues: Sequence[float]) -> None:

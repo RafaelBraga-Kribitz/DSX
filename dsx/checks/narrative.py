@@ -7,12 +7,14 @@ Stdlib only; optional phase-local FORBIDDEN-CLAIMS.yaml merges with a universal 
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 from ..findings import Report
 from ..loader import loads as load_yaml
 from ..pct_base import normalize_ws, relative_percent_without_base
 from ..spec import is_blank, items, section
+from ._paths import resolve_roots
 
 UNIVERSAL_FORBIDDEN: list[tuple[str, str]] = [
     ("data_proves", r"(?i)\b(the )?data (proves|shows that|demonstrates that)\b"),
@@ -33,7 +35,8 @@ def check(
     claims = items(spec, "claims")
     narrative = section(spec, "narrative")
     path_raw = narrative.get("path") if narrative else None
-    roots = _roots(phase_dir)
+    roots = resolve_roots(phase_dir)
+    patterns = _load_forbidden(roots)
 
     if claims and is_blank(path_raw) and gate_point == "ship":
         report.add(
@@ -78,7 +81,7 @@ def check(
                         remedy="Paste the claim wording into the narrative, or edit the claim.",
                         where=f"spec.claims[{index}].text",
                     )
-            _scan_forbidden(body, "narrative", str(path_raw), report, roots)
+            _scan_forbidden(body, "narrative", str(path_raw), report, patterns)
             if relative_percent_without_base(body):
                 report.add(
                     "DSX-NAR-040",
@@ -97,7 +100,7 @@ def check(
     for index, claim in enumerate(claims):
         text = str(claim.get("text") or "")
         if text.strip():
-            _scan_forbidden(text, "claim", f"spec.claims[{index}].text", report, roots)
+            _scan_forbidden(text, "claim", f"spec.claims[{index}].text", report, patterns)
 
     dashboard = section(spec, "dashboard")
     dash_path = dashboard.get("path") if dashboard else None
@@ -117,14 +120,6 @@ def check(
     return report
 
 
-def _roots(phase_dir: str | None) -> list[Path]:
-    roots: list[Path] = []
-    if phase_dir:
-        roots.append(Path(phase_dir))
-    roots.append(Path.cwd())
-    return roots
-
-
 def _resolve_file(rel: str, roots: list[Path]) -> Path | None:
     for root in roots:
         candidate = root / rel
@@ -136,7 +131,20 @@ def _resolve_file(rel: str, roots: list[Path]) -> Path | None:
     return None
 
 
+def _warn(message: str) -> None:
+    """A non-fatal note on stderr: the optional pattern file is the operator's
+    own, so a typo in it must be visible, but it never changes the verdict."""
+    print(f"dsx: warning: {message}", file=sys.stderr)
+
+
 def _load_forbidden(roots: list[Path]) -> list[tuple[str, str]]:
+    """The universal pack plus the first phase-local FORBIDDEN-CLAIMS file found.
+
+    Called once per ``check()`` so each warning prints once. A file that will
+    not parse, or whose top level is not a mapping, and an entry whose regex
+    does not compile, are skipped — never fatal — with a warning naming the
+    file, so a broken register is not silently ignored.
+    """
     patterns = list(UNIVERSAL_FORBIDDEN)
     seen_ids = {pid for pid, _ in patterns}
     for root in roots:
@@ -146,7 +154,14 @@ def _load_forbidden(roots: list[Path]) -> list[tuple[str, str]]:
                 continue
             try:
                 data = load_yaml(path.read_text(encoding="utf-8"), suffix=path.suffix)
-            except Exception:  # noqa: BLE001 -- an optional pattern file that will not parse is skipped, never fatal
+            except Exception as exc:  # noqa: BLE001 -- an optional pattern file that will not parse is skipped, never fatal
+                _warn(f"{path} could not be parsed ({exc}); its forbidden-wording patterns were skipped")
+                continue
+            if not isinstance(data, dict):
+                _warn(
+                    f"{path} is not a mapping with a patterns: list; "
+                    "its forbidden-wording patterns were skipped"
+                )
                 continue
             for entry in data.get("patterns") or []:
                 if not isinstance(entry, dict):
@@ -154,6 +169,11 @@ def _load_forbidden(roots: list[Path]) -> list[tuple[str, str]]:
                 pid = str(entry.get("id") or "")
                 regex = entry.get("regex")
                 if not pid or not isinstance(regex, str) or pid in seen_ids:
+                    continue
+                try:
+                    re.compile(regex)
+                except re.error as exc:
+                    _warn(f"{path} pattern {pid!r} is not a valid regex ({exc}); skipped")
                     continue
                 patterns.append((pid, regex))
                 seen_ids.add(pid)
@@ -166,9 +186,9 @@ def _scan_forbidden(
     kind: str,
     where: str,
     report: Report,
-    roots: list[Path],
+    patterns: list[tuple[str, str]],
 ) -> None:
-    for pid, pattern in _load_forbidden(roots):
+    for pid, pattern in patterns:
         try:
             if re.search(pattern, text):
                 report.add(

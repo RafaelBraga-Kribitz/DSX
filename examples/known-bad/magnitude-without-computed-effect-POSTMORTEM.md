@@ -3,6 +3,8 @@
 Paired spec: `magnitude-without-computed-effect-ANALYSIS-SPEC.yaml`
 Paired entrypoint: `magnitude-without-computed-effect-entrypoint.py`
 
+> **Known MISS.** No shipped check fires on the defect this fixture encodes, so the gate does not catch it; see `README.md` in this directory.
+
 ## What was concluded
 
 A retention-analytics team published a descriptive quarterly readout of customer

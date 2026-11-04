@@ -8,12 +8,14 @@ and a pointer to the code that produced the numbers.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 from pathlib import Path
 
 from ..findings import Report
 from ..spec import as_number, is_blank, items, normalize, section
+from ._paths import find_file, resolve_roots
 
 STOCHASTIC_MARKERS = (
     "random_forest", "gradient_boosting", "xgboost", "lightgbm", "catboost",
@@ -36,7 +38,7 @@ def check(
     _check_environment(repro, report)
     _check_data_identity(spec, report)
     _check_code_pointer(repro, report, phase_dir)
-    _check_notebook_hygiene(repro, report)
+    _check_notebook_hygiene(repro, report, phase_dir)
     if strict:
         _check_repro_lock(spec, repro, report)
         _check_reproduce_report(spec, repro, report, phase_dir)
@@ -176,28 +178,101 @@ def _check_code_pointer(repro: dict, report: Report, phase_dir: str | None) -> N
     report.ok(f"entrypoint declared: {entrypoint}")
 
 
-def _check_notebook_hygiene(repro: dict, report: Report) -> None:
+def _check_notebook_hygiene(
+    repro: dict, report: Report, phase_dir: str | None = None
+) -> None:
+    """DSX-REP-040: a notebook entrypoint must run top-to-bottom from a clean kernel.
+
+    The declaration ``reproducibility.runs_clean_top_to_bottom`` is a promise;
+    the notebook's own ``execution_count`` values are evidence. When the
+    declared ``.ipynb`` is on disk and parses as an nbformat-4 notebook, every
+    non-blank code cell must carry a non-null ``execution_count`` and the
+    counts must strictly increase from top to bottom — what Restart & Run All
+    leaves behind. A notebook whose counts say otherwise fires DSX-REP-040
+    even when the boolean says ``true`` (SEED-003 AC-01). When the notebook
+    cannot be read or parsed, the check falls back to the declaration alone.
+    """
     entrypoint = str(repro.get("entrypoint") or "")
     if not entrypoint.endswith(".ipynb"):
         return
-    if not repro.get("runs_clean_top_to_bottom"):
-        report.add(
-            "DSX-REP-040",
-            "HIGH",
-            "Notebook entrypoint not confirmed to run top-to-bottom from a clean kernel",
-            detail=(
-                "Out-of-order execution leaves results that depend on cells no longer present, "
-                "or on state from a deleted cell. The notebook then reproduces nothing."
-            ),
-            remedy=(
-                "Restart the kernel, run all cells, confirm every number matches, then set "
-                "reproducibility.runs_clean_top_to_bottom: true. Better: move the logic into a "
-                "module the notebook imports."
-            ),
-            where="spec.reproducibility.runs_clean_top_to_bottom",
-        )
-    else:
+    declared = bool(repro.get("runs_clean_top_to_bottom"))
+    contradiction = (
+        _notebook_execution_problem(entrypoint, phase_dir) if declared else None
+    )
+    if declared and contradiction is None:
         report.ok("notebook confirmed to run clean top-to-bottom")
+        return
+
+    if contradiction is None:
+        detail = (
+            "Out-of-order execution leaves results that depend on cells no longer present, "
+            "or on state from a deleted cell. The notebook then reproduces nothing."
+        )
+        where = "spec.reproducibility.runs_clean_top_to_bottom"
+    else:
+        detail = (
+            "reproducibility.runs_clean_top_to_bottom is true, but the notebook's own "
+            f"execution counts contradict the declaration: {contradiction}. A notebook "
+            "run top-to-bottom from a clean kernel numbers its code cells in strictly "
+            "increasing order with none left unrun."
+        )
+        where = "spec.reproducibility.entrypoint"
+    report.add(
+        "DSX-REP-040",
+        "HIGH",
+        "Notebook entrypoint not confirmed to run top-to-bottom from a clean kernel",
+        detail=detail,
+        remedy=(
+            "Restart the kernel, run all cells, confirm every number matches, save the "
+            "notebook, then set reproducibility.runs_clean_top_to_bottom: true. Better: "
+            "move the logic into a module the notebook imports."
+        ),
+        where=where,
+    )
+
+
+def _notebook_execution_problem(entrypoint: str, phase_dir: str | None) -> str | None:
+    """Describe how the notebook's execution counts break top-to-bottom order.
+
+    Returns ``None`` when the counts are consistent with one clean run, and also
+    when the notebook is missing, unreadable, not JSON, or not nbformat 4 —
+    no evidence either way, so the caller keeps the declaration.
+    """
+    path = find_file(entrypoint, resolve_roots(phase_dir))
+    if path is None or not path.is_file():
+        return None
+    try:
+        notebook = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError):
+        return None
+    cells = notebook.get("cells") if isinstance(notebook, dict) else None
+    if not isinstance(cells, list):
+        return None
+
+    previous: int | None = None
+    previous_cell = 0
+    code_index = 0
+    for cell in cells:
+        if not isinstance(cell, dict) or cell.get("cell_type") != "code":
+            continue
+        code_index += 1
+        source = cell.get("source")
+        if isinstance(source, list):
+            source = "".join(str(part) for part in source)
+        if not str(source or "").strip():
+            continue  # an empty cell is never sent to the kernel
+        count = cell.get("execution_count")
+        if count is None:
+            return f"code cell {code_index} has execution_count null (never run)"
+        if isinstance(count, bool) or not isinstance(count, int):
+            return None  # malformed notebook: no evidence either way
+        if previous is not None and count <= previous:
+            return (
+                f"code cell {code_index} has execution_count {count} after code cell "
+                f"{previous_cell}'s {previous} (run out of order)"
+            )
+        previous, previous_cell = count, code_index
+    return None
 
 
 def _check_repro_lock(spec: dict, repro: dict, report: Report) -> None:

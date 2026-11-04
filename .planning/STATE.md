@@ -32,16 +32,19 @@ v2.0.0 DSX Validity Frame SHIPPED 2026-08-28 (`v2.1.0`). Archives under
 `v2.6-MILESTONE-AUDIT.md`, `v2.6-LOOP-LEDGER.md`, `v2.6-LOOP-LEDGER-ARCHIVE.md`,
 `v2.6-HUMAN-QUEUE.md` and `v2.6-phases/`.
 
-**Loop control:** the autonomous ceremony is still **PAUSED** (`.planning/loop-logs/.paused`).
-`scripts/run-ceremony-firing.ps1` `$Branch` still names `gsd/v2.6.0-exploration-depth`
-and `.planning/LOOP-BRIEF.md` is still the v2.6 contract — both are rewritten once the
-v2.7 roadmap is approved, and un-pausing is a separate operator decision recorded in
-the ledger at that point. No active `LOOP-LEDGER.md` / `HUMAN-QUEUE.md` yet.
+**Loop control:** the headless ceremony loop is **RETIRED (2026-09-30)**. It had been
+paused since 2026-09-10 (`.planning/loop-logs/.paused`), and its Windows Scheduled Task
+wrapper `scripts/run-ceremony-firing.ps1` still pinned the deleted
+`gsd/v2.6.0-exploration-depth` branch and read ledger files that no longer exist; the
+2026-09-30 project audit (H3) found it dead, and it was deleted that day rather than
+repointed. v2.7 runs interactively. `.planning/LOOP-BRIEF.md` is still the v2.6 contract and
+is rewritten when the v2.7 roadmap is approved; there is no active `LOOP-LEDGER.md` /
+`HUMAN-QUEUE.md` yet.
 
-**Usage-limit posture (proven 2026-08-30 through 2026-09-10):** the firing wrapper
-detects limit hits, backs off gracefully, and re-probes every 30 minutes during any
-hold to catch an early release. Firings must not retry in a loop — log one line and
-stop; the wrapper owns the pacing.
+**Usage-limit posture (historical, 2026-08-30 through 2026-09-10):** the firing wrapper
+detected limit hits, backed off, and re-probed every 30 minutes during a hold. It was
+deleted with the loop on 2026-09-30; the rule that a firing never retries in a loop
+stands for any future automation.
 
 ## Project Reference
 
@@ -152,12 +155,11 @@ the operator's go.
 
 ## Operator Next Steps
 
-- **Open v2.7 (interactive):** `/gsd-new-milestone` with scope from `SEED-003` and
-  ROADMAP `## Next`; write the new `LOOP-BRIEF.md` / `LOOP-LEDGER.md` /
-  `HUMAN-QUEUE.md`; cut `gsd/v2.7.0-<slug>` from `main`; repoint `$Branch` in
-  `scripts/run-ceremony-firing.ps1` **before** removing `.planning/loop-logs/.paused`
-  — the v2.6 branch it still names was deleted on 2026-09-11 (merged; branch
-  hygiene), so an un-paused firing would abort at the wrapper's branch guard.
+- **Plan v2.7 Phase 31:** `/gsd-plan-phase 31`; write the new `LOOP-BRIEF.md` /
+  `LOOP-LEDGER.md` / `HUMAN-QUEUE.md` when the roadmap is approved. ~~Repoint `$Branch` in
+  `scripts/run-ceremony-firing.ps1` before removing `.planning/loop-logs/.paused`~~ —
+  **retired 2026-09-30:** the headless ceremony loop and its wrapper script were deleted
+  (project audit H3), so there is nothing to repoint or unpause.
 
 - **Two kinds of local file stay untracked:** `references/The AI Data Scientist.md`
   (a full-text clipping of an arXiv paper — do not commit) and the `.claude/`,

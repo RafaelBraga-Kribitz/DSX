@@ -43,7 +43,8 @@ is only checkable once the previous one is fixed:
 - A dashboard task with no declared metric definitions. It will produce numbers
   that disagree with another dashboard within a quarter.
 
-**Verify before finishing:** run `dsx gate plan --phase-dir <phase>` yourself. If
-it blocks, fix the spec now — the gate will block the loop otherwise, and it
+**Verify before finishing:** run `dsx gate plan --phase-dir <phase> --allow-missing`
+yourself (drop `--allow-missing` when `dsx.require_spec` is on). If it blocks, fix
+the spec now — the gate will block the loop otherwise, and it
 reports exactly which field and why.
 </dsx_planner_contract>

@@ -29,7 +29,9 @@ jobs:
       - name: Audit every ANALYSIS-SPEC
         run: |
           set -u
-          specs=$(find . -path ./.git -prune -o \
+          # Same prune list as the plugin's Stop hook (hooks/stop-gate), so CI
+          # and the hook audit the same set of specs.
+          specs=$(find . \( -name .git -o -name node_modules -o -name .venv -o -name __pycache__ \) -prune -o \
             \( -name 'ANALYSIS-SPEC.yaml' -o -name 'ANALYSIS-SPEC.yml' -o -name 'ANALYSIS-SPEC.json' \) \
             -type f -print | sort)
           if [ -z "$specs" ]; then
@@ -37,6 +39,8 @@ jobs:
             exit 0
           fi
           failed=0
+          # One spec per line: a path with a space must stay one path.
+          IFS=$'\n'
           for spec in $specs; do
             echo "::group::$spec"
             if PYTHONPATH="$RUNNER_TEMP/dsx" python3 -m dsx audit --spec "$spec" --block-on "$DSX_BLOCK_ON"; then
@@ -46,6 +50,7 @@ jobs:
             fi
             echo "::endgroup::"
           done
+          unset IFS
           if [ "$failed" -ne 0 ]; then
             echo "::error::$failed ANALYSIS-SPEC(s) blocked at $DSX_BLOCK_ON"
             exit 1

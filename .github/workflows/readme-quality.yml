@@ -1,6 +1,20 @@
 # README Quality Gate — drop this file into .github/workflows/ of a portfolio repository.
 # Runs in ~10 s: clones the contract repo, installs PyYAML + Pillow + fontTools, audits this repository's README.
 # Fails the check only when a required requirement FAILs (exit 1). BLOCKED_HUMAN (exit 2) and WARN do not fail CI.
+#
+# Owner-only job. It is not part of dsx's own verification (that is ci.yml /
+# scripts/check.sh) and nothing in this repository backs it:
+#   - It checks out RafaelBraga-Kribitz/braga-portfolio-docs, the README owner's
+#     portfolio contract repo, and runs its readme_quality package. The job can
+#     only pass where that repo is readable, so it is expected to fail on forks.
+#   - Until the contract's readme-quality-gate branch is merged, the step below
+#     falls back to that branch when main has no readme_quality package. When
+#     the branch merges (or is deleted) the job follows main without any change
+#     here. There is no commit pin, because this repository cannot see the
+#     contract repo's history to choose one.
+#   - Exit 2 (BLOCKED_HUMAN) is a warning, not a failure: it means a requirement
+#     needs a person's judgement (a screenshot, a claim only the owner can
+#     confirm), which no CI run can supply. Only a hard FAIL (exit 1) goes red.
 name: README quality gate
 
 on:

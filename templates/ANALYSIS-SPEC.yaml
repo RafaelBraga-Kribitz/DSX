@@ -224,6 +224,9 @@ analysis:
 visuals:
   - name: <chart name>
     chart_id: <stable_id>              # unique across visuals; used by FIGURE-MANIFEST
+    # visual_kind: diagram             # only for a figure with NO data (flow, module map);
+    #                                  # drop relationship, data_input_type, y_axis*, shows_estimates.
+    #                                  # Exempts DSX-VIZ-010/064/061 only; any data field voids it (VIZ-015).
     relationship: comparison           # `dsx vocab` for the closed list
     type: bar
     data_input_type: categorical-value # `dsx vocab` — must admit `type`
@@ -336,7 +339,7 @@ claims:
 assumptions:
   - assumption: "<what we are taking as true>"
     rationale: "<why>"
-    impact_if_wrong: "<what breaks>"
+    impact_if_wrong: "<what breaks>"  # informational — read by humans, not checked by dsx
     checked: false
     # waiver: "Not testable: …"   # at ship: checked:true XOR non-blank waiver
 
@@ -374,11 +377,11 @@ validity_frame:
     strength: strong                # strong | moderate | weak
     evidence: "<the design-based support for this strength, e.g. randomisation at assignment>"
     constraint_source: none        # none | informative_priors | penalisation | design_restriction | hierarchical_pooling
-    constraint_justification: "<required unless constraint_source is none>"
+    constraint_justification: "<required unless constraint_source is none>"  # informational — read by humans, not checked by dsx
 
   dependence:
     structure: none                # none | clustered | repeated_measures | temporal | spatial | hierarchical
-    cluster_var: null
+    cluster_var: null              # informational — read by humans, not checked by dsx
     method_family_required: null   # cluster_robust | delta_method | bootstrap_cluster | mixed_effects
 
   interference:
@@ -389,7 +392,7 @@ validity_frame:
 
   triggering:
     eligible_population: "<who could have triggered the analysed event>"
-    triggered_definition: "<the event that puts a unit in the analysis>"
+    triggered_definition: "<the event that puts a unit in the analysis>"  # informational — read by humans, not checked by dsx
     analysis_population: eligible  # eligible | triggered
     expected_trigger_rate: null
     dilution_adjusted: false

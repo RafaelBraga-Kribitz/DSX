@@ -31,33 +31,46 @@ The append contract (D-19), normative for any future writer of this file:
   ``confidence`` and ``escalate`` for that case.
 - **Durability:** ``append()`` writes, ``flush()``es and ``os.fsync()``s the
   file descriptor per record, so a line that finished writing survives a
-  crashed run. ``read_all()`` is the other half of that guarantee, and it
-  tolerates three distinct on-disk conditions, not just one: an unparseable
-  line (the half-written tail of a crash), an undecodable byte (a hand-edit,
-  filesystem-level corruption of an already-committed byte, or any future
-  non-ASCII write), and an unreadable path (a directory, a device node, a
-  revoked permission) — none of these is fatal, so one crash or one corrupted
-  byte never invalidates every record written before it, and never raises
-  into a caller that documents an unconditional "never blocks" contract.
-- **Concurrency (WR-02):** ``next_invocation_id()`` and the caller's
-  subsequent ``append()`` are a non-atomic read-then-write with no locking
-  between the two steps. Concurrent ``dsx gate`` invocations against a single
-  root are unsupported today — see ``next_invocation_id()``'s docstring for
-  the exact collision mechanism. No lock, lock file or platform-specific
-  advisory-locking import is introduced; serialising concurrent gate runs
-  against one root is the operator's responsibility.
+  crashed run. ``read_all()`` is the other half of that guarantee: it
+  tolerates an unparseable line (the half-written tail of a crash) and an
+  undecodable byte (a hand-edit, filesystem-level corruption of an
+  already-committed byte, or any future non-ASCII write), so one crash or one
+  corrupted byte never invalidates every record written before it. A missing
+  file is an empty trail. A path that exists but cannot be read (a directory,
+  a device node, a revoked permission) is *not* an empty trail — treating it
+  as one would restart ``next_invocation_id()`` at ``INV-0001`` and write a
+  duplicate id — so it raises ``CheckError`` naming the path; the callers
+  that promise never to block (``_write_decision_trail``, ``dsx explain``,
+  ``dsx stats``) already guard over ``Exception`` and report it.
+- **Concurrency (WR-02, SEED-004 CL-01):** ``next_invocation_id()`` and the
+  header ``append()`` are a read-then-write, so a writer holds
+  ``trail_lock(path)`` across both (``dsx/cli.py::_write_decision_trail``
+  holds it across the whole invocation's records). The lock is an exclusive
+  OS advisory lock (``fcntl.flock`` on POSIX, ``msvcrt.locking`` on Windows)
+  on the sibling file ``DECISIONS.jsonl.lock``. The kernel drops it when the
+  holding process exits, however it exits, so the lock file's existence never
+  means "held" and a crashed writer can never wedge the next run. A writer
+  that cannot take the lock within its timeout raises ``TrailLockTimeout``
+  and writes nothing — the trail is a side channel, so the gate still exits
+  on its findings. Readers take no lock: ``append()`` writes one whole line
+  per call and ``read_all()`` tolerates a torn tail.
 """
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
+import time
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-DECISION_LAYERS = {"deterministic", "stochastic"}
+from .findings import CheckError
+
+DECISION_LAYERS = frozenset({"deterministic", "stochastic"})
 RECORD_TYPES = {"invocation", "decision", "amendment"}
 
 
@@ -81,6 +94,16 @@ class DecisionRecord:
     alternatives_rejected: list[str] = field(default_factory=list)
     confidence: str | None = None
     escalate: bool = False
+
+    def __post_init__(self) -> None:
+        # The one place a decision record is built, whether by a check
+        # (``record_decision``) or by the trail writer from a frame module's
+        # plain dict — so an unknown layer cannot reach the file.
+        if self.layer not in DECISION_LAYERS:
+            raise ValueError(
+                f"decision record {self.id or '?'} has layer {self.layer!r}; "
+                f"expected one of {sorted(DECISION_LAYERS)}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         out = asdict(self)
@@ -146,6 +169,14 @@ class AmendmentRecord:
     (D-12): the trail is a plain, unsigned, tolerant-read local file, and
     ``reason`` is checkable for form (not a placeholder or refusal, via
     ``dsx.spec.is_placeholder_or_refusal``) but never for truth.
+
+    **Nothing in dsx writes this record, by design.** The gate cannot know
+    *why* a locked frame changed — only the operator can — so the gate writes
+    invocation headers and decision records only, and ``prereg`` reads
+    amendment records back. This class is the schema for that consumer side:
+    the shape an operator (or an operator's own tooling, via ``append()`` under
+    ``trail_lock()``) writes when amending a locked plan, and the shape the
+    tests construct. It is not dead code awaiting a writer.
     """
 
     spec_id: str
@@ -162,7 +193,89 @@ class AmendmentRecord:
         return out
 
 
-def append(path: str | Path, record: DecisionRecord | InvocationHeader) -> None:
+class TrailLockTimeout(CheckError):
+    """The decision-trail lock could not be taken within the timeout."""
+
+
+_LOCK_POLL_SECONDS = 0.05
+# How long a writer waits for another writer before giving up on the trail.
+LOCK_TIMEOUT_SECONDS = 10.0
+
+
+def _try_lock(fh: Any) -> bool:
+    """One non-blocking attempt at an exclusive lock on ``fh``; ``True`` if held."""
+    if os.name == "nt":  # pragma: no cover - exercised on Windows only
+        import msvcrt
+
+        fh.seek(0)
+        try:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError:
+            return False
+        return True
+    import fcntl
+
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _unlock(fh: Any) -> None:
+    if os.name == "nt":  # pragma: no cover - exercised on Windows only
+        import msvcrt
+
+        fh.seek(0)
+        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        return
+    import fcntl
+
+    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
+def lock_path(path: str | Path) -> Path:
+    """The advisory lock file for the trail at ``path``: ``<trail>.lock``."""
+    trail = Path(path)
+    return trail.with_name(trail.name + ".lock")
+
+
+@contextlib.contextmanager
+def trail_lock(path: str | Path, timeout: float | None = None) -> Iterator[None]:
+    """Hold an exclusive advisory lock for the trail at ``path`` (SEED-004 CL-01).
+
+    Serialises ``next_invocation_id()`` + ``append()`` across processes, so two
+    concurrent ``dsx gate`` runs against one root get distinct invocation ids.
+    Polls a non-blocking lock until ``timeout`` seconds (default
+    ``LOCK_TIMEOUT_SECONDS``, read at call time) pass, then raises
+    ``TrailLockTimeout`` (a ``CheckError``) — never waits forever. The lock
+    file is created if absent and never deleted: unlinking a lock file while
+    another process waits on it would let two writers hold "the" lock at once.
+    The OS releases the lock when the holder exits, even when it is killed.
+    """
+    if timeout is None:
+        timeout = LOCK_TIMEOUT_SECONDS
+    target = lock_path(path)
+    # "a+b" creates the file without truncating it, and gives a descriptor
+    # both flock (POSIX) and msvcrt.locking (Windows, needs write access) accept.
+    with target.open("a+b") as fh:
+        deadline = time.monotonic() + max(timeout, 0.0)
+        while not _try_lock(fh):
+            if time.monotonic() >= deadline:
+                raise TrailLockTimeout(
+                    f"could not lock {target} within {timeout:g}s — another dsx "
+                    "gate is writing this decision trail"
+                )
+            time.sleep(_LOCK_POLL_SECONDS)
+        try:
+            yield
+        finally:
+            _unlock(fh)
+
+
+def append(
+    path: str | Path, record: DecisionRecord | InvocationHeader | AmendmentRecord
+) -> None:
     """Append one record. flush()+fsync() so a completed line survives a crash;
     the reader (read_all) skips an unparseable tail line rather than failing
     the file."""
@@ -180,19 +293,25 @@ def append(path: str | Path, record: DecisionRecord | InvocationHeader) -> None:
 
 
 def read_all(path: str | Path) -> list[dict]:
-    """Return every parseable record. Never raises for any on-disk state of
-    ``path`` — it degrades rather than fails, and its callers (``cmd_explain``,
-    the gate-path ``next_invocation_id``) depend on that unconditionally:
+    """Return every parseable record; tolerant of damaged content, not of an
+    unreadable file:
 
-    - **Missing path** -> ``[]``.
+    - **Missing path** -> ``[]`` (no trail yet is an empty trail).
     - **Unreadable path** (a directory rather than a file, a device node, a
-      revoked permission) -> ``[]``, caught as ``OSError`` around the read.
+      revoked permission) -> raises ``CheckError`` naming the path. An
+      unreadable trail is not an empty one: returning ``[]`` would restart
+      ``next_invocation_id()`` at ``INV-0001`` and let the next append write a
+      duplicate invocation id, and would let ``prereg`` report "no plan-time
+      header" for a header that exists. Callers that must never block
+      (``_write_decision_trail``, ``cmd_explain``, ``cmd_stats``) guard over
+      ``Exception`` and report the error.
     - **Undecodable bytes** in the file (not valid UTF-8) -> ``errors="replace"``
       on the decode, so the read itself cannot raise; a line degraded by
       replacement characters then either still parses as JSON or falls into
       the existing unparseable-line skip below.
     - **An unparseable line** (JSON-level truncation, e.g. the half-written
-      tail of a crash, or arbitrary non-JSON content) is skipped, not fatal —
+      tail of a crash, or arbitrary non-JSON content), and a line that is valid
+      JSON but not an object (``[1, 2]``, ``42``, ``null``), is skipped, not fatal —
       the tolerant-reader design this docstring's module-level durability
       paragraph describes.
     """
@@ -201,17 +320,24 @@ def read_all(path: str | Path) -> list[dict]:
         return []
     try:
         text = p.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
+    except FileNotFoundError:
+        return []  # removed between the exists() test and the read
+    except OSError as exc:
+        raise CheckError(f"decision trail {p} exists but cannot be read: {exc}") from exc
     records: list[dict] = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
         try:
-            records.append(json.loads(line))
+            record = json.loads(line)
         except json.JSONDecodeError:
             continue  # tolerant reader — a half-written crash-tail line is skipped, not fatal
+        if isinstance(record, dict):
+            records.append(record)
+        # else: valid JSON that is not a record object (``[1, 2]``, ``42``,
+        # ``null``) is skipped like a torn line, so every caller may call
+        # ``.get()`` on what it gets back.
     return records
 
 
@@ -221,17 +347,15 @@ def next_invocation_id(path: str | Path) -> str:
     ``invocation_id``, not ``run_id`` (D-15): ``run_id`` is
     ``visuals[].run_id``, checked by ``DSX-SMELL-013``.
 
-    **Concurrency limitation (WR-02):** the identifier is derived by counting
-    existing invocation records; the caller appends the new header separately
-    (in ``dsx/cli.py::_write_decision_trail``), and nothing serialises the two
-    steps. Two ``dsx gate`` processes racing against one ``DECISIONS.jsonl``
-    can both derive the same identifier here and both append a header
-    carrying it, after which ``dsx explain``'s grouping — which keys purely
-    on invocation-id equality — would interleave two runs' records under one
-    header. Concurrent gate invocations against a single root are therefore
-    unsupported; serialising them (running one ``dsx gate`` at a time against
-    a given root) is the operator's responsibility today. No lock is taken
-    here — see the module docstring's append-contract note.
+    **Concurrency (WR-02):** the identifier is derived by counting existing
+    invocation records and the caller appends the new header separately, so a
+    writer must call this and append the header while holding
+    ``trail_lock(path)`` — as ``dsx/cli.py::_write_decision_trail`` does.
+    Without the lock, two ``dsx gate`` processes racing against one
+    ``DECISIONS.jsonl`` can both derive the same identifier and ``dsx
+    explain``, which groups purely on invocation-id equality, would interleave
+    their records under one header. This function takes no lock itself: the
+    lock has to span the append that follows it.
     """
     records = read_all(path)
     n = sum(1 for r in records if r.get("record_type") == "invocation") + 1

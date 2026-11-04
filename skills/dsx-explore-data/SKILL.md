@@ -121,6 +121,13 @@ Before any join is trusted, build the fan-out matrix — one row per planned joi
 
 | join_id | left | right | keys | type | rows_before | rows_after | fanout | left_match_rate | null_key_rate |
 
+When the inputs are local CSV extracts, `dsx scout <a.csv> <b.csv> …` computes
+this matrix rather than leaving it to be typed: each table's grain, every column
+pair that looks like a join key, both left-join fan-outs, match and null-key
+rates, plus name-collision and unit-mismatch warnings, in `SCHEMA-SCOUT.yaml`.
+Assert each join you will declare one-to-one with
+`--expect left.col=right.col`; the command exits 1 when one fans out.
+
 `fanout = rows_after / rows_before`. `left_match_rate` = share of left rows with
 at least one match. `null_key_rate` = share of rows on either side with a null
 join key — null never equals null, so those rows silently drop or explode
@@ -826,6 +833,12 @@ from 5E; `results.observed_n` and `interim_looks` from 5C;
 `results.comparisons_looked_at` from step 11; `cleaning` entries from 4b/4c.
 `dependence.method_family_required` is an analyst declaration owed whenever the
 implied structure is not `none` — not a measured fill.
+
+Write `data[].assertions` (row count, primary key, null-rate caps, time column
+and gaps, banned sentinels) in the shapes shown in
+`references/data-quality-assertions.md`, pointing `profile_path` at the
+`DATA-PROFILE.yaml` from 0b; the data-quality gate compares those assertions to
+the profile, never to the warehouse.
 
 Then run `dsx validate --phase-dir <phase-dir>` and record its exit status in
 `EDA.md`. An out-of-vocabulary fill — a misspelled mechanism, a malformed

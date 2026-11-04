@@ -54,5 +54,6 @@ Analytical phase. The spec is the contract; the code must match it.
 - Fit-before-split in the entrypoint. Fix the order before arguing with the
   ML auditor.
 
-Run `dsx gate execute --phase-dir <phase>` before declaring the phase complete.
+Run `dsx gate execute --phase-dir <phase> --allow-missing` before declaring the
+phase complete.
 </dsx_execution_discipline>

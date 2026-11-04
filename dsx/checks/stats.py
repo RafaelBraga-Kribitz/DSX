@@ -4,6 +4,20 @@ Two jobs. First, a decision table that derives the correct test from the shape o
 the data — so "which test?" stops being a judgement call and becomes a lookup.
 Second, enforcement of the reporting contract: an effect size and an interval,
 every time, because a p-value alone answers a question nobody asked.
+
+Only ``recommend_test`` is called at runtime (by ``check`` below and by
+``dsx recommend-test``). The eight dataless routing functions —
+``recommend_association``, ``recommend_rm``, ``recommend_trend``,
+``recommend_variance_role``, ``recommend_resampling``, ``recommend_posthoc``,
+``recommend_power`` and ``recommend_proportion_ci`` — are NOT called by
+``check``. They are the reference routing tables: ``references/test-selection.md``
+and the skills mirror them in prose, and the ``tests/test_declared_*_routing.py``,
+``tests/test_no_shapiro_autoswitch.py`` and ``tests/test_doc_code_agreement.py``
+modules pin them to that prose. ``check`` enforces the same routes through the
+closed vocabularies in ``dsx.spec`` (DSX-STA-040 and the per-field gates), not by
+calling these functions. They are public, importable library API; keep them here
+so those imports stay stable. ``NONPARAMETRIC_TESTS`` is likewise a vocabulary
+pinned by ``tests/test_boschloo_reconciliation.py``, not read by ``check``.
 """
 
 from __future__ import annotations
@@ -97,6 +111,9 @@ PARAMETRIC_TESTS = {
     "linear_regression", "pearson_correlation", "z_test", "two_proportion_z",
 }
 
+# Reference vocabulary only: no check reads it (``check`` keys on PARAMETRIC_TESTS
+# alone). Kept as the named counterpart the test-selection reference and
+# tests/test_boschloo_reconciliation.py pin; see the module docstring.
 NONPARAMETRIC_TESTS = {
     "mann_whitney", "wilcoxon_signed_rank", "kruskal_wallis", "spearman_correlation",
     "fisher_exact", "boschloo_exact", "mcnemar", "chi_square", "permutation_test", "bootstrap",
@@ -233,6 +250,11 @@ def recommend_association(estimand_kind: str) -> dict[str, object]:
 
 
 # ── Phase 19 dataless routing tables (REQ-P19-01/02/04/05/06/07) ───────────────
+#
+# Reference tables, not runtime dispatch: none of these functions (nor
+# recommend_association above) is called by `check` or the CLI. They are the
+# code side of references/test-selection.md, which mirrors each one by name,
+# and the routing tests pin the two together. See the module docstring.
 #
 # Seven pure, DATALESS routing functions modelled EXACTLY on recommend_association:
 # each takes ONLY declared-context string argument(s) — NO data, NO n, NO

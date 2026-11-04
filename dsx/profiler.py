@@ -28,6 +28,10 @@ _DATE_RE = re.compile(
 _INT_RE = re.compile(r"^[+-]?\d+$")
 _FLOAT_RE = re.compile(r"^[+-]?(\d+\.\d*|\.\d+)([eE][+-]?\d+)?$")
 _NULLISH = {"", "null", "none", "na", "n/a", "nan", "#n/a"}
+# Numeric literal forms a sentinel comparison accepts: integers, decimals and
+# exponent forms (``-1``, ``-1.0``, ``1e3``). Deliberately stricter than
+# ``float()``, which also accepts ``inf``/``nan``/``1_000``.
+_SENTINEL_NUM_RE = re.compile(r"^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$")
 
 
 def file_sha256(path: Path) -> str:
@@ -43,6 +47,45 @@ def file_sha256(path: Path) -> str:
 
 def _is_null(value: str) -> bool:
     return value.strip().lower() in _NULLISH
+
+
+def _sentinel_number(text: str) -> float | None:
+    """The numeric value of a sentinel or cell, or None when it is not a plain number."""
+    if not _SENTINEL_NUM_RE.match(text):
+        return None
+    try:
+        return float(text)
+    except (ValueError, OverflowError):  # pragma: no cover - the regex admits only floats
+        return None
+
+
+def _sentinel_matches(
+    stripped: str, sentinel_numbers: dict[str, float | None]
+) -> list[str]:
+    """Sentinel keys one cell matches, each key at most once.
+
+    Keys are the caller's raw sentinel strings, so ``sentinels_found`` reports what
+    the user typed. A key matches on exact string equality first; only when that
+    fails does a numeric key fall back to numeric comparison, so ``-1.0`` or
+    ``-1e0`` in the data still matches ``--sentinel -1`` without the same cell being
+    counted twice. When two declared keys are numerically equal (``-1`` and
+    ``-1.0``) a matching cell matches both, once each.
+    """
+    matched: list[str] = []
+    cell_number: float | None = None
+    cell_parsed = False
+    for key, key_number in sentinel_numbers.items():
+        if stripped == key:
+            matched.append(key)
+            continue
+        if key_number is None:
+            continue
+        if not cell_parsed:
+            cell_number = _sentinel_number(stripped)
+            cell_parsed = True
+        if cell_number is not None and math.isclose(cell_number, key_number):
+            matched.append(key)
+    return matched
 
 
 def _infer_dtype(samples: Iterable[str]) -> str:
@@ -177,7 +220,11 @@ def profile_csv(
             "Export the extract to CSV, or write a measured_export profile by hand."
         )
 
-    sentinel_set = {str(s) for s in (sentinels or [])}
+    # Raw string keys (dict preserves first-seen order and drops duplicates), each
+    # paired with its numeric value when it has one, for _sentinel_matches.
+    sentinel_numbers: dict[str, float | None] = {
+        key: _sentinel_number(key.strip()) for key in (str(s) for s in (sentinels or []))
+    }
     source_hash = file_sha256(csv_path)
 
     with csv_path.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -249,17 +296,9 @@ def profile_csv(
                 if _INT_RE.match(stripped) or _FLOAT_RE.match(stripped):
                     numeric_values[col].append(float(stripped))
                 categorical_counts[col][stripped] += 1
-                if stripped in sentinel_set or (
-                    _FLOAT_RE.match(stripped) and stripped in sentinel_set
-                ):
-                    sentinel_hits[stripped] += 1
-                # Also match numeric sentinel forms like -1.0 vs -1
-                for sent in list(sentinel_set):
-                    try:
-                        if math.isclose(float(stripped), float(sent)):
-                            sentinel_hits[sent] += 1
-                    except ValueError:
-                        pass
+                if sentinel_numbers:
+                    for key in _sentinel_matches(stripped, sentinel_numbers):
+                        sentinel_hits[key] += 1
             if time_column:
                 raw_time = str(row.get(time_column, ""))
                 parsed = _parse_date(raw_time)

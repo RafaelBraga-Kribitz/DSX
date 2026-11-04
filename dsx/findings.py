@@ -131,10 +131,6 @@ class Report:
 
     # ---- querying ---------------------------------------------------------
 
-    @property
-    def max_severity(self) -> Severity | None:
-        return max((f.severity for f in self.findings), default=None)
-
     def at_or_above(self, threshold: Severity) -> list[Finding]:
         return [f for f in self.findings if f.severity >= threshold]
 
@@ -186,17 +182,18 @@ class Report:
 def emit(report: Report, threshold: Severity, as_json: bool, verbose: bool = False) -> int:
     """Print the report on the correct stream and return the process exit code.
 
-    Blocking output goes to stderr so GSD surfaces it in the gate message tail;
-    passing output goes to stdout so it stays out of the way.
+    ``--json`` output always goes to stdout, blocking or not: it is a document
+    for a program (``dsx audit --json | jq``), and the exit code is the verdict
+    signal. Text output goes to stderr when it blocks, so GSD surfaces it in
+    the gate message tail, and to stdout when it passes, so it stays out of
+    the way.
     """
     code = report.exit_code(threshold)
-    text = (
-        json.dumps(report.to_dict(threshold), indent=2, sort_keys=True)
-        if as_json
-        else report.render(threshold, verbose=verbose)
-    )
+    if as_json:
+        print(json.dumps(report.to_dict(threshold), indent=2, sort_keys=True), file=sys.stdout)
+        return code
     stream = sys.stderr if code != EXIT_PASS else sys.stdout
-    print(text, file=stream)
+    print(report.render(threshold, verbose=verbose), file=stream)
     return code
 
 
@@ -206,12 +203,6 @@ def merge(check: str, reports: Iterable[Report]) -> Report:
         merged.extend(r)
         merged.context.setdefault(r.check, r.context)
     return merged
-
-
-def require(condition: bool, message: str) -> None:
-    """Guard for check preconditions. Raises CheckError -> exit 2."""
-    if not condition:
-        raise CheckError(message)
 
 
 class CheckError(RuntimeError):

@@ -10,6 +10,7 @@ rule set, fails a test rather than surprising someone months later.
 from __future__ import annotations
 
 import importlib.util
+import os
 import re
 import shutil
 import subprocess
@@ -133,6 +134,25 @@ class TestOutputShapes(unittest.TestCase):
         ).stdout.split()
         authored, _ = lint_scope.classify(ROOT)
         self.assertEqual(out, authored)
+
+    @unittest.skipIf(sys.platform == "win32", "closed-pipe simulation is POSIX-only")
+    def test_a_reader_that_stops_early_is_not_a_crash(self):
+        """`lint-scope.py --authored | head` must not end in a BrokenPipeError traceback.
+
+        The read end is closed before the script runs, so its first write hits
+        EPIPE regardless of output size or scheduling.
+        """
+        read_end, write_end = os.pipe()
+        os.close(read_end)
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "lint-scope.py"), "--authored"],
+                stdout=write_end, stderr=subprocess.PIPE, text=True, check=False,
+            )
+        finally:
+            os.close(write_end)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn("BrokenPipeError", proc.stderr)
 
 
 class TestCheckShWiring(unittest.TestCase):

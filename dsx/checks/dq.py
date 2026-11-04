@@ -8,11 +8,10 @@ are honest.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from ..findings import Report
 from ..loader import SpecParseError, load
 from ..spec import as_number, is_blank, items, normalize
+from ._paths import find_file, resolve_roots
 
 
 def check(spec: dict, phase_dir: str | None = None) -> Report:
@@ -22,7 +21,7 @@ def check(spec: dict, phase_dir: str | None = None) -> Report:
         report.ok("no data sources declared")
         return report
 
-    roots = _resolve_roots(phase_dir)
+    roots = resolve_roots(phase_dir)
     checked = 0
     for index, dataset in enumerate(datasets):
         assertions = dataset.get("assertions")
@@ -48,7 +47,7 @@ def check(spec: dict, phase_dir: str | None = None) -> Report:
             )
             continue
 
-        profile_file = _find_file(str(profile_path), roots)
+        profile_file = find_file(str(profile_path), roots)
         if profile_file is None:
             report.add(
                 "DSX-DQ-001",
@@ -85,27 +84,6 @@ def check(spec: dict, phase_dir: str | None = None) -> Report:
     else:
         report.ok(f"{checked} data source(s) checked against profile(s)")
     return report
-
-
-def _resolve_roots(phase_dir: str | None) -> list[Path]:
-    roots: list[Path] = []
-    if phase_dir:
-        roots.append(Path(phase_dir))
-    roots.append(Path.cwd())
-    return roots
-
-
-def _find_file(relative: str, roots: list[Path]) -> Path | None:
-    candidate = Path(relative)
-    if candidate.is_absolute() and candidate.exists():
-        return candidate
-    for root in roots:
-        path = root / relative
-        if path.exists():
-            return path
-    if candidate.exists():
-        return candidate
-    return None
 
 
 def _check_row_count(

@@ -685,32 +685,57 @@ meaningfully change this; not worth engineering around.
 
 ## "Looks Done But Isn't" Checklist
 
+*Reconciled 2026-09-30 (project audit L72): each item ticked only where the record shows the
+verification, not merely the code, was done; items still open say so.*
+
 - [ ] **`DSX-VAL-020` / unit-triad checks:** Often verified only against the
   *declared* strings in `validity_frame.units` — verify there is at least a
   partial structural cross-check against the entrypoint (mirroring
   `DSX-CODE-*`'s real file scan), not pure declaration-vs-declaration.
-- [ ] **A symmetric pair (`DSX-PAR-010`/`011`, and later the prior-predictive
+  *Still open (2026-09-30):* `DSX-VAL-020/021` shipped in Phase 7 but are
+  declaration-vs-declaration only — `dsx/frame/val.py` never reads the
+  entrypoint. No structural cross-check exists or is planned.
+- [x] **A symmetric pair (`DSX-PAR-010`/`011`, and later the prior-predictive
   pair):** Often verified only by "both codes exist and both bad-fixtures
   fire" — verify the *cheapest honest-looking dishonest satisfaction path* is
   comparably costly on both sides (Pitfall 7), not just that both sides have
   code.
-- [ ] **A D-05 citation:** Often verified only by "a paper name appears in the
+  *Done for `DSX-PAR-010`/`011` (Phase 9): `references/paradigm-symmetry.md`
+  states the cheapest dishonest path and shows it costs the same on both
+  sides. The prior-predictive pair (`DSX-PAR-022`) is unshipped (REV-001;
+  brief §6.5 row 2), so this check is still owed when it ships.*
+- [x] **A D-05 citation:** Often verified only by "a paper name appears in the
   docstring" — verify the docstring states the *specific formulation* the test
   value comes from, and the test/fixture comments trace the number to a
   section/table/equation (Pitfall 5).
-- [ ] **A §6.5 backlog entry:** Often verified only by "the row exists in the
+  *Enforced mechanically: `scripts/gen-finding-catalogue.py` requires
+  a `Citation:` line and a `Reference value:` or `Structural criterion:`
+  docstring line plus a `# D-05:`
+  test marker for every code in its `_D05_ALLOWLIST_*` enforcement set (the
+  v2.0.0 families plus each later mint named there); legacy pre-v2.0.0
+  codes sit outside that set.*
+- [x] **A §6.5 backlog entry:** Often verified only by "the row exists in the
   table with a stated condition" — verify the condition is mechanically
   computable from `dsx stats`/the M5 harness, not narrative judgment
   (Pitfall 6).
+  *Done by Phase 12's re-evaluation (REQ-P12-05) and Phase 30's re-baseline:
+  each carried row names the measured count, rate or split it rests on, and
+  the one structurally unevaluable row was removed (REV-002).*
 - [ ] **Migration readiness at ship:** Often verified only by "both fixtures
   pass every gate" (D-08) — verify an actual pre-v2.0.0 spec, not the golden
   fixture, has been run through `dsx gate ship` and the migration path
   (suppression convention or `dsx frame init`) has actually been exercised
   once (Pitfall 9).
-- [ ] **`references/families.yaml` (M4):** Often verified only by "resolves the
+  *Still open (2026-09-30):* the migration path is documented
+  (`docs/CHANGELOG-notes.md`, "Migrating a pre-v2.0.0 spec") and the
+  suppression route is tested, but no record was found of a real pre-v2.0.0
+  spec being walked through it.
+- [x] **`references/families.yaml` (M4):** Often verified only by "resolves the
   test names in the calibration corpus" — verify every family entry carries
   its own citation and that the alias list isn't growing faster than the
   admissibility logic it feeds (Pitfall 10).
+  *Citation half enforced by `tests/test_families_yaml.py`
+  (`test_every_family_citation_is_nonblank`); alias growth is not measured.*
 
 ## Recovery Strategies
 

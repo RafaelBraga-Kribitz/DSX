@@ -1012,7 +1012,7 @@ class TestGateRegistration(unittest.TestCase):
     def test_prereg_registered_in_verify_ship_absent_from_plan_and_execute(self):
         from dsx.cli import CHECKS, GATE_PROFILES
 
-        self.assertIs(CHECKS["prereg"], prereg.check)
+        self.assertIs(CHECKS["prereg"].check, prereg.check)
         for point in ("verify", "ship"):
             with self.subTest(point=point):
                 self.assertIn("prereg", GATE_PROFILES[point])

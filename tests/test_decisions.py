@@ -5,12 +5,13 @@ Run:  python3 -m unittest tests.test_decisions -v
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 import dsx.decisions as d
-from dsx.findings import Report, merge
+from dsx.findings import CheckError, Report, merge
 
 # ── Task 1: schema, crash-safe append, tolerant reader ─────────────────────
 
@@ -149,14 +150,33 @@ class TestDecisions(unittest.TestCase):
             records = d.read_all(p)
             self.assertEqual([r["id"] for r in records], ["DEC-001", "DEC-002"])
 
-    def test_read_all_returns_empty_list_when_path_is_not_a_readable_file(self):
+    def test_read_all_raises_check_error_when_path_is_not_a_readable_file(self):
         # A path that exists but is a directory rather than a readable file —
         # not filesystem permission bits, which behave differently on Windows
         # (06-09 Task 2's own reasoning for its unwritable-directory test).
+        # An unreadable trail is not an empty one (audit L36): returning []
+        # would restart next_invocation_id at INV-0001.
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "DECISIONS.jsonl"
             p.mkdir()
-            self.assertEqual(d.read_all(p), [])
+            with self.assertRaises(CheckError) as ctx:
+                d.read_all(p)
+            self.assertIn(str(p), str(ctx.exception))
+
+    def test_read_all_skips_valid_json_lines_that_are_not_objects(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / "DECISIONS.jsonl"
+            header = {
+                "record_type": "invocation", "invocation_id": "INV-0001",
+                "gate_point": "plan", "dsx_version": "x", "frame_digest": "y",
+            }
+            p.write_text(
+                json.dumps(header) + "\n[1, 2]\n42\n\"text\"\nnull\ntrue\n",
+                encoding="utf-8",
+            )
+            records = d.read_all(p)
+            self.assertEqual(records, [header])
+            self.assertEqual(d.next_invocation_id(p), "INV-0002")
 
     def test_next_invocation_id_unaffected_by_undecodable_bytes(self):
         # The unit-level statement of why the gate path is affected at all:

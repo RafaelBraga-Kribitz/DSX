@@ -2,25 +2,26 @@
 
 ![DSX: Data Science, eXamined: a spec-driven workflow with deterministic gates that block leakage, underpowered designs, and overclaimed results.](docs/assets/hero.png)
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Status: Maintained](https://img.shields.io/badge/status-Maintained-brightgreen)](#status)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
+[![Status: Maintained](https://img.shields.io/badge/status-Maintained-5A5C61?labelColor=26282C)](#status)
 [![CI](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/DSX/actions/workflows/ci.yml)
 
-**Status:** Maintained · **DSX — Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
+**Status:** Maintained · **DSX: Data Science, eXamined** · Python 3.9+ · Claude Code plugin · CI · standalone · GSD Core ≥ 1.6 · MIT
 
 Analytical work shipped through a coding agent still leaks, underpowers, and overclaims.
-`dsx` makes those errors blocking — code that runs at a gate, not advice in a prompt.
+`dsx` makes those errors blocking: code that runs at a gate, not advice in a prompt.
 
 **Declare. Substantiate. eXplain.** The name is the order of work, and each step
 has one artifact and one check:
 
 | Step | Artifact | Checked by |
 |---|---|---|
-| **Declare** the analysis before the data is touched | `ANALYSIS-SPEC.yaml` — decision, question type, design, metric, claim | the contract, coherence and validity-frame families |
+| **Declare** the analysis before the data is touched | `ANALYSIS-SPEC.yaml`: decision, question type, design, metric, claim | the contract, coherence and validity-frame families |
 | **Substantiate** it with code, not with wording | the pipeline, the figures, the results the spec named | experiment, stats, ML, metric, SQL, data-quality, reproducibility families |
 | **eXplain** only what the evidence supports | the readout, with magnitude, interval and limitation | claims, narrative and decision-replay families |
 
 ```mermaid
+%%{init: {"theme":"base","fontFamily":"BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif","themeVariables":{"background":"#E4E6EA","primaryColor":"#DCDEE2","primaryTextColor":"#26282C","primaryBorderColor":"#26282C","secondaryColor":"#E4E6EA","secondaryTextColor":"#26282C","secondaryBorderColor":"#5A5C61","tertiaryColor":"#E4E6EA","tertiaryTextColor":"#26282C","tertiaryBorderColor":"#C2C4CA","lineColor":"#5A5C61","textColor":"#26282C","mainBkg":"#DCDEE2","nodeBorder":"#26282C","clusterBkg":"#E4E6EA","clusterBorder":"#C2C4CA","edgeLabelBackground":"#E4E6EA","titleColor":"#26282C","fontFamily":"BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif","fontSize":"14px"},"flowchart":{"curve":"linear","htmlLabels":true,"padding":8}}}%%
 flowchart LR
     D["Declare<br/>ANALYSIS-SPEC.yaml"] --> S["Substantiate<br/>dsx audit"] --> X["eXplain<br/>the readout"]
     S -.->|"exit 1 blocks"| H["Stop hook<br/>end of session"]
@@ -31,7 +32,7 @@ flowchart LR
 A spec written after the analysis is a rationalisation, a claim made before the
 audit is a guess, and a readout that outruns its interval is the error the other
 two exist to prevent. The three steps are enforced at whichever point your setup
-reaches first — the end of a session, a push, or a phase boundary.
+reaches first: the end of a session, a push, or a phase boundary.
 
 ## The idea
 
@@ -58,15 +59,15 @@ The split is deliberate and it is the whole design:
 An agent decides that this is a causal question needing a difference-in-differences
 design. Code then verifies that parallel-trends evidence was declared, that the
 claim's verb matches the design's strength, that the sample meets the power the
-declared MDE requires, and that no feature in the model is populated after the
+declared minimum detectable effect (MDE) requires, and that no feature in the model is populated after the
 outcome. The agent stays flexible; the output stops being a matter of opinion.
 
-**Finding codes** across check families (contract, experiment, causal, stats, ML,
-metrics/SQL, claims, narrative, code, decision, data quality, coherence,
-visualization, reproducibility, paradigm/monitoring, validity frame,
-interference, pre-registered inference, frequentist admissibility, chart
-review), each with a stable identifier, a severity, evidence in numbers, and a
-concrete fix.
+Every finding the gate raises carries a stable code, grouped into check families
+(contract, experiment, causal, stats, ML, metrics/SQL, claims, narrative, code,
+decision, data quality, coherence, visualization, reproducibility,
+paradigm/monitoring, validity frame, interference, pre-registered inference,
+frequentist admissibility, chart review). Each finding comes with a severity,
+evidence in numbers, and a concrete fix.
 
 ## Install
 
@@ -246,7 +247,7 @@ $ dsx audit --spec examples/bad-ANALYSIS-SPEC.yaml
             reinterpret a null as evidence of no effect.
 ```
 
-That number is computed, not asserted. The same is true of the SRM chi-square,
+That number is computed, not asserted. The same is true of the sample ratio mismatch (SRM) chi-square,
 the peeking-inflated α, the Benjamini-Hochberg adjustment, and the reconciliation
 gap.
 
@@ -322,12 +323,18 @@ suppressions:
     authority: "docs/SPEC-04_analytics.md"
 ```
 
-Suppressions apply after checks and before the blocking threshold. Unknown codes
-abort the run (exit 2). Missing `reason` / `authority` → `DSX-SPEC-070`.
+Suppressions apply after checks and before the blocking threshold. An unknown or
+malformed code is reported as `DSX-SPEC-072` / `DSX-SPEC-071` and fails the gate;
+when the `spec` check is not part of the run, it aborts the run instead (exit 2).
+Missing `reason` / `authority` → `DSX-SPEC-070`.
 
 ## Standalone CLI
 
-`dsx` is useful outside GSD:
+`dsx` is useful outside GSD. It is not a pip package: there is no
+`pip install`. Run it from a clone of this repository, either through the
+launcher `bin/dsx` (put the repository's `bin/` folder on your `PATH` to type
+plain `dsx`) or as `python3 -m dsx` with the repository root on `PYTHONPATH`.
+Both need Python 3.9 or newer and nothing else.
 
 ```bash
 dsx init                                          # scaffold a spec
@@ -335,14 +342,58 @@ dsx validate                                      # structure only
 dsx audit --verbose --report DATA-REVIEW.md       # everything
 dsx check ml metrics                              # a subset
 dsx profile extract.csv --out DATA-PROFILE.yaml --pk user_id --time signup_at
-dsx seal figures/chart.svg                            # sha256:… for visuals[].svg_sha256
+dsx scout orders.csv payments.csv --expect orders.order_id=payments.order_id  # grain, joins, fan-out
+dsx stats --inspect --root .planning              # which failure categories keep recurring
+dsx outcome --key key.jsonl --control a.jsonl --treatment b.jsonl  # did DSX make answers right more often?
+dsx seal figures/chart.svg                        # sha256:… for visuals[].svg_sha256
 dsx power --baseline 0.31 --mde 0.02              # sample size, achieved power, detectable MDE
 dsx recommend-test continuous --groups 3 --normal false
+dsx charts IT007                                  # chart types allowed for a data shape
 dsx vocab                                         # every closed vocabulary
 ```
 
-Add `--json` anywhere for machine-readable output. Exit codes are the contract:
-`0` pass, `1` block, `2` could not run.
+Exit codes are the contract: `0` pass, `1` block, `2` could not run. With
+`--json`, the report from `audit`, `gate`, `check` and `validate` always goes to
+standard output, whether the run passed or blocked, so read the verdict from the
+exit code rather than from which stream has text. `dsx charts` exits 2 on a usage
+error, such as a missing or unknown shape. When a command fails with an
+invalid-input error, set `DSX_DEBUG=1` or pass `--verbose` to print the full
+Python traceback, so an internal bug is not mistaken for bad input.
+
+The two read-only history commands never block and always exit 0, so their JSON
+says what happened: `dsx explain --json` prints `"status": "unreadable"` with the
+error when the decision trail exists but cannot be read, and `dsx stats --json`
+carries `"status"` as `ok`, `no_history` or `unreadable`. `dsx outcome` is a
+readout too: it exits 0 whatever the two arms scored.
+
+`dsx scout` is the one analyst-invoked command that can exit 1: only when a join
+named with `--expect LEFT.col=RIGHT.col` is not one-to-one. The table name is the
+file name without its extension.
+
+### Every subcommand
+
+`dsx --help` lists them and `dsx <subcommand> --help` gives the full flags. The
+commands that read a spec find `ANALYSIS-SPEC.yaml` on their own unless you pass
+`--spec`; `--phase-dir` makes them search a GSD phase folder and resolve paths
+against it.
+
+| Subcommand | What it does | Main flags |
+|---|---|---|
+| `dsx validate` | Checks the spec's structure only | `--spec`, `--phase-dir`, `--block-on`, `--json`, `--verbose` |
+| `dsx check <families…>` | Runs the named check families, for example `dsx check viz smells figures` | `--spec`, `--phase-dir`, `--block-on`, `--json`, `--verbose` |
+| `dsx audit` | Runs every check family | `--spec`, `--phase-dir`, `--block-on`, `--json`, `--verbose`, `--report` |
+| `dsx gate <point>` | Runs the check profile for one GSD loop point: `plan`, `execute`, `verify` or `ship` | the `audit` flags, plus `--allow-missing` (pass when no spec exists) |
+| `dsx explain` | Prints the decision trail from `DECISIONS.jsonl`; read-only, never blocks | `--spec`, `--phase-dir`, `--invocation`, `--json`, `--verbose` |
+| `dsx stats` | Reports your own split between frequentist, Bayesian and undeclared analyses from the decision trail, or with `--inspect` sorts the finding codes that fired into failure categories, counted once per distinct frame; read-only, never blocks | `--paradigm` (the default report), `--inspect`, `--root`, `--json`, `--verbose` |
+| `dsx recommend-test <outcome>` | Names the right statistical test for the data's shape | `--groups`, `--paired`, `--normal`, `--equal-variance`, `--overdispersed`, `--n-per-group`, `--spec` |
+| `dsx power` | Sample size per arm, achieved power, or smallest detectable effect | `--baseline` (required), `--mde`, `--n-per-arm`, `--alpha`, `--power` |
+| `dsx vocab` | Prints every closed vocabulary as JSON | none |
+| `dsx charts [shape]` | Lists the chart types allowed for an input type (`IT001`–`IT040`) or a family such as `composition` | `--relationship`, `--list`, `--json` |
+| `dsx init` | Writes a new spec from `templates/ANALYSIS-SPEC.yaml` | `--output`, `--force` |
+| `dsx profile <csv>` | Computes `DATA-PROFILE.yaml` from a local CSV file | `--out`, `--pk`, `--time`, `--unit`, `--target`, `--sentinel`, `--json` |
+| `dsx scout <csv> <csv…>` | Writes `SCHEMA-SCOUT.yaml` for two or more CSV files: each table's grain, every column pair that looks like a join key with its cardinality and fan-out, and warnings for fan-out, many-to-many keys, low match rates, name collisions and likely unit mismatches | `--out`, `--expect` (repeatable), `--min-containment`, `--json` |
+| `dsx outcome` | Scores a two-arm outcome experiment, the same agent run without and with DSX, against an answer key: accuracy per arm and the paired difference with an exact McNemar test; read-only, never blocks | `--key`, `--control`, `--treatment` (all required), `--sig-digits`, `--alpha`, `--json` |
+| `dsx seal <figure>` | Prints the `sha256:…` seal to paste into `visuals[].svg_sha256` | `--json` |
 
 ## Configuration
 
@@ -355,6 +406,13 @@ install-once, configure-per-project split are in [docs/operating-guide.md](docs/
 
 `./scripts/check.sh` runs the full gate, hook scripts included; adding a check, the two-fixture
 contract and the fixture/golden rules are in [docs/operating-guide.md](docs/operating-guide.md#development).
+
+Skills, agents and prompts promoted from someone else's library through
+`intake/` keep their author's style. `scripts/check.sh` asks
+[`scripts/lint-scope.py`](scripts/lint-scope.py) which files those are and holds
+them to correctness rules only (ruff's syntax-error and undefined-name checks),
+not to this project's markdown and Python style. Nothing has been promoted into
+this repository yet, so today every file gets the full rule set.
 
 ## Known limits
 
@@ -373,10 +431,15 @@ activation rate" was the right question to ask in the first place.
 
 - [The verbless recommendation is not caught](docs/known-limits.md#the-verbless-recommendation-is-not-caught) — a recommendation typed `descriptive` and phrased with no causal verb evades both the type ceiling and the causal-verb lexicon and ships unflagged.
 - [What the amendment counter does not enforce](docs/known-limits.md#what-the-amendment-counter-does-not-enforce) — the `dsx explain` amendment counter is not tamper-proof, covers only `validity_frame:` and `inference:`, cannot separate specs sharing a root, and checks a reason for form, not truth.
-- [Concurrent `dsx gate` invocations are not supported](docs/known-limits.md#concurrent-dsx-gate-invocations-are-not-supported) — two `dsx gate` runs against the same analysis directory can derive the same invocation identifier and merge their decision trails, so serialising them is the operator's responsibility.
+- [Concurrent `dsx gate` runs share one decision-trail lock](docs/known-limits.md#concurrent-dsx-gate-runs-share-one-decision-trail-lock) — parallel runs get distinct invocation identifiers; the lock is advisory, so a tool that writes the trail without taking it is not serialised.
+- [The notebook execution check only sees a notebook it can find](docs/known-limits.md#the-notebook-execution-check-only-sees-a-notebook-it-can-find) — `DSX-REP-040` reads a notebook's execution counts only when it can locate the file; otherwise it trusts the declared boolean.
 - [What the declared-versus-executed reconciliation cannot see](docs/known-limits.md#what-the-declared-versus-executed-reconciliation-cannot-see) — `declared_at`, the "executed" side, the content lock and the missing-lock case all rest on operator declarations or discipline the gate cannot verify.
 - [Two tiers of evidentiary rigour](docs/known-limits.md#two-tiers-of-evidentiary-rigour) — codes introduced in v2.0.0 carry a mechanically enforced citation and test linkage; pre-existing codes sit on a shrinking allow-list without one.
 - [What the entrypoint scan does not catch](docs/known-limits.md#what-the-entrypoint-scan-does-not-catch) — a clean leak scan is evidence that particular shapes were not found in the one declared entrypoint file, not evidence that the file does not leak.
+- [Five analyst-conduct gaps the gate does not check](docs/known-limits.md#five-analyst-conduct-gaps-the-gate-does-not-check) — a share of a total presented as a risk, a small base behind a mean or count, a claim naming a column the data lacks, one category drawn in different colours across charts, and a descriptive finding from a very short window all pass today.
+- [What the schema scout does not see](docs/known-limits.md#what-the-schema-scout-does-not-see) — `dsx scout` reads CSV files only, holds them in memory, proposes keys from value overlap, and never runs the analyst's own joins.
+- [What the outcome scorer does not show](docs/known-limits.md#what-the-outcome-scorer-does-not-show) — `dsx outcome` scores answers it is given; no with/without-DSX run has been done yet, so DSX's effect on answer accuracy is still unmeasured.
+- [Prior sensitivity and convergence have no check in either paradigm](docs/known-limits.md#prior-sensitivity-and-convergence-have-no-check-in-either-paradigm) — `DSX-PAR-021` and `DSX-PAR-030` are deferred with their frequentist counterparts, so a result from a model that never converged passes if its declarations are coherent.
 
 ## Design notes
 
@@ -410,6 +473,18 @@ catches, and which sit on the gated backlog with an entry condition. The first e
 is *The AI Data Scientist* (arXiv:2508.18113), whose six-subagent pipeline was
 transcribed stage for stage into the known-bad corpus and passed the gate with zero
 findings until Phase 11.1 shipped the four codes that now block it.
+
+## Stack
+
+| Technology | Role |
+|---|---|
+| Python 3.9+ standard library | The `dsx` engine, check families and statistics kernel; no third-party package on the gate path (see [Design notes](#design-notes)) |
+| PyYAML (optional) | Used for the spec when installed; otherwise a bundled parser, tested for parity against it |
+| matplotlib (optional) | The `styles/*.mplstyle` chart styles and their determinism tests |
+| bk-viz (optional, Python 3.10+) | The Braga design system v2.1 chart theme (`bk_theme`): `use_bk_theme()` in `templates/dsx_plotstyle.py` and the example figures `examples/analysis/charts.py` draws |
+| Node.js standard library | `install.mjs`, the GSD Core capability installer |
+| `unittest`, ruff, markdownlint-cli2 | Test suite and linters run by `scripts/check.sh` |
+| GitHub Actions | `scripts/check.sh` on Python 3.9, 3.11, 3.12 and 3.13, linters pinned |
 
 ## Status
 

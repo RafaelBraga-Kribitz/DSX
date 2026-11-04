@@ -1,5 +1,9 @@
 # LOOP-BRIEF — autonomous milestone ceremony
 
+> **Historical — the headless ceremony loop was retired 2026-09-30** and its wrapper
+> `scripts/run-ceremony-firing.ps1` deleted (project audit H3). This is the v2.6
+> contract as it stood; a future milestone that brings back automation writes a new one.
+
 **Current milestone: v2.6 Exploration Depth and Backlog Evidence** (Phases 25–30,
 18 requirements). Branch `gsd/v2.6.0-exploration-depth`. Opened 2026-09-06 by
 operator direction (HQ-39): scope = the EDA brief's gated half (SEED-002) plus the

@@ -109,8 +109,9 @@ regardless of what `is_blank` itself would say about it.
 A declared `prior_justification` is checked for **presence**, never for
 **quality**. Whether the stated justification actually reflects the
 operator's real prior odds, or is a sentence typed to clear the gate, is not
-something `dsx gate` can tell from the declaration alone — that judgement is
-`DSX-PAR-020`'s job and is explicitly deferred under brief D-12a. Likewise, a
+something `dsx gate` can tell from the declaration alone — that judgement
+belongs to the prior-justification quality check, deferred under brief D-12a
+(no finding code minted yet). Likewise, a
 declared `threshold_calibration` is the operator's own claim about their own
 calibration procedure; the gate reads that the field is non-blank, not that
 the calibration described in it was actually performed or performed

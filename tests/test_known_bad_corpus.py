@@ -2,10 +2,11 @@
 Criterion 5).
 
 The corpus is discovered by globbing the directory, never by a hardcoded
-filename list, so Phase 12 can grow it without editing this module. Every
-invariant here is structural or compositional — no test asserts a specific
-finding code fires, because the defect each fixture encodes is semantic and
-each code-specific block assertion lands with the phase that ships its code.
+filename list. What each fixture is expected to fire (or, for a MISS, that
+nothing fires on its defect) is read from examples/known-bad/EXPECTED-FINDINGS.json,
+so a new fixture needs a spec, a post-mortem and one manifest entry — no edit to
+this module. examples/known-bad/README.md explains the corpus and lists the MISS
+fixtures.
 
 Run:  python3 -m unittest tests.test_known_bad_corpus -v
 """
@@ -101,245 +102,122 @@ _INCIDENTAL_GAP_CODES = {
                     # (plan 07-05, D-14)
 }
 
-# Per-fixture, POINT-SCOPED incidental map (D-28-06, plan 28-02). Unlike the GLOBAL
-# _INCIDENTAL_GAP_CODES above — a corpus-wide allow-list of codes that are nobody's
-# declared target — this map records an incidental that fires on ONE fixture and is
-# ANOTHER fixture's legitimate target, so it can be neither globalised (that would
-# launder the other fixture's target into "noise" and fail
-# test_incidental_allowlist_names_no_slugs_own_target_code) nor added to this
-# fixture's own-target maps (that would falsely credit the MISS with a catch and
-# corrupt the ABSENT-partition calibration). It is read ONLY by the two completeness
-# tests (test_every_spec_blocks_only_on_its_target_defect_at_critical_threshold_points
-# at the CRITICAL-threshold points, and test_ship_gate_findings_are_all_documented_
-# incidental_corpus_gaps at ship) — NEVER by _own_target_codes / _effective_target_map,
-# so _EXPECTED_CAUGHT_DEFECTS[slug] stays frozenset() and the fixture is never credited
-# with a catch. Structure: slug -> gate point -> the frozenset of codes tolerated as
-# incidental at that point.
+# ── Per-fixture expectations: examples/known-bad/EXPECTED-FINDINGS.json ────────────
 #
-# magnitude-without-computed-effect (the measured LIVE MISS, 28-MEASUREMENT.md /
-# D-28-06): its one claim is typed `association` (strength 1) under a `descriptive`
-# question_type (strength 0), so DSX-COH-001 (dsx/checks/coherence.py::
-# _check_claim_ceiling, which reads ONLY claims[].type and question_type and no numeric
-# literal) fires CRITICAL at plan / verify / ship — a swap-invariant structural theorem,
-# genuinely incidental to the magnitude->test traceability defect the fixture targets
-# (which stays uncaught, the miss). Not execute: `coherence` is absent from that gate
-# profile (dsx/cli.py::GATE_PROFILES). Minimal {DSX-COH-001} — COH-010 does NOT fire (no
-# causal decision language). DSX-COH-001 is prescriptive-churn-recommendation's OWN
-# declared target (_TARGET_DEFECT_CODES), which is exactly why it lives here, point-scoped
-# to this one fixture, rather than in the global list. DSX-CLM-034 (HIGH, the code that
-# ATTRIBUTES this miss) is deliberately kept OUT of this map and out of this slug's
-# own-target codes: it must fire NOWHERE on this fixture, so test_ship_gate_findings_are_
-# all_documented_incidental_corpus_gaps stays its live falsifier if it ever ships HIGH
-# here (the CRITICAL-only falsifiability test is vacuous for a HIGH code — D-28-06 guard 6).
+# Project audit 2026-09-30 (M19): the per-fixture expectation maps below used to be
+# six hand-maintained dict literals in this module. They are now derived from one
+# machine-readable manifest next to the fixtures, so adding a fixture means adding
+# one JSON entry, not editing six dicts. Every map keeps its original name, shape
+# and semantics, so every consumer in this module is unchanged. The per-entry
+# history that used to live here as comments lives in each entry's "note" field
+# and in the fixture's own POSTMORTEM.md. TestExpectedFindingsManifest (below)
+# validates the manifest itself: schema, catalogue membership and severity of every
+# code, the severity_band and target_codes summaries, and the miss flag against the
+# ATTRIBUTION sidecars and examples/known-bad/README.md.
+#
+# The six derived maps, and what each means:
+#
+# _PER_FIXTURE_INCIDENTAL_CODES (manifest key "incidental_by_point"; D-28-06, plan
+#   28-02): slug -> gate point -> frozenset of codes tolerated as incidental at that
+#   point. Unlike the GLOBAL _INCIDENTAL_GAP_CODES above, it records an incidental
+#   that fires on ONE fixture and is ANOTHER fixture's legitimate target, so it can
+#   be neither globalised (that would launder the other fixture's target into
+#   "noise") nor added to this fixture's own-target maps (that would falsely credit
+#   a MISS with a catch). Read ONLY by the two completeness tests, NEVER by
+#   _own_target_codes / _effective_target_map. Today: magnitude-without-computed-
+#   effect's swap-invariant DSX-COH-001 (prescriptive-churn-recommendation's own
+#   target). DSX-CLM-034, the code that ATTRIBUTES that miss, is deliberately kept
+#   out of this map and out of the slug's own-target codes so the ship-completeness
+#   test stays its live falsifier (D-28-06 guard 6).
+#
+# _TARGET_DEFECT_CODES (manifest key "critical_by_point"; D-15, plan 08-02): slug ->
+#   gate point -> the CRITICAL code (a bare string) or codes (a frozenset, plan
+#   11.1-08) that fixture must block on at that point. Deliberately partial: a
+#   fixture absent here, or absent at a point, defaults to "clears that point
+#   cleanly". A key outside _CRITICAL_THRESHOLD_POINTS (e.g. weak-identification-
+#   mmm's "verify", full-frame-cleaning's "ship") is a dict-collision-avoidance
+#   device so _own_target_codes recognises a second own code; it is not a claim the
+#   code fires only there. Point-scoped because a check family may be registered
+#   at some gate points and not others (dsx/cli.py::GATE_PROFILES).
+#
+# _EXPECTED_CAUGHT_DEFECTS (manifest key "caught_at_plan_and_execute"; D-03): slug ->
+#   frozenset of CRITICAL codes the fixture's target check must catch at BOTH plan
+#   and execute (families registered at every gate point, e.g. Phase 9's
+#   DSX-PAR-010/011). Has a key for EVERY fixture on disk
+#   (test_expected_caught_defects_keys_match_the_corpus_on_disk). An empty set means
+#   either a MISS (nothing fires on the defect) or a fixture whose catch is
+#   point-scoped or sub-CRITICAL and so lives in another map. Kept separate from
+#   _TARGET_DEFECT_CODES (merge of plans 08-02 and 09-01): neither shape subsumes
+#   the other; _effective_target_map() combines them.
+#
+# _HIGH_TARGET_DEFECT_CODES / _MEDIUM_TARGET_DEFECT_CODES / _LOW_TARGET_DEFECT_CODES
+#   (manifest keys "high_by_point" / "medium_by_point" / "low_by_point"; Phase 20-A,
+#   Phase 24, 2026-09-06): slug -> {"verify", "ship"} -> the one code of that tier
+#   the fixture demonstrates. DECLARATIONS of intent, never measured ledgers: the
+#   strata in test_stratified_catch_rate_and_fpr_report re-derive each catch LIVE
+#   and consult these only for which cell to expect (D-09). MEDIUM and LOW block at
+#   no default threshold, so they are measured under --block-on MEDIUM / LOW and
+#   reported BESIDE the (miss-rate, FPR) headline, never folded into it. Kept
+#   disjoint from the CRITICAL maps so no tier corrupts another's partition.
+#   _own_target_codes reads the HIGH map so a fixture's own HIGH code is not read as
+#   an undocumented over-block at ship.
+#
+# .planning/ dependency note (project audit L93): nothing here reads .planning/;
+# see _BOUND_CLAIM_DOCUMENTS below for the one deliberate .planning/ dependency.
+EXPECTATIONS_PATH = CORPUS_DIR / "EXPECTED-FINDINGS.json"
+_GATE_POINTS = ("plan", "execute", "verify", "ship")
+_TIER_POINTS = ("verify", "ship")
+_EXPECTATION_KEYS = frozenset({
+    "miss", "severity_band", "target_codes", "critical_by_point",
+    "caught_at_plan_and_execute", "high_by_point", "medium_by_point", "low_by_point",
+    "incidental_by_point", "note",
+})
+_REQUIRED_EXPECTATION_KEYS = frozenset({
+    "miss", "severity_band", "target_codes", "caught_at_plan_and_execute", "note",
+})
+
+
+def _load_expectations(path: Path = EXPECTATIONS_PATH) -> dict[str, dict]:
+    """The per-fixture entries of the expected-findings manifest, keyed by slug."""
+    with path.open(encoding="utf-8") as handle:
+        return json.load(handle)["fixtures"]
+
+
+def _point_value(value: str | list[str]) -> str | frozenset[str]:
+    """A manifest point value as the maps have always held it: a bare string stays a
+    string (single-target shape), a list becomes a frozenset (multi-code shape)."""
+    return value if isinstance(value, str) else frozenset(value)
+
+
+_EXPECTATIONS: dict[str, dict] = _load_expectations()
+
 _PER_FIXTURE_INCIDENTAL_CODES: dict[str, dict[str, frozenset[str]]] = {
-    "magnitude-without-computed-effect": {
-        "plan": frozenset({"DSX-COH-001"}),
-        "verify": frozenset({"DSX-COH-001"}),
-        "ship": frozenset({"DSX-COH-001"}),
-    },
+    slug: {point: frozenset(codes) for point, codes in entry["incidental_by_point"].items()}
+    for slug, entry in _EXPECTATIONS.items()
+    if entry.get("incidental_by_point")
 }
 
-# Per-fixture target-defect map (D-15 structural rewrite, plan 08-02): for each fixture
-# slug (filename with "-ANALYSIS-SPEC.yaml" stripped, matching `_slugs`), the finding
-# code that fixture exists to demonstrate, keyed by the gate point at which it is
-# expected to block. A fixture absent from this map — or absent at a given gate point
-# — defaults to "clears that gate point cleanly", which is today's behaviour for every
-# fixture and is preserved exactly. Replaces the old family-prefix allow-list and the
-# old plan-only expected-blocker dict: a family-prefix string can express at most one
-# code per family, and Phase 8 is the first phase to ship four codes in one family
-# (`DSX-INT-*`), so a family prefix can no longer distinguish the code a fixture exists
-# to demonstrate from an unrelated code from the same family the fixture happens to
-# also trip — see test_incidental_allowlist_names_no_slugs_own_target_code below.
-#
-# weak-identification-mmm -> DSX-VAL-040 already ships in this milestone (Phase 7,
-# plan 07-07) — the first fixture in this corpus whose target code lands in the same
-# milestone as the fixture itself. This entry replaces the old plan-only expected-
-# blocker dict that previously encoded it (07-07, D-15 Option A); the per-fixture map
-# generalises that single-purpose mechanism without changing the guarantee it made —
-# still plan-only, still MUST block with the mapped code among the CRITICAL findings,
-# `dsx gate execute` is untouched because the "val" check is not in the execute gate
-# profile (dsx/cli.py::GATE_PROFILES).
-#
-# Plan 08-03 adds interference-shared-budget -> {"plan": "DSX-INT-010"}.
-# Plan 08-04 adds triggering-dilution -> {"plan": "DSX-INT-030"}.
-# A later Phase 9 plan adds the two monitoring fixtures for its own atomic pair
-# (DSX-PAR-010/DSX-PAR-011).
-#
-# Fragility note (measured 2026-08-12, plan 08-02; re-measured 2026-08-13, plan 08-04):
-# both bayesian-continuous-monitoring and frequentist-uncontrolled-continuous declare
-# validity_frame.triggering with analysis_population: eligible and dilution_adjusted:
-# false — two of DSX-INT-030's three trigger conditions. Both still escape (confirmed
-# once DSX-INT-030 shipped) only because each declares a single metric of type: ratio,
-# outside the additive partition {count, sum, average}. Adding a metric of type count,
-# sum or average to either fixture will make it block dsx gate plan on DSX-INT-030 and
-# will require an entry in this map.
-#
-# Resolved fragility note (plan 08-04): weak-identification-mmm declares
-# analysis_population: eligible, dilution_adjusted: false, AND a metrics[0].type of sum
-# (additive) — three of DSX-INT-030's structural conditions, exactly as D-01/D-09 state
-# them (an additive metric analysed on the eligible population with dilution_adjusted
-# not true). D-09's stated firing condition names only those two triggering-block
-# fields plus D-11's additive-metric-type test — no expected_trigger_rate/materiality
-# gate — so plan 08-04's implementation deliberately does NOT special-case
-# expected_trigger_rate: 1.0, and this fixture now blocks dsx gate plan/verify/ship on
-# DSX-INT-030 alongside its own DSX-VAL-040. The "verify" key below is not a claim that
-# DSX-INT-030 fires ONLY at verify for this fixture — it also fires at plan and ship,
-# same as "interference" is registered everywhere "val" is (dsx/cli.py::GATE_PROFILES)
-# — it is a second, distinct key so its value can live beside "plan": "DSX-VAL-040" in
-# this per-fixture dict without colliding; _own_target_codes() flattens every point's
-# value for a slug into one set regardless of which key holds it, which is what the
-# ship-completeness test (test_ship_gate_findings_are_all_documented_incidental_corpus_gaps)
-# actually consults. Not fixed by editing the fixture: its expected_trigger_rate: 1.0
-# is an honest declaration (a full-period national aggregate with no eligibility gate
-# below 100% coverage), not a defect, and DSX-INT-030 correctly names an additive metric
-# is analysed on that eligible population with no adjustment declared — a second,
-# genuine defect this fixture happens to also encode, not a false positive.
-# Plan 10-05 adds post-hoc-procedure-switch -> {"verify": "DSX-PRE-030"}: `prereg`
-# (dsx/frame/prereg.py) is registered in the verify and ship gate profiles only
-# (dsx/cli.py::GATE_PROFILES), never plan or execute, so this is the second
-# verify-only-key entry in this map after weak-identification-mmm's DSX-INT-030 —
-# the shape this map exists for. See test_post_hoc_procedure_switch_fixture_blocks_
-# verify_and_ship_naming_pre_030 for the positive-direction proof the generic
-# test below cannot supply, exactly as test_weak_identification_mmm_fixture_
-# blocks_verify_and_ship_naming_int_030 supplies it for the other verify-only entry.
-#
-# Plan 11.1-08 (REQ-P11.1-07/08) widens a point's value to accept either a bare
-# code string (every entry above) or a frozenset of several code strings, for
-# full-frame-cleaning's "execute" entry below: the entrypoint check family
-# (`code`, DSX-CODE-*) and the machine-learning check family (`ml`, DSX-ML-*)
-# are both registered at the `execute` gate point but not at `plan`
-# (dsx/cli.py::GATE_PROFILES), and this phase's fixture demonstrates three
-# CRITICAL codes from the `code` family at that one point at once — the first
-# point-scoped entry in this map to need the multi-code shape
-# `_classify_target_defect`'s own docstring already documents and accepts.
-# full-frame-cleaning's own DSX-ML-090 (HIGH, not CRITICAL) cannot live in this
-# map at all: `_classify_target_defect` only ever checks CRITICAL findings, so a
-# HIGH code placed here would be reported "missing" from every CRITICAL list it
-# is compared against. It is instead recorded under a second, non-critical-
-# threshold key ("ship") purely so `_own_target_codes` (which reads every key's
-# value regardless of name) recognises it as this fixture's own code for the
-# ship-completeness test — mirroring weak-identification-mmm's own second key
-# above, which documents the identical "this key is a dict-collision-avoidance
-# device, not a claim the code fires only at that one point" reasoning.
 _TARGET_DEFECT_CODES: dict[str, dict[str, str | frozenset[str]]] = {
-    "weak-identification-mmm": {"plan": "DSX-VAL-040", "verify": "DSX-INT-030"},
-    "interference-shared-budget": {"plan": "DSX-INT-010"},
-    "triggering-dilution": {"plan": "DSX-INT-030"},
-    "post-hoc-procedure-switch": {"verify": "DSX-PRE-030"},
-    # Plan 11.1-08 (REQ-P11.1-07/08): full-frame-cleaning's three CRITICAL
-    # entrypoint-scan codes, all shipped in this same plan's task 1 groundwork
-    # (DSX-CODE-020/DSX-CODE-021 in plan 11.1-01; DSX-CODE-030 in plan 11.1-03),
-    # scoped to "execute" — the `code` check family is registered at the
-    # `execute` gate point but not at `plan` (dsx/cli.py::GATE_PROFILES), so
-    # there is nothing for this fixture to catch at plan. Measured 2026-08-20
-    # against the fixture as committed by this plan's task 2: `dsx gate execute`
-    # with the entrypoint seeded into the temporary phase directory exits 1 with
-    # exactly these three codes among its CRITICAL findings (see the paired
-    # POSTMORTEM.md's measured table).
-    #
-    # The fixture's fourth own code, DSX-ML-090 (HIGH, shipped in plan 11.1-06),
-    # also fires at execute (the `ml` check family is registered there too) but
-    # cannot be recorded in this "execute" entry: `_classify_target_defect` only
-    # ever checks CRITICAL-severity findings, and a HIGH code placed alongside
-    # the three CRITICAL ones above would be reported "missing" from that
-    # CRITICAL-only comparison every time. It is recorded under a second,
-    # distinguishing key ("ship", where it also fires) purely so
-    # `_own_target_codes` — which flattens every key's value for a slug
-    # regardless of the key's name — recognises it as this fixture's own code
-    # for the ship-completeness test below. This mirrors
-    # weak-identification-mmm's own second key above: the key name is a
-    # dict-collision-avoidance device, not a claim the code fires only at that
-    # one point.
-    "full-frame-cleaning": {
-        "execute": frozenset({"DSX-CODE-020", "DSX-CODE-021", "DSX-CODE-030"}),
-        "ship": "DSX-ML-090",
-    },
-    # Plan 11.2-08 (REQ-P11.2-03): the flagship "offer bundled incentives to
-    # reduce churn" fixture — a prescriptive claim smuggled under a descriptive
-    # question. Its four catches split cleanly across gate points by which check
-    # family is registered where (dsx/cli.py::GATE_PROFILES):
-    #
-    #   - "plan" -> {DSX-COH-001, DSX-COH-010}: `coherence` is registered at
-    #     plan (and verify/ship). DSX-COH-001 fires because claims[0].type
-    #     `prescriptive` (strength 4) exceeds question_type `descriptive`
-    #     (strength 0); DSX-COH-010 fires because the decision rule carries the
-    #     purpose-gated causal verb `reduce` under a descriptive question. Both
-    #     are CRITICAL, so this is the point-scoped guarantee the generic
-    #     critical-threshold test consumes.
-    #   - "verify"/"ship" -> {DSX-CLM-020}: `claims` is registered at verify and
-    #     ship only, never plan or execute. DSX-CLM-020 fires because a
-    #     prescriptive claim recommends an intervention with no identification
-    #     strategy behind it. (Before WR-01 this set also listed DSX-CLM-011, but
-    #     _check_causal_language now exempts prescriptive — DSX-CLM-011 there
-    #     double-coded the DSX-CLM-020 fact with a strength-downgrade remedy;
-    #     11.2 code review, §4 persona round. The flagship still blocks on
-    #     DSX-CLM-020 CRITICAL.) This key is consulted only by _own_target_codes
-    #     (which flattens every point's value regardless of key name) for the
-    #     ship-completeness test — the same dict-collision-avoidance device
-    #     weak-identification-mmm's "verify" key and full-frame-cleaning's "ship"
-    #     key already use, not a claim these codes fire ONLY at verify/ship.
-    #     DSX-COH-001/DSX-COH-010 also fire at verify/ship (coherence is
-    #     registered there too) and are recognised as this fixture's own codes
-    #     via the "plan" key above.
-    #   - NO "execute" entry: `coherence` and `claims` are both absent from the
-    #     execute gate profile, so the fixture exits 0 there and must default to
-    #     the clears-cleanly branch.
-    #
-    # Measured 2026-08-26 against a fresh tempfile.TemporaryDirectory() per gate
-    # point (never the shared examples/known-bad/DECISIONS.jsonl — RESEARCH
-    # landmine f). Deliberately NOT added to _EXPECTED_CAUGHT_DEFECTS with codes:
-    # that map contributes its whole set at BOTH plan and execute, and these
-    # coherence codes fire at plan but not execute, so an entry there would
-    # wrongly demand DSX-COH-001/010 at execute too. Its _EXPECTED_CAUGHT_DEFECTS
-    # entry is an empty frozenset() (below), for the key-parity test only.
-    "prescriptive-churn-recommendation": {
-        "plan": frozenset({"DSX-COH-001", "DSX-COH-010"}),
-        "verify": frozenset({"DSX-CLM-020"}),
-        "ship": frozenset({"DSX-CLM-020"}),
-    },
-    # 2026-09-06 (post-ship audit, escalated item 2 — operator direction): the
-    # truncated-axis bad-CHART-choice fixture, the first fixture for the
-    # visualization family's ONLY CRITICAL code. `viz` is registered at verify/ship
-    # only (dsx/cli.py::GATE_PROFILES), so DSX-VIZ-020 fires at exactly those two
-    # points and structurally cannot fire at plan/execute — the same verify/ship-only
-    # point-scoped shape as post-hoc-procedure-switch's DSX-PRE-030 above. Its
-    # _EXPECTED_CAUGHT_DEFECTS entry is therefore empty (below), and
-    # test_truncated_axis_fixture_blocks_verify_and_ship_naming_viz_020_critical
-    # supplies the positive verify/ship direction the generic critical-threshold
-    # test cannot reach. Measured 2026-09-06 against a fresh
-    # tempfile.TemporaryDirectory() per gate point: plan/execute exit 0; verify/ship
-    # exit 1 with DSX-VIZ-020 as the only finding above INFO.
-    "chart-truncated-axis-bar": {"verify": "DSX-VIZ-020", "ship": "DSX-VIZ-020"},
-    # Phase 29 (REQ-P29-01/02/03, D-29-00/02): the subgroup-harm-without-disposition
-    # TARGET — the first fixture for DSX-COH-041 (minted in plan 29-01 on the LIVE MISS
-    # branch, catalogue Total 279). A genuinely prescriptive rollout recommendation on a
-    # positive +3.2pp aggregate that declares an opposing minority segment D (−6.0pp,
-    # n=1000) above the declared subgroup_harm_floor (500) with no
-    # decision.subgroup_harm[] disposition row. `coherence` is registered at
-    # plan/verify/ship and ABSENT from execute (dsx/cli.py::GATE_PROFILES), so
-    # DSX-COH-041 fires CRITICAL at exactly those three points — the same point-scoped,
-    # bare-string shape chart-truncated-axis-bar above uses, and the prescriptive-churn-
-    # recommendation precedent's plan-not-execute split (:294-298). Measured 2026-09-08
-    # against a fresh tempfile.TemporaryDirectory() per gate point on CPython 3.12.10:
-    # validate 0; plan 1 (DSX-COH-041 CRITICAL); execute 0; verify 1 (DSX-COH-041
-    # CRITICAL); ship 1 (DSX-COH-041 CRITICAL). The swap-still-fires counterfactual (flip
-    # D to +0.06) toggles DSX-COH-041 off at every point, confirming it as this fixture's
-    # real catch; the residual DSX-STA-011 (MEDIUM, aggregate effect-size advisory) is
-    # swap-invariant and below the HIGH threshold, so it never blocks and is not this
-    # fixture's target. Deliberately NOT added to _EXPECTED_CAUGHT_DEFECTS with a code:
-    # that map contributes its whole set at BOTH _CRITICAL_THRESHOLD_POINTS (plan AND
-    # execute), and DSX-COH-041 fires at plan but not execute (coherence is absent from
-    # the execute profile), so an entry there would wrongly demand it at execute and fail
-    # test_every_spec_blocks_only_on_its_target_defect_at_critical_threshold_points. Its
-    # _EXPECTED_CAUGHT_DEFECTS entry is an empty frozenset() (below), key-parity only —
-    # exactly the prescriptive-churn-recommendation resolution (:294-298 / :519).
-    "subgroup-harm-without-disposition": {
-        "plan": "DSX-COH-041",
-        "verify": "DSX-COH-041",
-        "ship": "DSX-COH-041",
-    },
+    slug: {point: _point_value(value) for point, value in entry["critical_by_point"].items()}
+    for slug, entry in _EXPECTATIONS.items()
+    if entry.get("critical_by_point")
 }
 
+_EXPECTED_CAUGHT_DEFECTS: dict[str, frozenset[str]] = {
+    slug: frozenset(entry["caught_at_plan_and_execute"])
+    for slug, entry in _EXPECTATIONS.items()
+}
+
+
+def _tier_map(key: str) -> dict[str, dict[str, str]]:
+    return {
+        slug: dict(entry[key]) for slug, entry in _EXPECTATIONS.items() if entry.get(key)
+    }
+
+
+_HIGH_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = _tier_map("high_by_point")
+_MEDIUM_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = _tier_map("medium_by_point")
+_LOW_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = _tier_map("low_by_point")
 
 def _classify_target_defect(
     slug: str,
@@ -455,6 +333,11 @@ _RETIRED_BOUND_MISATTRIBUTIONS = (
 # .planning/milestones/. The guard follows the content to those archived copies so
 # it keeps asserting over real prose (a hard is_file() check, not an empty file);
 # brief.md stays live because it is still the source a future planner actually reads.
+#
+# Deliberate .planning/ dependency (project audit 2026-09-30, L93): .planning/ is
+# tracked as the project's permanent record and is not moved or cleaned up, so
+# asserting over the archived milestone copies is intended. If a milestone archive is
+# ever relocated, update these two paths rather than dropping the guard.
 _BOUND_CLAIM_DOCUMENTS = (
     ROOT / "brief.md",
     ROOT / ".planning" / "milestones" / "v2.0.0-REQUIREMENTS.md",
@@ -479,293 +362,6 @@ _RETIRED_LOCATOR_ERRORS = (
     "2016, Theorem 1",
     "Theorem 1 caps",
 )
-
-
-# Per-fixture expected-caught-defect map (D-03): keyed by fixture slug — the same
-# value _slugs() produces, the spec filename with -ANALYSIS-SPEC.yaml stripped —
-# mapping to the set of CRITICAL finding codes that fixture's own target check is
-# now expected to catch at dsx gate plan/execute.
-#
-# An empty set means the code this fixture exists to motivate has not shipped yet,
-# so the fixture must still clear both CRITICAL-threshold gate points exactly like
-# every other fixture (test_every_spec_passes_the_critical_threshold_gate_points'
-# ordinary exit-0 branch). An entry gains codes in the same commit that ships the
-# check catching that fixture — never before, and never silently left behind
-# afterwards: test_expected_caught_defects_keys_match_the_corpus_on_disk requires
-# every fixture on disk to have a key here, and
-# test_ship_gate_findings_are_all_documented_incidental_corpus_gaps requires a
-# fixture's own target-family code to be accounted for here rather than laundered
-# into _INCIDENTAL_GAP_CODES once it ships.
-#
-# Distinct from _TARGET_DEFECT_CODES above, and deliberately kept as a second map
-# rather than folded into it (merge of plan 08-02 and plan 09-01, 2026-08-13):
-# _TARGET_DEFECT_CODES is keyed by gate point and carries at most one code per point,
-# for a fixture whose target check fires at some points but not others — Phase 7's
-# weak-identification-mmm, whose "val" family is absent from the `execute` GATE_PROFILES
-# entry, is the case it exists for, and it is the shape plans 08-03/08-04 add their
-# DSX-INT-* entries to. This dict is the general per-fixture, both-critical-points form
-# D-03 specifies, for target checks — like Phase 9's DSX-PAR-010/DSX-PAR-011 pair —
-# whose check family is registered at every gate point and so is expected to catch at
-# both. Neither shape subsumes the other, so both are live and both are enforced;
-# _effective_target_map() below is the single place they are combined.
-#
-# A fixture whose target code has not shipped yet carries an empty frozenset: it must
-# still clear both CRITICAL-threshold gate points like any other fixture. Two entries
-# are empty for that reason today — interference-shared-budget (DSX-INT-010 ships in
-# plan 08-03) and triggering-dilution (DSX-INT-030 ships in plan 08-04).
-_EXPECTED_CAUGHT_DEFECTS: dict[str, frozenset[str]] = {
-    "bayesian-continuous-monitoring": frozenset({"DSX-PAR-011"}),
-    "frequentist-uncontrolled-continuous": frozenset({"DSX-PAR-010"}),
-    "interference-shared-budget": frozenset(),
-    "triggering-dilution": frozenset(),
-    "weak-identification-mmm": frozenset(),
-    # Empty by design, not by omission: this map's frozenset applies at every
-    # point in _CRITICAL_THRESHOLD_POINTS ("plan", "execute"), and `prereg`
-    # structurally cannot fire there — it is registered in GATE_PROFILES["verify"]
-    # and ["ship"] only. The fixture's real catch (DSX-PRE-030 at "verify") lives
-    # in _TARGET_DEFECT_CODES above instead, the point-scoped shape.
-    "post-hoc-procedure-switch": frozenset(),
-    # Plan 11.1-08: also empty by design, for the same reason as
-    # post-hoc-procedure-switch immediately above but the other way round —
-    # this fixture's own codes fire at "execute" (both the `code` and `ml`
-    # families are registered there) but not at "plan" (neither family is
-    # registered there at all), so there is nothing this both-points map could
-    # correctly claim. The fixture's real catch (three CRITICAL codes at
-    # "execute", plus DSX-ML-090 recorded under the "ship" key) lives entirely
-    # in _TARGET_DEFECT_CODES above, the point-scoped shape.
-    "full-frame-cleaning": frozenset(),
-    # Plan 11.2-08: empty by design, not omission — for the same reason as
-    # post-hoc-procedure-switch and full-frame-cleaning above. This map's
-    # frozenset applies at every point in _CRITICAL_THRESHOLD_POINTS ("plan",
-    # "execute"), but the flagship's own catches are DSX-COH-001/DSX-COH-010 at
-    # plan (which fire at plan but NOT execute — `coherence` is absent from the
-    # execute gate profile) and DSX-CLM-011/DSX-CLM-020 at verify/ship (`claims`
-    # is registered at verify/ship only). None of the four fires at both
-    # critical-threshold points, so there is nothing this both-points map could
-    # correctly claim. The fixture's real, point-scoped catches live entirely in
-    # _TARGET_DEFECT_CODES above. The key is required here solely so
-    # test_expected_caught_defects_keys_match_the_corpus_on_disk stays green.
-    "prescriptive-churn-recommendation": frozenset(),
-    # Phase 12 (REQ-P12-01, D-01/D-02): the three coverage-class fixtures are
-    # MISSES — each encodes a real-world defect (undisclosed garden-of-forking-
-    # paths specification search, data fabrication, undisclosed selective
-    # exclusion) that a declaration-only gate structurally cannot catch. No
-    # shipped check fires their target defect, so the caught-defect set is empty
-    # by design. The currently-ABSENT code that would attribute each miss, and the
-    # §6.5 backlog item it promotes, live in each fixture's <slug>-ATTRIBUTION.yaml
-    # sidecar (D-06/D-07), never in these harness maps (D-05: do not overload the
-    # present-code maps with the absent-code polarity). The key is required here
-    # solely so test_expected_caught_defects_keys_match_the_corpus_on_disk stays green.
-    "garden-of-forking-paths-p-hacking": frozenset(),
-    "retracted-fabricated-field-experiment": frozenset(),
-    "operator-known-answer-selective-exclusion": frozenset(),
-    # Phase 20-A (REQ-P20-01, D-04/D-06): the five dedicated PRESENT known-bad
-    # fixtures, one per Phase-18 code. Empty by design, not by omission — mirroring
-    # the coverage-class MISS entries above and full-frame-cleaning/prescriptive:
-    # this map's frozenset applies at every point in _CRITICAL_THRESHOLD_POINTS
-    # ("plan", "execute"), but every one of the five DSX-STA-05x codes is HIGH and
-    # the `stats` correlation/agreement gate is registered at verify/ship ONLY, so
-    # none of them fires at a CRITICAL-threshold point — there is nothing this
-    # both-points map could correctly claim. Each fixture's HIGH catch lives in
-    # _HIGH_TARGET_DEFECT_CODES below (the verify/ship-scoped declaration, read
-    # LIVE by the HIGH stratum, D-03/D-09), NOT here and NOT in _TARGET_DEFECT_CODES
-    # (a CRITICAL-only map). These keys are required here solely so
-    # test_expected_caught_defects_keys_match_the_corpus_on_disk stays green.
-    "correlation-pearson-ordinal-scale": frozenset(),
-    "correlation-for-agreement-estimand": frozenset(),
-    "icc-incomplete-triple": frozenset(),
-    "weighted-kappa-missing-weights": frozenset(),
-    "kappa-missing-companions": frozenset(),
-    # Phase 24 (REQ-P24-02, GA-2): the first bad-CHART-choice fixtures. Empty by
-    # design, not by omission — for the same reason as the Phase-20-A stats
-    # fixtures above. The three banned-type fixtures fire DSX-VIZ-001 HIGH and the
-    # `viz` gate is registered at verify/ship, so none of them fires at a
-    # CRITICAL-threshold point; each HIGH catch lives in _HIGH_TARGET_DEFECT_CODES
-    # below (read LIVE by the HIGH stratum, D-03/D-09), never here. The uncertainty
-    # fixture fires DSX-VIZ-071 MEDIUM — below the default HIGH threshold entirely —
-    # so its catch lives in _MEDIUM_TARGET_DEFECT_CODES, measured under
-    # --block-on MEDIUM. All four keys are required here solely so
-    # test_expected_caught_defects_keys_match_the_corpus_on_disk stays green.
-    "chart-gauge-single-kpi": frozenset(),
-    "chart-word-cloud-text": frozenset(),
-    "chart-radar-multimetric": frozenset(),
-    "chart-uncertainty-mark-misuse": frozenset(),
-    # 2026-09-06 (post-ship audit, escalated item 2 — operator direction): the
-    # nineteen DSX-VIZ coverage fixtures, one per pre-existing visualization code
-    # that had never fired against a constructed case. Empty by design, not by
-    # omission, for the same reason as the Phase-24 chart fixtures above: the `viz`
-    # gate is registered at verify/ship only, so nothing this both-CRITICAL-points
-    # map could correctly claim fires at plan/execute for any of them — including
-    # chart-truncated-axis-bar, whose CRITICAL DSX-VIZ-020 fires at verify/ship and
-    # lives in _TARGET_DEFECT_CODES (the point-scoped shape). Each fixture's own
-    # catch lives in the tier map where it actually fires: _HIGH_TARGET_DEFECT_CODES,
-    # _MEDIUM_TARGET_DEFECT_CODES or _LOW_TARGET_DEFECT_CODES. All nineteen keys are
-    # required here solely so test_expected_caught_defects_keys_match_the_corpus_on_disk
-    # stays green.
-    "chart-relationship-undeclared": frozenset(),
-    "chart-relationship-unrecognised": frozenset(),
-    "chart-correlation-drawn-as-line": frozenset(),
-    "chart-single-value-as-bar": frozenset(),
-    "chart-input-type-undeclared": frozenset(),
-    "chart-truncated-axis-bar": frozenset(),
-    "chart-axis-baseline-undeclared": frozenset(),
-    "chart-dual-axis-lines": frozenset(),
-    "chart-pie-nine-slices": frozenset(),
-    "chart-twelve-colour-lines": frozenset(),
-    "chart-red-green-only": frozenset(),
-    "chart-rainbow-heatmap": frozenset(),
-    "chart-takeaway-blank": frozenset(),
-    "chart-units-undeclared": frozenset(),
-    "chart-source-note-missing": frozenset(),
-    "chart-takeaway-repeats-name": frozenset(),
-    "chart-takeaway-without-magnitude": frozenset(),
-    "chart-estimates-without-uncertainty": frozenset(),
-    "chart-alphabetical-ranking": frozenset(),
-    # Phase 27 (REQ-P27-01/03, D-27-01/02): the feature-origin-only-leak fixture
-    # is a MISS — an honest, well-formed churn spec whose one defect (a feature
-    # whose value depends on the outcome window, under the innocuous name
-    # `account_health_index`) sails through the entire ml/code leakage-detection
-    # surface. Empty by design, not omission, exactly like the coverage-class MISS
-    # entries above: no shipped check fires its target defect at any point, so the
-    # caught-defect set is empty. The currently-silent code that attributes the
-    # miss (DSX-ML-034, shipped in plan 27-01 but declaration-only, so silent on a
-    # spec that declares no per-feature origin list) and the §6.5 item it promotes
-    # live in feature-origin-only-leak-ATTRIBUTION.yaml (D-06/D-07), never here.
-    # The key is required so test_expected_caught_defects_keys_match_the_corpus_on_disk
-    # stays green.
-    "feature-origin-only-leak": frozenset(),
-    # Phase 28 (REQ-P28-01/03, D-28-01/02/06): the magnitude-without-computed-effect
-    # fixture is a MISS — an honest, well-formed descriptive churn spec whose headline
-    # magnitude is quoted for a metric no results.tests entry computes, a defect the
-    # numeric-overlap gate (DSX-CLM-033) structurally cannot see because the claim's
-    # literals collide with two other metrics' reported effects via the x100 bridge.
-    # Empty by design, not omission, exactly like the coverage-class MISS entries
-    # above: no shipped check fires its target defect at any point, so the caught-defect
-    # set is empty. The currently-silent code that ATTRIBUTES the miss (DSX-CLM-034,
-    # shipped in plan 28-01 but declaration-only, so silent on a spec that declares no
-    # claim-to-cited-test pointer) and the §6.5 item it promotes live in
-    # magnitude-without-computed-effect-ATTRIBUTION.yaml (D-06/D-07), never here. The
-    # fixture's sole blocking residual — DSX-COH-001 at plan/verify/ship — is NOT its
-    # target: it is a swap-invariant incidental encoded in _PER_FIXTURE_INCIDENTAL_CODES
-    # (D-28-06), point-scoped so it is never credited as this fixture's catch. The key is
-    # required so test_expected_caught_defects_keys_match_the_corpus_on_disk stays green.
-    "magnitude-without-computed-effect": frozenset(),
-    # Phase 29 (REQ-P29-01/02/03, D-29-00): the subgroup-harm-without-disposition
-    # TARGET. Empty by design, not by omission — this map's frozenset applies at every
-    # point in _CRITICAL_THRESHOLD_POINTS ("plan", "execute"), but DSX-COH-041 fires at
-    # plan and NOT execute (`coherence` is registered at plan/verify/ship and absent from
-    # the execute gate profile, dsx/cli.py::GATE_PROFILES), so there is nothing this
-    # both-points map could correctly claim. The fixture's real, point-scoped catch
-    # (DSX-COH-041 at plan/verify/ship) lives entirely in _TARGET_DEFECT_CODES above —
-    # exactly the prescriptive-churn-recommendation resolution (:519). The key is
-    # required here solely so test_expected_caught_defects_keys_match_the_corpus_on_disk
-    # stays green.
-    "subgroup-harm-without-disposition": frozenset(),
-}
-
-
-# Per-fixture HIGH-tier target-defect declaration (Phase 20-A, D-03/D-06/D-09):
-# keyed by fixture slug, mapping each of the five Phase-18 known-bad fixtures to
-# the ONE HIGH finding code it demonstrates at the HIGH point-set ("verify",
-# "ship"). This is a DECLARATION of intent, exactly like _TARGET_DEFECT_CODES —
-# it is NEVER the measured ledger (_GOLDEN_SHIP_FINDINGS) and the HIGH-tier catch
-# rate is NEVER lifted from it; the stratum in
-# test_stratified_catch_rate_and_fpr_report re-derives its catch LIVE via
-# self._gate_findings filtered to HIGH and consults this map only for which cell
-# to expect (the D-09 no-self-reference rule).
-#
-# The five new codes are all HIGH and the `stats` correlation/agreement gate is
-# registered at verify/ship only, so they cannot fire at a CRITICAL-threshold
-# point — this map therefore uses the verify/ship point-set, disjoint from
-# _CRITICAL_THRESHOLD_POINTS. Kept a THIRD map rather than folded into
-# _TARGET_DEFECT_CODES (whose _classify_target_defect / friction consumers are
-# CRITICAL-only) or _EXPECTED_CAUGHT_DEFECTS (a both-CRITICAL-points map): a HIGH
-# verify/ship code belongs in neither without corrupting the CRITICAL partition.
-# _own_target_codes reads it so a fixture's own HIGH code is recognised by
-# test_ship_gate_findings_are_all_documented_incidental_corpus_gaps rather than
-# read as an undocumented over-block.
-_HIGH_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = {
-    "correlation-pearson-ordinal-scale": {"verify": "DSX-STA-050", "ship": "DSX-STA-050"},
-    "correlation-for-agreement-estimand": {"verify": "DSX-STA-051", "ship": "DSX-STA-051"},
-    "icc-incomplete-triple": {"verify": "DSX-STA-060", "ship": "DSX-STA-060"},
-    "weighted-kappa-missing-weights": {"verify": "DSX-STA-061", "ship": "DSX-STA-061"},
-    "kappa-missing-companions": {"verify": "DSX-STA-062", "ship": "DSX-STA-062"},
-    # Phase 24 (REQ-P24-02, GA-2): the three banned-type bad-CHART-choice fixtures.
-    # Each declares one banned mark (gauge / word_cloud / radar), so `_check_banned`
-    # refuses it with the EXISTING DSX-VIZ-001 (HIGH) — the shared banned-mark code,
-    # no new mint (D-06). The `viz` gate is registered at verify/ship, so this is the
-    # point-set where the HIGH code actually fires, disjoint from
-    # _CRITICAL_THRESHOLD_POINTS exactly like the Phase-18 stats codes above. Read
-    # LIVE by the HIGH stratum in test_stratified_catch_rate_and_fpr_report and by
-    # test_high_stratum_target_codes_fire_and_are_named — never a measured ledger.
-    "chart-gauge-single-kpi": {"verify": "DSX-VIZ-001", "ship": "DSX-VIZ-001"},
-    "chart-word-cloud-text": {"verify": "DSX-VIZ-001", "ship": "DSX-VIZ-001"},
-    "chart-radar-multimetric": {"verify": "DSX-VIZ-001", "ship": "DSX-VIZ-001"},
-    # 2026-09-06 (post-ship audit, escalated item 2 — operator direction): the eight
-    # DSX-VIZ coverage fixtures whose target code is HIGH. Each is a copy of a clean
-    # good-corpus control plus exactly one visual carrying exactly one defect, and
-    # each fires its target as the ONLY finding above INFO at verify/ship (no
-    # incidental DSX-VIZ-010/014, unlike the three banned-type fixtures above).
-    # chart-takeaway-blank is the corpus's first two-tier fixture: a blank takeaway
-    # makes _check_labelling emit DSX-VIZ-063 (HIGH, recorded here) AND DSX-VIZ-060
-    # (MEDIUM, recorded in _MEDIUM_TARGET_DEFECT_CODES) from the one blank field.
-    # DSX-VIZ-063's other branch (takeaway identical to the chart name) is isolated
-    # by chart-takeaway-repeats-name. Measured 2026-09-06, never guessed.
-    "chart-correlation-drawn-as-line": {"verify": "DSX-VIZ-012", "ship": "DSX-VIZ-012"},
-    "chart-single-value-as-bar": {"verify": "DSX-VIZ-013", "ship": "DSX-VIZ-013"},
-    "chart-dual-axis-lines": {"verify": "DSX-VIZ-030", "ship": "DSX-VIZ-030"},
-    "chart-red-green-only": {"verify": "DSX-VIZ-051", "ship": "DSX-VIZ-051"},
-    "chart-units-undeclared": {"verify": "DSX-VIZ-061", "ship": "DSX-VIZ-061"},
-    "chart-takeaway-blank": {"verify": "DSX-VIZ-063", "ship": "DSX-VIZ-063"},
-    "chart-takeaway-repeats-name": {"verify": "DSX-VIZ-063", "ship": "DSX-VIZ-063"},
-    "chart-estimates-without-uncertainty": {"verify": "DSX-VIZ-070", "ship": "DSX-VIZ-070"},
-}
-
-
-# Per-fixture MEDIUM-tier target-defect declaration (Phase 24, REQ-P24-02, GA-2 /
-# 24-RESEARCH Risk P1): the one bad-CHART-choice fixture whose defect fires at the
-# MEDIUM tier rather than HIGH. DSX-VIZ-071 (an uncertainty mark outside the closed
-# §5.6 vocabulary) is MEDIUM by design, so it does NOT block at the default HIGH gate
-# threshold — the stratum that classifies it re-runs the gate under `--block-on MEDIUM`
-# so a fired MEDIUM produces exit 1 and _classify_target_defect(severity="MEDIUM") can
-# credit the catch. Kept a FOURTH map, disjoint from the three above for the same
-# partition-integrity reason: a MEDIUM verify/ship code belongs in neither the CRITICAL
-# maps nor the HIGH map without corrupting their tiers. Its MEDIUM catch rate is reported
-# BESIDE the (miss-rate, FPR) headline, NEVER folded into it (Risk P1 / T-24-02-02),
-# mirroring the HIGH stratum's D-06 headline-invariance. This is a DECLARATION of intent,
-# exactly like _HIGH_TARGET_DEFECT_CODES — the LIVE catch is never lifted from it (D-09).
-_MEDIUM_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = {
-    "chart-uncertainty-mark-misuse": {"verify": "DSX-VIZ-071", "ship": "DSX-VIZ-071"},
-    # 2026-09-06 (post-ship audit, escalated item 2 — operator direction): the eight
-    # DSX-VIZ coverage fixtures whose target code is MEDIUM, measured exactly as
-    # DSX-VIZ-071 above (under --block-on MEDIUM, reported beside the headline pair).
-    # chart-takeaway-blank also carries DSX-VIZ-063 HIGH — see _HIGH_TARGET_DEFECT_CODES.
-    "chart-relationship-undeclared": {"verify": "DSX-VIZ-010", "ship": "DSX-VIZ-010"},
-    "chart-relationship-unrecognised": {"verify": "DSX-VIZ-011", "ship": "DSX-VIZ-011"},
-    "chart-input-type-undeclared": {"verify": "DSX-VIZ-014", "ship": "DSX-VIZ-014"},
-    "chart-pie-nine-slices": {"verify": "DSX-VIZ-040", "ship": "DSX-VIZ-040"},
-    "chart-twelve-colour-lines": {"verify": "DSX-VIZ-050", "ship": "DSX-VIZ-050"},
-    "chart-rainbow-heatmap": {"verify": "DSX-VIZ-052", "ship": "DSX-VIZ-052"},
-    "chart-takeaway-blank": {"verify": "DSX-VIZ-060", "ship": "DSX-VIZ-060"},
-    "chart-takeaway-without-magnitude": {"verify": "DSX-VIZ-064", "ship": "DSX-VIZ-064"},
-}
-
-
-# Per-fixture LOW-tier target-defect declaration (2026-09-06, post-ship audit
-# escalated item 2 — operator direction): the three DSX-VIZ coverage fixtures whose
-# target code is LOW. No LOW-tier code had a fixture before these, so this is a
-# FIFTH map and a fifth readout, kept disjoint from the four above for the same
-# partition-integrity reason and measured the same way as the MEDIUM stratum, under
-# `--block-on LOW`. A LOW code blocks at no default gate threshold (GATE_THRESHOLDS:
-# plan/execute CRITICAL, verify/ship HIGH), so its catch can only be credited by
-# lowering the threshold in the measuring run; the readout is reported BESIDE the
-# (miss-rate, FPR) headline and never folded into it. A DECLARATION of intent, exactly
-# like the HIGH and MEDIUM maps — the LIVE catch is never lifted from it (D-09).
-_LOW_TARGET_DEFECT_CODES: dict[str, dict[str, str]] = {
-    "chart-axis-baseline-undeclared": {"verify": "DSX-VIZ-021", "ship": "DSX-VIZ-021"},
-    "chart-source-note-missing": {"verify": "DSX-VIZ-062", "ship": "DSX-VIZ-062"},
-    "chart-alphabetical-ranking": {"verify": "DSX-VIZ-080", "ship": "DSX-VIZ-080"},
-}
 
 
 def _effective_target_map() -> dict[str, dict[str, frozenset[str]]]:
@@ -932,9 +528,9 @@ def _slugs(pattern: str, suffix: str) -> set[str]:
     return {p.name[: -len(suffix)] for p in CORPUS_DIR.glob(pattern)}
 
 
-# The 256-code shipped catalogue is the source of truth for which finding codes a
-# fixture's <slug>-ATTRIBUTION.yaml sidecar may name as its currently-ABSENT
-# catch (D-07). It is enumerated from references/finding-codes.md — the same
+# The shipped catalogue (its size is pinned in tests/_counts.py) is the source of truth
+# for which finding codes a fixture's <slug>-ATTRIBUTION.yaml sidecar may name as
+# its currently-ABSENT catch (D-07). It is enumerated from references/finding-codes.md — the same
 # generated catalogue scripts/gen-finding-catalogue.py::collect() writes from the
 # real report.add(...) call sites, so this test cannot drift from what the checks
 # actually emit — rather than re-walking the dsx/ AST here. Every catalogue row is
@@ -947,7 +543,7 @@ def _catalogue_codes() -> frozenset[str]:
     """Every shipped finding code, enumerated from the generated catalogue.
 
     Returns the exact set of `DSX-*` codes listed in references/finding-codes.md
-    (256 today, pinned invariant under D-18). Parsed by table-row regex rather
+    (the count is pinned in tests/_counts.py). Parsed by table-row regex rather
     than by importing and AST-walking dsx/ so this harness stays a pure reader of
     the same generated artifact `scripts/gen-finding-catalogue.py --check` gates.
     """
@@ -958,7 +554,7 @@ def _catalogue_codes() -> frozenset[str]:
 # The named §6.5 backlog codes an attribution sidecar may reference as its
 # absent_code even though they are NOT in the shipped catalogue — REFERENCING an
 # unbuilt backlog code is the point of the miss-attribution polarity (D-05/D-07)
-# and is explicitly NOT minting (D-18: the catalogue stays 256, unchanged). This
+# and is explicitly NOT minting (D-18: a backlog code never enters the catalogue). This
 # is the allowlist-with-inline-reason house style of _INCIDENTAL_GAP_CODES
 # (:64-100), one entry per §6.5 row that names a concrete unshipped code. A wildcard
 # family (item 4's "DSX-ADM-*, second axis") is deliberately NOT enumerated here —
@@ -1150,9 +746,9 @@ class TestKnownBadCorpus(unittest.TestCase):
         ``root = args.phase_dir or str(path.parent)``) never lands under
         ``examples/`` — matching the module's existing ``io.StringIO()`` plus
         ``redirect_stdout``/``redirect_stderr`` capture idiom rather than a new
-        pattern. Blocking output goes to stderr and passing output to stdout
-        (``dsx/findings.py::emit``), so whichever stream is non-empty is the
-        one holding the JSON report.
+        pattern. The JSON report is read from stdout, falling back to stderr
+        (where older builds sent a blocking report), so whichever stream holds
+        it is the one parsed.
 
         This fresh-directory-per-call design was correct until Phase 10: no
         check had ever depended on prior gate-run state, so an empty
@@ -1188,7 +784,10 @@ class TestKnownBadCorpus(unittest.TestCase):
             out, err = io.StringIO(), io.StringIO()
             with redirect_stdout(out), redirect_stderr(err):
                 code = cli.main(argv)
-            raw = err.getvalue() or out.getvalue()
+            # Stdout first: a --json report goes to stdout, and older builds sent a
+            # blocking report to stderr instead (with stdout empty), so this reads
+            # the report either way.
+            raw = out.getvalue() or err.getvalue()
             # The --json flag is silently ignored on the CheckError path — the
             # exception handler in main() runs entirely outside the emitter —
             # so a missing-plan-header CheckError (or any other exit-2 plain
@@ -1742,7 +1341,7 @@ class TestKnownBadCorpus(unittest.TestCase):
 
     def test_attribution_sidecars_reference_valid_codes_and_items(self):
         """D-07 sibling-integrity: every `<slug>-ATTRIBUTION.yaml` names a real
-        slug, an absent_code in the validated union (the 256 shipped catalogue
+        slug, an absent_code in the validated union (the shipped catalogue
         codes ∪ the named §6.5 backlog codes), and a promotes_backlog_item that is
         one of the nine §6.5 item ids — validated at schema time, before any live
         gate check runs (T-12-07). A hallucinated or misspelled absent_code, or a
@@ -1799,7 +1398,7 @@ class TestKnownBadCorpus(unittest.TestCase):
                 self.assertIn(
                     data["absent_code"], validated_union,
                     f"{path.name} names absent_code {data['absent_code']!r} outside the "
-                    "validated union (256 catalogue codes ∪ named §6.5 backlog codes) — "
+                    "validated union (shipped catalogue codes ∪ named §6.5 backlog codes) — "
                     "a hallucinated or misspelled code is rejected before any live check",
                 )
                 self.assertIn(
@@ -2320,6 +1919,18 @@ class TestKnownBadCorpus(unittest.TestCase):
                         f"{slug}'s {severity} target {code} does not fire as a {severity} "
                         f"finding at {point!r} — read live, not from a ledger",
                     )
+                    # Project audit L33: each sub-HIGH fixture is a clean control plus
+                    # one defect, so nothing above INFO may fire except its own
+                    # declared target codes (chart-takeaway-blank's HIGH DSX-VIZ-063
+                    # beside its MEDIUM DSX-VIZ-060 is one such own code).
+                    stray = {
+                        f["code"] for f in findings if f.get("severity") != "INFO"
+                    } - set(_EXPECTATIONS[slug]["target_codes"])
+                    self.assertEqual(
+                        stray, set(),
+                        f"{slug} fires non-target findings above INFO at {point!r}: "
+                        f"{sorted(stray)}",
+                    )
                     self.assertIn(
                         code, postmortem_text,
                         f"{slug}'s {severity} target {code} is not named in its "
@@ -2531,6 +2142,140 @@ class TestKnownBadCorpus(unittest.TestCase):
                         )
 
 
+# The one-line marker every MISS fixture's POSTMORTEM.md carries (project audit M18),
+# so nobody reading a single post-mortem assumes the gate detects its defect.
+_MISS_POSTMORTEM_MARKER = "**Known MISS.**"
+CORPUS_README_PATH = CORPUS_DIR / "README.md"
+_CATALOGUE_SEVERITY_RE = re.compile(r"\|\s*`(DSX-[A-Z]+-\d+)`\s*\|\s*([A-Z][A-Z /]*?)\s*\|")
+
+
+def _catalogue_severities() -> dict[str, frozenset[str]]:
+    """code -> the severities the catalogue lists for it, read from
+    references/finding-codes.md. A code emitted at more than one severity has a cell
+    such as ``CRITICAL / HIGH``."""
+    text = _FINDING_CATALOGUE_PATH.read_text(encoding="utf-8")
+    return {
+        code: frozenset(part.strip() for part in cell.split("/"))
+        for code, cell in _CATALOGUE_SEVERITY_RE.findall(text)
+    }
+
+
+def _manifest_band(entry: dict) -> str | None:
+    """The severity_band an entry's own maps imply: the highest tier holding a code."""
+    if entry.get("critical_by_point") or entry.get("caught_at_plan_and_execute"):
+        return "CRITICAL"
+    for tier in ("high", "medium", "low"):
+        if entry.get(f"{tier}_by_point"):
+            return tier.upper()
+    return None
+
+
+def _manifest_codes(entry: dict) -> set[str]:
+    """Every own-target code an entry declares, across all its tier maps."""
+    codes: set[str] = set(entry.get("caught_at_plan_and_execute", []))
+    for key in ("critical_by_point", "high_by_point", "medium_by_point", "low_by_point"):
+        for value in entry.get(key, {}).values():
+            codes.update([value] if isinstance(value, str) else value)
+    return codes
+
+
+class TestExpectedFindingsManifest(unittest.TestCase):
+    """Static checks over examples/known-bad/EXPECTED-FINDINGS.json (project audit
+    2026-09-30, M18/M19). The live gate assertions stay in TestKnownBadCorpus; these
+    make sure the manifest they read is well-formed and honest, so a typo in the JSON
+    fails here with a readable message instead of silently weakening a live test."""
+
+    def test_manifest_covers_every_fixture_on_disk_and_nothing_else(self):
+        disk = _slugs(f"*{SPEC_SUFFIX}", SPEC_SUFFIX)
+        self.assertEqual(
+            set(_EXPECTATIONS) ^ disk, set(),
+            f"{EXPECTATIONS_PATH.name} and the corpus on disk disagree: "
+            f"{sorted(set(_EXPECTATIONS) ^ disk)}",
+        )
+
+    def test_every_entry_has_the_schema_keys_and_valid_points(self):
+        for slug, entry in _EXPECTATIONS.items():
+            with self.subTest(slug=slug):
+                self.assertLessEqual(set(entry), _EXPECTATION_KEYS, f"unknown keys in {slug}")
+                self.assertLessEqual(_REQUIRED_EXPECTATION_KEYS, set(entry), f"{slug} misses keys")
+                self.assertIsInstance(entry["miss"], bool)
+                self.assertTrue(str(entry["note"]).strip(), f"{slug} has an empty note")
+                self.assertLessEqual(set(entry.get("critical_by_point", {})), set(_GATE_POINTS))
+                self.assertLessEqual(set(entry.get("incidental_by_point", {})), set(_GATE_POINTS))
+                for key in ("high_by_point", "medium_by_point", "low_by_point"):
+                    points = entry.get(key, {})
+                    self.assertLessEqual(set(points), set(_TIER_POINTS), f"{slug}.{key}")
+                    for value in points.values():
+                        self.assertIsInstance(value, str, f"{slug}.{key} holds one code per point")
+
+    def test_every_code_is_catalogued_at_the_tier_it_is_filed_under(self):
+        severities = _catalogue_severities()
+        self.assertTrue(severities, "no catalogue rows parsed")
+        for slug, entry in _EXPECTATIONS.items():
+            tiered: list[tuple[str, str]] = [
+                (code, "CRITICAL") for code in entry["caught_at_plan_and_execute"]
+            ]
+            for point, value in entry.get("critical_by_point", {}).items():
+                codes = [value] if isinstance(value, str) else value
+                # Keys outside plan/execute may hold a second, lower-tier own code as
+                # a key-collision device (full-frame-cleaning's "ship": DSX-ML-090),
+                # so only the CRITICAL-threshold points are held to CRITICAL.
+                if point in _CRITICAL_THRESHOLD_POINTS:
+                    tiered += [(code, "CRITICAL") for code in codes]
+            for tier in ("high", "medium", "low"):
+                tiered += [(c, tier.upper()) for c in entry.get(f"{tier}_by_point", {}).values()]
+            for code, tier in tiered:
+                with self.subTest(slug=slug, code=code, tier=tier):
+                    self.assertIn(code, severities, f"{slug} names uncatalogued {code}")
+                    self.assertIn(
+                        tier, severities[code],
+                        f"{slug} files {code} under {tier} but the catalogue lists "
+                        f"{sorted(severities[code])}",
+                    )
+            incidental = {
+                code
+                for point_codes in entry.get("incidental_by_point", {}).values()
+                for code in point_codes
+            }
+            for code in incidental:
+                with self.subTest(slug=slug, incidental=code):
+                    self.assertIn(code, severities, f"{slug} names uncatalogued {code}")
+
+    def test_summary_fields_match_the_maps(self):
+        for slug, entry in _EXPECTATIONS.items():
+            with self.subTest(slug=slug):
+                codes = _manifest_codes(entry)
+                self.assertEqual(sorted(entry["target_codes"]), sorted(codes))
+                self.assertEqual(entry["severity_band"], _manifest_band(entry))
+                self.assertEqual(entry["miss"], not codes)
+
+    def test_miss_flag_matches_the_attribution_sidecars(self):
+        sidecar_misses = {
+            path.name[: -len(ATTRIBUTION_SUFFIX)]
+            for path in CORPUS_DIR.glob(f"*{ATTRIBUTION_SUFFIX}")
+            if load(str(path)).get("kind", "miss") == "miss"
+        }
+        manifest_misses = {slug for slug, entry in _EXPECTATIONS.items() if entry["miss"]}
+        self.assertEqual(manifest_misses, sidecar_misses)
+        self.assertGreaterEqual(len(manifest_misses), _ABSENT_PARTITION_FLOOR)
+
+    def test_miss_fixtures_are_labelled_in_the_readme_and_their_postmortems(self):
+        self.assertTrue(CORPUS_README_PATH.is_file(), f"{CORPUS_README_PATH} is missing")
+        readme = CORPUS_README_PATH.read_text(encoding="utf-8")
+        for slug, entry in _EXPECTATIONS.items():
+            if not entry["miss"]:
+                continue
+            with self.subTest(slug=slug):
+                self.assertIn(f"`{slug}`", readme, f"README.md does not list MISS {slug}")
+                postmortem = (CORPUS_DIR / f"{slug}{POSTMORTEM_SUFFIX}").read_text(
+                    encoding="utf-8"
+                )
+                self.assertIn(
+                    _MISS_POSTMORTEM_MARKER, postmortem,
+                    f"{slug}'s POSTMORTEM does not carry the {_MISS_POSTMORTEM_MARKER} note",
+                )
+
+
 class TestClassifyTargetDefectHelper(unittest.TestCase):
     """Proves `_classify_target_defect` fires against fabricated inputs, independent
     of the filesystem and the real gate — the module's own two-proofs discipline
@@ -2694,7 +2439,7 @@ class TestPerFixtureIncidentalCodes(unittest.TestCase):
                 code = cli.main(
                     ["gate", point, "--spec", str(spec_path), "--phase-dir", tmp, "--json"]
                 )
-            raw = err.getvalue() or out.getvalue()
+            raw = out.getvalue() or err.getvalue()
             report = json.loads(raw)
         return code, report["findings"]
 

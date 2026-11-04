@@ -402,10 +402,12 @@ def _recorded_plan_digests(root: str | None) -> set[str]:
     Guards for ``root is None`` by returning an empty set rather than constructing a
     path from it — ``decisions_path(None)`` would raise ``TypeError`` from ``Path()``
     before this function ever got a chance to degrade gracefully. Otherwise builds the
-    trail path with ``decisions_path(root)`` and reads it with ``read_all``, which
-    never raises for any on-disk state (missing, unreadable, or corrupt all degrade to
-    ``[]``) — this function adds no ``try``/``except`` of its own, because doing so
-    would suggest ``read_all`` could raise, which its own contract says it never does.
+    trail path with ``decisions_path(root)`` and reads it with ``read_all``: a missing
+    trail degrades to ``[]`` and corrupt lines are skipped, but a trail that exists and
+    cannot be read raises ``CheckError`` naming the path. This function deliberately
+    adds no ``try``/``except``: reporting "no plan-time header recorded" for a header
+    that may well exist in an unreadable file would misstate why the run stopped, so
+    the more specific exit-2 error is allowed to propagate.
 
     Collects ``frame_digest`` from every record whose ``record_type`` is
     ``"invocation"`` and whose ``gate_point`` is ``"plan"`` — the filter is on gate

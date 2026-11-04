@@ -2,6 +2,8 @@
 
 Paired spec: `garden-of-forking-paths-p-hacking-ANALYSIS-SPEC.yaml`
 
+> **Known MISS.** No shipped check fires on the defect this fixture encodes, so the gate does not catch it; see `README.md` in this directory.
+
 Coverage class (REQ-P12-01): a documented p-hacking / garden-of-forking-paths
 case.
 

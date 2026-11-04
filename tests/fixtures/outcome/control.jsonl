@@ -1,0 +1,5 @@
+{"task_id": "t1", "answer": "42"}
+{"task_id": "t2", "answer": {"columns": ["region", "revenue"], "rows": [["north", 2401.0], ["south", 800]]}}
+{"task_id": "t3", "answer": " lisbon "}
+{"task_id": "t4", "answer": [[2, "b"], [1, "a"]]}
+{"task_id": "t5", "answer": 0.29}

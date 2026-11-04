@@ -288,6 +288,9 @@ _GOLDEN_SHIP_FINDINGS: dict[str, frozenset[str]] = {
         "DSX-VIZ-020",
     }),
     "examples/known-bad/chart-axis-baseline-undeclared-ANALYSIS-SPEC.yaml": frozenset(),
+    "examples/known-bad/chart-diagram-declared-with-data-ANALYSIS-SPEC.yaml": frozenset({
+        "DSX-VIZ-015",
+    }),
     "examples/known-bad/chart-dual-axis-lines-ANALYSIS-SPEC.yaml": frozenset({
         "DSX-VIZ-030",
     }),
@@ -336,6 +339,11 @@ _GOLDEN_SHIP_FINDINGS: dict[str, frozenset[str]] = {
     # CRITICAL/HIGH stratum this set records and DSX-PAR-001 is INFO.
     "examples/known-bad/subgroup-harm-without-disposition-ANALYSIS-SPEC.yaml": frozenset({
         "DSX-COH-041",
+    }),
+    # 2026-09-30 (project audit L38): the exclusion-rule-without-justification fixture.
+    # Measured via _ship_findings: DSX-VAL-080 (HIGH) is the only CRITICAL/HIGH residual.
+    "examples/known-bad/exclusion-rule-without-justification-ANALYSIS-SPEC.yaml": frozenset({
+        "DSX-VAL-080",
     }),
 }
 

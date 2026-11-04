@@ -27,13 +27,17 @@ line-ending convention (this repo checks out CRLF) cannot break a match.
 """
 import json
 import re
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests"))
 
-# The DSX skills (dsx-* dirs); must match capability.json's skill count. 13 at
-# Phase 14 + dsx-reproduce (Phase 16, REQ-P16-01) = 14.
+from _counts import DSX_SKILL_COUNT  # noqa: E402
+
+# The DSX skills (dsx-* dirs); must match capability.json's skill count, which is
+# pinned once in tests/_counts.py::DSX_SKILL_COUNT.
 DSX_SKILLS = sorted(p.name for p in (ROOT / "skills").glob("dsx-*") if p.is_dir())
 
 DATED_LEARNING_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$")
@@ -111,10 +115,12 @@ class TestPhase14Onboarding(unittest.TestCase):
         self.assertIn("aliases", g)
 
     def test_req04_all_dsx_skills_carry_triggers(self):
-        # Anti-vacuity / drop-detection anchor: 13 DSX skills existed at Phase 14;
-        # Phase 16 added dsx-reproduce (REQ-P16-01, registered in capability.json),
-        # so the live count is 14. The Triggers invariant below holds for all of them.
-        self.assertEqual(len(DSX_SKILLS), 14, f"expected 14 DSX skills, found {DSX_SKILLS}")
+        # Anti-vacuity / drop-detection anchor: the live dsx-* skill count, pinned in
+        # tests/_counts.py. The Triggers invariant below holds for all of them.
+        self.assertEqual(
+            len(DSX_SKILLS), DSX_SKILL_COUNT,
+            f"expected {DSX_SKILL_COUNT} DSX skills, found {DSX_SKILLS}",
+        )
         missing = [name for name in DSX_SKILLS
                    if "Triggers:" not in read(f"skills/{name}/SKILL.md")]
         self.assertEqual(missing, [], f"DSX skills missing a Triggers: clause: {missing}")

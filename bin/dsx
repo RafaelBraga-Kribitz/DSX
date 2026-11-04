@@ -11,14 +11,18 @@ while [ -L "$SELF" ]; do
   esac
 done
 ROOT="$(cd "$(dirname "$SELF")/.." && pwd)"
-PY="${DSX_PYTHON:-}"
+# Python 3.9+ only, matching install.mjs findPython() and hooks/stop-gate: a
+# Python 2 `python` must not win. DSX_PYTHON first, then python3, then python.
+PY=""
+for candidate in "${DSX_PYTHON:-}" python3 python; do
+  [ -n "$candidate" ] || continue
+  if command -v "$candidate" >/dev/null 2>&1 &&
+     "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+    PY="$candidate"; break
+  fi
+done
 if [ -z "$PY" ]; then
-  for candidate in python3 python; do
-    if command -v "$candidate" >/dev/null 2>&1; then PY="$candidate"; break; fi
-  done
-fi
-if [ -z "$PY" ]; then
-  echo "dsx: no python interpreter found. Set DSX_PYTHON to one." >&2
+  echo "dsx: no Python 3.9+ interpreter found (tried ${DSX_PYTHON:+$DSX_PYTHON, }python3, python). Set DSX_PYTHON to one." >&2
   exit 2
 fi
 PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" exec "$PY" -m dsx "$@"

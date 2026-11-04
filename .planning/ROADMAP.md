@@ -337,10 +337,22 @@ estimate (D-13):
 - EDA brief §6.5 items 1–6 — paradigm-paired items wait for their mirrors (D-12a).
 - A real Sankey ribbon implementation — if a consumer ever needs one; Phase 32
   drops `sankey` to reference-only rather than shipping matplotlib's arrow diagram.
+- `SEED-003` items AC-10 … AC-15 are open skill work, none of it landed (checked
+  2026-09-30, recorded in the seed): the conduct cycle and cell craft, plain-question
+  section headings, misparse triage after `read_csv`, the PT-BR locale pack and notebook
+  continuation discipline — mostly a new `references/notebook-conduct.md`, plus boundary
+  sentences in `skills/dsx-explore-data/SKILL.md` and `references/narrative-discipline.md`.
+- Brief §6.5 rows 1 and 3 (`DSX-PAR-020`/`-021`, `DSX-PAR-030`) now also state what opens
+  the mirror work (2026-09-30; REV-001 note in `REVERSALS.md`).
+- Brief §6.5 v2.2 backlog, the **survivorship-bias half** of the Phase 15 cohort/funnel
+  pair (HQ-8/HQ-13; the changing-denominator half shipped as `DSX-MET-021`): needs a
+  first-hand D-05 source stating a declaration-checkable survivorship rule **and** a
+  corpus case measured a live miss at all four gate points.
+- `SEED-005` (a narrative-shape gate — the Phase 13 `DSX-NAR` section check, plus the
+  Phase 14 disclosure/data-dictionary sibling): a known-bad narrative missing its "So What"
+  or "Now What" measured a live miss at all four gate points, then a first-hand D-05 source.
 
-Running v2.7 under the autonomous ceremony still needs the operator steps recorded
-in `STATE.md`: a fresh `LOOP-BRIEF.md` / `LOOP-LEDGER.md` / `HUMAN-QUEUE.md`, and
-`$Branch` in `scripts/run-ceremony-firing.ps1` repointed from the deleted
-`gsd/v2.6.0-exploration-depth` to `gsd/v2.7.0-figure-pipeline` **before**
-`.planning/loop-logs/.paused` is removed. Next planning action:
-`/gsd-plan-phase 31`.
+The headless ceremony loop was retired on 2026-09-30 (`scripts/run-ceremony-firing.ps1`
+deleted, project audit H3), so there is no scheduled firing to repoint or unpause and
+`$Branch` needs no repointing. v2.7 runs interactively with a fresh `LOOP-BRIEF.md` /
+`LOOP-LEDGER.md` / `HUMAN-QUEUE.md`. Next planning action: `/gsd-plan-phase 31`.

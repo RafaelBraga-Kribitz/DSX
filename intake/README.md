@@ -21,8 +21,10 @@ every library measured — gsd-core 71/71, superpowers 14/14, the public skills
 41/41, ECC 888/898 — and `install.mjs` copies `skills/<name>/` recursively, so a
 skill's own `references/`, `scripts/` and `agents/` subfolders travel with it.
 
-**Agents and prompts flatten**, joining their namespace segments with hyphens:
-`agents/global/code-reviewer.md` becomes `global-code-reviewer`. This is forced,
+**Agents and prompts flatten**, joining their namespace segments with hyphens.
+For example, an agent you drop at `intake/agents/global/code-reviewer.md` (a
+hypothetical file in a `global/` namespace folder, not one this repository
+ships) is promoted as `agents/global-code-reviewer.md`. This is forced,
 not stylistic — `install.mjs` reads `agents/` with one non-recursive listing and
 skips any entry that does not end in `.md`, so an agent in a subfolder would
 never be installed.

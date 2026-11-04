@@ -511,21 +511,26 @@ research spike before the check can satisfy D-05.
 
 ### Ready now (sourced, testable, no further research needed)
 
-- [ ] `DSX-VAL-020/021` unit triad — Kish/Cornfield/Senn citation and worked DEFF example ready
-- [ ] `DSX-PAR-010` — reuse existing `inflation_from_peeking()`, zero new research
-- [ ] `DSX-PAR-011` — Deng/Lu/Chen Theorem 1, `1/(K+1)` bound at K=19 → 0.05, verified against paper text
-- [ ] `DSX-INT-0xx` SUTVA declaration — Imbens & Rubin formal statement, Blake & Coey worked magnitude
-- [ ] `DSX-VAL-0xx` missingness — Little & Rubin decision table, fully specified above
-- [ ] `DSX-VAL-040/041` identification — Gelman/Simpson/Betancourt claim + worked numbers, VIF-as-evidence pattern
-- [ ] `DSX-INT-0xx` novelty/primacy — Sadeghi et al. 2021 DiD estimator + Kohavi/Tang/Xu qualitative pattern, both as evidence-presence adjudication
+*Checklist reconciled 2026-09-30 against `dsx/` and `references/finding-codes.md`.*
+
+- [x] `DSX-VAL-020/021` unit triad — Kish/Cornfield/Senn citation and worked DEFF example ready — *shipped Phase 7 (`dsx/frame/val.py`)*
+- [x] `DSX-PAR-010` — reuse existing `inflation_from_peeking()`, zero new research — *shipped Phase 9 (`dsx/frame/paradigm.py`)*
+- [x] `DSX-PAR-011` — Deng/Lu/Chen Theorem 1, `1/(K+1)` bound at K=19 → 0.05, verified against paper text — *shipped Phase 9 (`dsx/frame/paradigm.py`)*
+- [x] `DSX-INT-0xx` SUTVA declaration — Imbens & Rubin formal statement, Blake & Coey worked magnitude — *shipped Phase 8 as `DSX-INT-010`/`011` (`dsx/frame/interference.py`)*
+- [x] `DSX-VAL-0xx` missingness — Little & Rubin decision table, fully specified above — *shipped Phase 7 as `DSX-VAL-060`*
+- [x] `DSX-VAL-040/041` identification — Gelman/Simpson/Betancourt claim + worked numbers, VIF-as-evidence pattern — *shipped Phase 7*
+- [x] `DSX-INT-0xx` novelty/primacy — Sadeghi et al. 2021 DiD estimator + Kohavi/Tang/Xu qualitative pattern, both as evidence-presence adjudication — *shipped Phase 8 as `DSX-INT-040`*
 
 ### Needs a phase-specific research spike before shipping (flag per brief §6.6/D-13 style)
 
-- [ ] `DSX-INT-030` ratio-metric dilution formula — Deng & Hu (2015) WSDM paper's exact
+- [x] ~~`DSX-INT-030` ratio-metric dilution formula — Deng & Hu (2015) WSDM paper's exact
   equation for ratio metrics could not be extracted in this pass (PDF text extraction failed;
   needs ACM DL access or a text-selectable copy). **Entry condition to promote:** obtain the
   paper's Section on ratio-metric dilution with a selectable-text source, or find a
-  peer-reviewed paper that restates the formula verbatim.
+  peer-reviewed paper that restates the formula verbatim.~~ *Closed 2026-08-27: removed as
+  permanently out of scope per REV-002 (`.planning/REVERSALS.md`; brief §6.5 "Removed").
+  The additive case shipped as `DSX-INT-030`; the ratio-metric extension needs per-unit data a
+  declaration-only gate cannot evaluate, and access to the paper was never the blocker.*
 
 ---
 
