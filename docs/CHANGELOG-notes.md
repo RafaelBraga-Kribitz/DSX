@@ -32,6 +32,27 @@ the DataSpace benchmark behind it. No new finding codes; the catalogue stays at
   false-alarm bound (59 for 5%), exact McNemar, and a paired-difference
   interval.
 
+Two vocabulary gaps in `dsx check viz`, found on charts for a portfolio site.
+No new finding codes (the catalogue stays at 279); the gate now accepts two
+things it wrongly refused, and refuses one way of abusing the second.
+
+- `heatmap` is admitted under the `comparison` relationship when
+  `data_input_type` is `grouped-categorical` (or an IT id of that family). The
+  relationship list used to allow it only under `correlation`, while the
+  input-type matrix already admitted it for grouped-categorical input, so a
+  family-by-skill table of shares failed DSX-VIZ-012. Any other input type still
+  fails DSX-VIZ-012 for a comparison heatmap; the correlation reading is
+  unchanged.
+- New optional field `visuals[].visual_kind` (closed list: `data`, `diagram`;
+  `dsx vocab` shows it). `visual_kind: diagram` declares a figure with no data,
+  such as a pipeline flow. It is exempt from DSX-VIZ-010, DSX-VIZ-064 and the
+  units check DSX-VIZ-061, and from nothing else: the seal, the takeaway text and
+  every other check still run. A diagram that also declares `relationship`,
+  `data_input_type`, `y_axis*`, `shows_estimates: true`, `shows_uncertainty: true`,
+  `uncertainty_mark`, `category_count` or `dual_axis: true` loses the exemption
+  or an unknown `visual_kind` value fails the new DSX-VIZ-015. Omitting the field
+  changes nothing.
+
 ### 2.6.1 (2026-09-11)
 
 A maintenance release with no new finding codes; the catalogue stays at 279.

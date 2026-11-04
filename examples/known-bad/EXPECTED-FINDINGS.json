@@ -55,6 +55,19 @@
       },
       "note": "2026-09-06 VIZ coverage: DSX-VIZ-012 HIGH at verify/ship."
     },
+    "chart-diagram-declared-with-data": {
+      "miss": false,
+      "severity_band": "HIGH",
+      "target_codes": [
+        "DSX-VIZ-015"
+      ],
+      "caught_at_plan_and_execute": [],
+      "high_by_point": {
+        "verify": "DSX-VIZ-015",
+        "ship": "DSX-VIZ-015"
+      },
+      "note": "visual_kind coverage: DSX-VIZ-015 HIGH at verify/ship."
+    },
     "chart-dual-axis-lines": {
       "miss": false,
       "severity_band": "HIGH",

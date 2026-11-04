@@ -28,7 +28,7 @@ dsx charts --list                            # → the whole catalogue
 | `categorical-multi` | category × several values | grouped_bar, stacked_bar, slope |
 | `time-series` | time × value(s) | line, area, sparkline, stacked_area |
 | `interval-range` | category × interval | box, violin, bullet, dot_plot |
-| `grouped-categorical` | group × category × value | grouped_bar, stacked_bar, heatmap |
+| `grouped-categorical` | group × category × value | grouped_bar, stacked_bar, heatmap (a heatmap is a `comparison` here, not a `correlation`) |
 | `composition` | parts of a whole | stacked_bar, pie, treemap, waffle |
 | `hierarchical` | nested parts | treemap, sunburst |
 | `matrix` | row × column × value | heatmap, chord |
@@ -39,6 +39,9 @@ dsx charts --list                            # → the whole catalogue
 1. Name the **relationship** (comparison, trend, …) — still required.
 2. Name the **data_input_type** from the table.
 3. Pick `type` from the intersection of relationship admissibility and this matrix.
+   A `heatmap` under `comparison` is admitted only for `grouped-categorical` input.
+   A figure with no data (a flow or module diagram) declares `visual_kind: diagram`
+   instead of a relationship and a data_input_type.
 4. Run `dsx check viz`.
 
 Adapted from the Deterministic Data Visualization Framework input-type schema;

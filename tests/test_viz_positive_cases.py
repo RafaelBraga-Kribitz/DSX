@@ -76,6 +76,12 @@ _CASES: dict[str, tuple[str, dict, dict]] = {
                     {"data_input_type": "categorical-multi"}),
     "DSX-VIZ-014": ("MEDIUM", {"data_input_type": _DELETE},
                     {"data_input_type": "IT001"}),
+    # visual_kind: diagram on a figure that also carries a data field (the exemption
+    # is void) or with an unknown value. The negative is a bare, valid diagram.
+    "DSX-VIZ-015": ("HIGH", {"visual_kind": "diagram"},
+                    {"visual_kind": "diagram", "relationship": _DELETE,
+                     "data_input_type": _DELETE, "y_axis_starts_at_zero": _DELETE,
+                     "units": _DELETE}),
     "DSX-VIZ-020": ("CRITICAL", {"y_axis_starts_at_zero": False, "y_axis_min": 40},
                     {"y_axis_starts_at_zero": True, "y_axis_min": 0}),
     "DSX-VIZ-021": ("LOW", {"y_axis_starts_at_zero": _DELETE},

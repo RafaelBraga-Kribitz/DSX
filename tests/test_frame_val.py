@@ -1455,6 +1455,7 @@ _EXPECTED_VAL_CODES: dict[str, set[str]] = {
     "chart-input-type-undeclared-ANALYSIS-SPEC.yaml": set(),
     "chart-truncated-axis-bar-ANALYSIS-SPEC.yaml": set(),
     "chart-axis-baseline-undeclared-ANALYSIS-SPEC.yaml": set(),
+    "chart-diagram-declared-with-data-ANALYSIS-SPEC.yaml": set(),
     "chart-dual-axis-lines-ANALYSIS-SPEC.yaml": set(),
     "chart-pie-nine-slices-ANALYSIS-SPEC.yaml": set(),
     "chart-twelve-colour-lines-ANALYSIS-SPEC.yaml": set(),

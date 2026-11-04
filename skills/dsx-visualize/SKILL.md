@@ -21,7 +21,12 @@ so the gate can prove the bytes match the declaration.
 
 1. **Name the relationship before the chart type.** comparison, trend,
    part_to_whole, distribution, correlation, deviation, ranking, flow,
-   geographic, composition_over_time, uncertainty.
+   geographic, composition_over_time, uncertainty. A group × category table of
+   shares or values (printed or shaded) is a `comparison`, drawn as a `heatmap`
+   on `grouped-categorical` input. A figure with no data, such as a pipeline
+   flow, declares `visual_kind: diagram` instead: it then needs no relationship,
+   units or magnitude in the takeaway, but is still sealed and still checked
+   for everything else. Do not declare it on a figure that shows data.
 
 2. **Name the data_input_type.** See `references/data-input-types.md` / `dsx vocab`.
    The mark must sit in both the relationship list and the input-type matrix. To

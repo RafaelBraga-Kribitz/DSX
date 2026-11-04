@@ -8,7 +8,7 @@ with its function, data signature and perceptual channel.
 
 | Relationship | Default | Also works | Avoid |
 |---|---|---|---|
-| comparison across categories | horizontal bar, sorted by value | dot plot, bullet | pie, radar |
+| comparison across categories | horizontal bar, sorted by value | dot plot, bullet; heatmap for a group × category table of values (`grouped-categorical` input only) | pie, radar |
 | trend over time | line | area, sparkline, slope | bar, unless periods are discrete |
 | part to whole | stacked bar | treemap, waffle | pie beyond 5 slices |
 | distribution | histogram | box, violin, ECDF, strip | bar of means |
@@ -19,6 +19,15 @@ with its function, data signature and perceptual channel.
 | geographic | choropleth | symbol map, cartogram | 3D map |
 | composition over time | stacked area | stacked bar, stream | pie per period |
 | uncertainty | error bars | other Wilke §5.6 marks (confidence strips, graded/gradient bands, eye, half-eye, quantile dot plot, fitted draws) | a point estimate with no interval |
+
+A figure with no data at all (a pipeline flow, a module map) has no relationship
+to declare. Declare `visual_kind: diagram` instead. That exempts it from
+DSX-VIZ-010 (relationship), DSX-VIZ-064 (takeaway magnitude) and DSX-VIZ-061
+(units), and from nothing else: the seal, the takeaway text and every other check
+still apply. A figure that declares any data field (`relationship`,
+`data_input_type`, `y_axis*`, `shows_estimates: true`, `shows_uncertainty: true`,
+`uncertainty_mark`, `category_count`, `dual_axis: true`) loses the exemption and
+fails DSX-VIZ-015.
 
 The uncertainty row draws on Wilke's *Uncertainty* category (2019, ch.5 §5.6).
 
