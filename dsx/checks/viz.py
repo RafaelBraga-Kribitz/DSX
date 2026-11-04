@@ -280,7 +280,7 @@ def _check_relationship_match(
                 f"A {relationship} relationship reads correctly from: {', '.join(admissible)}."
             )
             remedy = (
-                f"Declare data_input_type: {sorted(gate)[0]} if that is the data shape, "
+                f"Declare data_input_type: {min(gate)} if that is the data shape, "
                 f"or use {admissible[0]}."
             )
         else:
